@@ -1,0 +1,10 @@
+.next
+node_modules
+pnpm-lock.yaml
+media
+playwright-report
+test-results
+src/payload-types.ts
+src/migrations
+src/app/(payload)
+docs/*.md

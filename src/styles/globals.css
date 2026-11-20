@@ -1,0 +1,339 @@
+@import 'tailwindcss';
+
+/*
+ * =====================================================================
+ *  EduVerse 设计令牌（Design Tokens）
+ * =====================================================================
+ *  分两层：
+ *  1. 原始令牌（@theme）：色板、字号、间距、圆角、阴影、动效。只描述“有什么”。
+ *  2. 语义令牌（:root / .surface-*）：background / foreground / primary …
+ *     描述“用在哪”。组件只使用语义令牌，切换深色区块时自动适配。
+ *
+ *  对比度约束由 tests/unit/design-tokens.test.ts 自动校验（WCAG AA），
+ *  修改色值后必须跑 `pnpm test:unit`。
+ * =====================================================================
+ */
+
+@theme static {
+  /* ---------- 色板：石墨（深色区块、正文） ---------- */
+  --color-ink-950: #0b0c0f;
+  --color-ink-900: #13151a;
+  --color-ink-800: #1c1f26;
+  --color-ink-700: #2a2e37;
+  --color-ink-600: #686e79;
+  --color-ink-500: #5a606c;
+  --color-ink-400: #9ea3ad;
+  --color-ink-300: #c4c8cf;
+  --color-ink-100: #f3f1ec;
+
+  /* ---------- 色板：纸张（浅色背景、分隔线） ---------- */
+  --color-white: #ffffff;
+  --color-paper: #f4f2ee;
+  --color-line: #e3e0d9;
+  --color-field-border: #7d828c;
+  --color-text: #111317;
+  --color-text-subtle: #626875;
+
+  /* ---------- 色板：品牌电光橙（仅用于 CTA 与强调） ---------- */
+  --color-brand-50: #fff0e8;
+  --color-brand-100: #ffdcc9;
+  --color-brand-400: #ff7a3d;
+  --color-brand-500: #ff5b14;
+  --color-brand-600: #e84d08;
+  --color-brand-700: #b93c05;
+
+  /* ---------- 色板：状态色 ---------- */
+  --color-danger-500: #c42b1c;
+  --color-danger-300: #ff8a7a;
+  --color-success-500: #137a3f;
+  --color-success-300: #5fd394;
+  --color-warning-500: #8a5a00;
+
+  /* ---------- 字体 ---------- */
+  /* 中文使用系统字体栈（不下载中文字体）；拉丁展示字体 Space Grotesk 自托管（OFL） */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei', sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* ---------- 字号（中文正文 16px / 行高 1.7） ---------- */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.6;
+  --text-base: 1rem;
+  --text-base--line-height: 1.7;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.7;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.5;
+  /* 标题：流式字号，390px → 1440px 之间平滑过渡 */
+  --text-h4: 1.125rem;
+  --text-h4--line-height: 1.5;
+  --text-h4--font-weight: 600;
+  --text-h3: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
+  --text-h3--line-height: 1.4;
+  --text-h3--font-weight: 600;
+  --text-h2: clamp(1.625rem, 1.3rem + 1.35vw, 2.5rem);
+  --text-h2--line-height: 1.25;
+  --text-h2--font-weight: 700;
+  --text-h1: clamp(2rem, 1.5rem + 2.1vw, 3.25rem);
+  --text-h1--line-height: 1.18;
+  --text-h1--font-weight: 700;
+  --text-display: clamp(2.5rem, 1.55rem + 3.9vw, 5rem);
+  --text-display--line-height: 1.08;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.01em;
+
+  --tracking-eyebrow: 0.14em;
+
+  /* ---------- 间距 ---------- */
+  /* 基础刻度沿用 Tailwind 4px（--spacing: 0.25rem）；以下为版式级间距 */
+  --spacing-gutter: clamp(1rem, -0.25rem + 3.2vw, 2.5rem);
+  --spacing-section: clamp(3.5rem, 2.4rem + 4.5vw, 7.5rem);
+  --spacing-section-sm: clamp(2.5rem, 1.9rem + 2.5vw, 4.5rem);
+
+  /* ---------- 版心 ---------- */
+  --container-site: 80rem; /* 1280px：常规版心 */
+  --container-wide: 90rem; /* 1440px：作品墙等宽版 */
+  --container-prose: 46rem; /* 736px：文章正文 */
+
+  /* ---------- 圆角：克制，避免“大圆角卡片”模板感 ---------- */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* ---------- 阴影：浅色区仅用于浮层；深色区依靠描边 ---------- */
+  --shadow-xs: 0 1px 2px rgb(11 12 15 / 0.06);
+  --shadow-sm: 0 2px 8px -2px rgb(11 12 15 / 0.1);
+  --shadow-md: 0 12px 32px -12px rgb(11 12 15 / 0.22);
+  --shadow-lg: 0 24px 64px -16px rgb(11 12 15 / 0.32);
+
+  /* ---------- 动效 ---------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * 引用运行时变量的令牌必须 inline（Tailwind 会把值内联进工具类，不会输出同名变量）。
+ * 因此在自定义 CSS 中请直接使用 var(--background) / var(--font-space-grotesk) 等，
+ * 不要使用 var(--color-background) / var(--font-display)。
+ */
+@theme inline {
+  --font-display: var(--font-space-grotesk), var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-field: var(--field);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-emphasis: var(--emphasis);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+}
+
+/*
+ * ---------------------------------------------------------------------
+ *  语义令牌
+ *  - :root            默认白底区块
+ *  - .surface-paper   米色浅底区块（交替使用，制造节奏）
+ *  - .surface-dark    深色区块（衬托作品）
+ *  primary = 品牌橙 CTA，文字一律用近黑色（白字在品牌橙上仅 3.1:1，不达标）
+ * ---------------------------------------------------------------------
+ */
+:root,
+.surface-light {
+  --background: var(--color-white);
+  --foreground: var(--color-text);
+  --muted: var(--color-paper);
+  --muted-foreground: var(--color-ink-500);
+  --subtle-foreground: var(--color-text-subtle);
+  --card: var(--color-white);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-white);
+  --popover-foreground: var(--color-text);
+  --border: var(--color-line);
+  --input: var(--color-field-border);
+  --field: var(--color-white);
+  --ring: var(--color-ink-950);
+  --primary: var(--color-brand-500);
+  --primary-hover: var(--color-brand-400);
+  --primary-active: var(--color-brand-600);
+  --primary-foreground: var(--color-ink-950);
+  --secondary: var(--color-ink-950);
+  --secondary-hover: var(--color-ink-800);
+  --secondary-foreground: var(--color-white);
+  --accent: var(--color-paper);
+  --accent-foreground: var(--color-text);
+  --emphasis: var(--color-brand-700);
+  --destructive: var(--color-danger-500);
+  --success: var(--color-success-500);
+}
+
+.surface-paper {
+  --background: var(--color-paper);
+  --muted: var(--color-white);
+  --subtle-foreground: var(--color-ink-500);
+  --card: var(--color-white);
+  --accent: var(--color-line);
+  --border: var(--color-line);
+}
+
+.surface-dark {
+  --background: var(--color-ink-950);
+  --foreground: var(--color-ink-100);
+  --muted: var(--color-ink-900);
+  --muted-foreground: var(--color-ink-400);
+  --subtle-foreground: var(--color-ink-400);
+  --card: var(--color-ink-900);
+  --card-foreground: var(--color-ink-100);
+  --popover: var(--color-ink-800);
+  --popover-foreground: var(--color-ink-100);
+  --border: var(--color-ink-700);
+  --input: var(--color-ink-600);
+  --field: var(--color-ink-900);
+  --ring: var(--color-brand-500);
+  --secondary: var(--color-white);
+  --secondary-hover: var(--color-ink-100);
+  --secondary-foreground: var(--color-ink-950);
+  --accent: var(--color-ink-800);
+  --accent-foreground: var(--color-ink-100);
+  --emphasis: var(--color-brand-500);
+  --destructive: var(--color-danger-300);
+  --success: var(--color-success-300);
+}
+
+/* 区块切换后，背景与文字随之变化 */
+.surface-light,
+.surface-paper,
+.surface-dark {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-padding-top: 5rem; /* 锚点跳转时避开吸顶导航 */
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-wrap: break-word;
+    /* 中西文混排自动加间距、标点挤压（渐进增强，旧浏览器忽略） */
+    text-autospace: normal;
+    text-spacing-trim: normal;
+  }
+
+  /* 标题：西文与数字用 Space Grotesk，中文回退系统字体 */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-space-grotesk), var(--font-sans);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-100);
+    color: var(--color-ink-950);
+  }
+
+  /* 统一的键盘焦点样式：浅色区黑色描边，深色区品牌橙描边，均 ≥ 3:1 */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+}
+
+/* 尊重“减少动态效果”系统设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- 版式工具类 ---------- */
+@utility container-site {
+  margin-inline: auto;
+  width: 100%;
+  max-width: calc(var(--container-site) + var(--spacing-gutter) * 2);
+  padding-inline: var(--spacing-gutter);
+}
+
+@utility container-wide {
+  margin-inline: auto;
+  width: 100%;
+  max-width: calc(var(--container-wide) + var(--spacing-gutter) * 2);
+  padding-inline: var(--spacing-gutter);
+}
+
+@utility container-prose {
+  margin-inline: auto;
+  width: 100%;
+  max-width: calc(var(--container-prose) + var(--spacing-gutter) * 2);
+  padding-inline: var(--spacing-gutter);
+}
+
+/* 英文眉标：小号大写 + 字距，用于区块标题上方 */
+@utility eyebrow {
+  font-family: var(--font-space-grotesk), var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+/* 数字展示（统计数据、价格区间） */
+@utility numeric {
+  font-family: var(--font-space-grotesk), var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
