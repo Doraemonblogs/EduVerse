@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { PreviewBanner } from '@/components/common/preview-banner'
 import { SkipLink } from '@/components/common/skip-link'
 import { StatusPage } from '@/components/common/status-page'
 import { siteFallback } from '@/config/site'
@@ -21,6 +22,7 @@ export default function GlobalNotFound() {
     <html lang="zh-CN" className={fontDisplay.variable}>
       <body className="flex flex-col">
         <SkipLink />
+        <PreviewBanner />
         <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none">
           <StatusPage
             eyebrow={zh.notFound.eyebrow}

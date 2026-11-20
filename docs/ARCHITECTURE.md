@@ -15,6 +15,7 @@
 | 测试 | Vitest（unit / int）+ Playwright（desktop 1440 / mobile 390） | int 使用独立测试库 `eduverse_test` |
 | 字体 | 中文系统字体栈；拉丁展示字体 Space Grotesk 自托管（OFL，22KB） | 不依赖 Google Fonts，中文零下载 |
 | 部署 | Next standalone + 多阶段 Dockerfile + docker-compose（app + postgres），媒体存本地卷 | M8 接入 `@payloadcms/storage-s3`（环境变量开关，兼容 OSS / COS） |
+| 预览站 | GitHub Pages 静态快照（GitHub Actions 构建 → 抓取 → 发布） | 只读预览，便于评审；见 §9 |
 
 ### 依赖清单与理由
 
@@ -199,3 +200,12 @@ docs/ docker/ docker-compose.dev.yml
 7. **性能**：第三方客服 / 统计脚本延迟到空闲或首次交互加载；首屏轮播第一张图优先加载。
 8. **遥测与境外请求**：Next.js 构建遥测通过 `NEXT_TELEMETRY_DISABLED=1` 关闭；Payload 运行时遥测通过 `telemetry: false` 关闭；后台头像使用内置图标（`admin.avatar: 'default'`），不请求 gravatar.com。
 9. **global-not-found** 仍是 Next 实验特性（`experimental.globalNotFound`）；升级 Next 时需回归 404 用例。
+
+## 9. 在线预览站（GitHub Pages）
+
+- 地址：https://doraemonblogs.github.io/EduVerse/ ；工作流 `.github/workflows/preview-pages.yml`，推送默认分支自动发布。
+- 构建参数：`NEXT_BASE_PATH=/<仓库名>`（Next basePath，Payload 同步使用）、`NEXT_PUBLIC_STATIC_PREVIEW=true`（页顶提示条、图片不走 `/_next/image` 实时优化）、`ENABLE_STYLEGUIDE=true`。
+- 导出：`scripts/preview/export-static.ts` 从 `ENTRY_PATHS` 出发顺着站内链接抓取页面，每页写 `x.html` 与 `x/index.html`，注入 `noindex, nofollow`；下载页面引用的非构建资源（M1 起包括 `/api/media/file/*` 媒体文件）；整体复制 `.next/static`；生成 `404.html`；最后校验所有站内链接与资源都在输出目录中，否则失败。
+- 限制：静态托管无法执行服务端逻辑，表单提交（Server Action）、后台、按查询串筛选（`/courses?discipline=…` 只能导出无参数版本）不可用；客户端导航取不到 RSC 数据时自动回退为整页跳转。
+- 数据（M1 起）：工作流中用 PostgreSQL 服务容器 + 种子数据渲染页面，数据库随任务销毁，密钥每次随机生成。
+- 约束：站内链接必须使用 `next/link` / `next/image` 以带上 basePath。

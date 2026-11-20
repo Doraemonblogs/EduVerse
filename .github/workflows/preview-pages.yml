@@ -1,0 +1,104 @@
+# 静态预览站：把前台页面导出为静态文件，发布到 GitHub Pages，便于在线查看效果。
+# 访问地址：https://<owner>.github.io/<repo>/（本仓库为 https://doraemonblogs.github.io/EduVerse/）
+#
+# 首次使用需在仓库 Settings → Pages → Build and deployment → Source 选择「GitHub Actions」。
+# 预览站仅用于查看效果：全部页面 noindex，表单提交与后台不可用。
+name: 预览站（GitHub Pages）
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只保留一次发布；进行中的发布不取消，避免站点处于半更新状态
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # 只在默认分支发布（github-pages 环境默认只允许默认分支部署）
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: eduverse
+          POSTGRES_PASSWORD: eduverse
+          POSTGRES_DB: eduverse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eduverse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://eduverse:eduverse@localhost:5432/eduverse
+      NEXT_BASE_PATH: /${{ github.event.repository.name }}
+      NEXT_PUBLIC_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+      NEXT_PUBLIC_STATIC_PREVIEW: 'true'
+      ENABLE_STYLEGUIDE: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 生成一次性密钥（预览数据库随任务销毁）
+        run: echo "PAYLOAD_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - name: 构建
+        run: pnpm build
+
+      - name: 启动生产服务
+        run: |
+          pnpm start --port 3000 > next-server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "http://localhost:3000${NEXT_BASE_PATH}"; then exit 0; fi
+            sleep 2
+          done
+          echo "服务未能启动" && cat next-server.log && exit 1
+
+      - name: 导出静态站
+        run: pnpm preview:export --origin http://localhost:3000 --base-path "$NEXT_BASE_PATH" --out preview-dist
+
+      - name: 服务日志
+        if: always()
+        run: cat next-server.log || true
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: preview-dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

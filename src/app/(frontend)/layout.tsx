@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import type * as React from 'react'
 
+import { PreviewBanner } from '@/components/common/preview-banner'
 import { SkipLink } from '@/components/common/skip-link'
 import { getSiteUrl, siteFallback } from '@/config/site'
 import { fontDisplay } from '@/fonts'
@@ -37,6 +38,7 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
       </head>
       <body className="flex flex-col">
         <SkipLink />
+        <PreviewBanner />
         <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none">
           {children}
         </main>

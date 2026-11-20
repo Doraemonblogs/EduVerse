@@ -40,3 +40,23 @@ pnpm dev                        # http://localhost:3000
 | `NEXT_PUBLIC_SITE_URL`    | 站点对外地址，用于 canonical / sitemap / OG                  |
 | `ENABLE_STYLEGUIDE`       | 生产环境是否开放 `/styleguide`，默认 `false`                 |
 | `NEXT_TELEMETRY_DISABLED` | 设为 `1` 关闭 Next.js 遥测                                   |
+
+## 在线预览站（GitHub Pages）
+
+地址：**https://doraemonblogs.github.io/EduVerse/**
+
+- 推送到默认分支后，GitHub Actions（`.github/workflows/preview-pages.yml`）自动构建并发布，约 3–5 分钟生效；也可在 Actions 页手动运行「预览站（GitHub Pages）」。
+- 首次使用需要仓库管理员开启一次：**Settings → Pages → Build and deployment → Source 选择「GitHub Actions」**。
+- 预览站是前台页面的静态快照：所有页面 `noindex`，表单提交与后台（`/admin`）不可用，页顶有提示条。
+- 原理：以 `NEXT_BASE_PATH=/EduVerse` 构建并启动生产服务 → `scripts/preview/export-static.ts` 抓取页面 HTML、复制 `.next/static` → 校验无断链后发布。
+
+本地生成并查看同样的预览站：
+
+```bash
+pnpm preview:build
+NEXT_BASE_PATH=/EduVerse ENABLE_STYLEGUIDE=true pnpm start --port 3000
+pnpm preview:export --origin http://localhost:3000 --base-path /EduVerse   # 另开终端
+pnpm preview:serve                                                       # http://localhost:4173/EduVerse/
+```
+
+注意：`pnpm preview:build` 会覆盖 `.next`，之后跑端到端测试前需重新 `pnpm build`。

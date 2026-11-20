@@ -8,3 +8,4 @@ src/payload-types.ts
 src/migrations
 src/app/(payload)
 docs/*.md
+preview-dist

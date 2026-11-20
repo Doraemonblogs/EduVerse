@@ -17,6 +17,8 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   const isDev = process.env.NODE_ENV !== 'production'
+  // 与 /styleguide 页面的开放条件一致；预览站构建时开启
+  const showStyleguide = isDev || process.env.ENABLE_STYLEGUIDE === 'true'
 
   return (
     <Section tone="dark" className="flex min-h-dvh items-center">
@@ -24,18 +26,22 @@ export default function HomePage() {
         <p className="eyebrow text-muted-foreground">{siteFallback.shortName}</p>
         <h1 className="text-display">{siteFallback.name}</h1>
         <p className="max-w-xl text-lg text-muted-foreground">官网建设中。</p>
-        {isDev ? (
+        {showStyleguide || isDev ? (
           <div className="flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href="/styleguide">
-                查看设计规范 <ArrowRight aria-hidden />
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/admin" prefetch={false}>
-                进入后台
-              </Link>
-            </Button>
+            {showStyleguide ? (
+              <Button asChild>
+                <Link href="/styleguide">
+                  查看设计规范 <ArrowRight aria-hidden />
+                </Link>
+              </Button>
+            ) : null}
+            {isDev ? (
+              <Button asChild variant="outline">
+                <Link href="/admin" prefetch={false}>
+                  进入后台
+                </Link>
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </Container>

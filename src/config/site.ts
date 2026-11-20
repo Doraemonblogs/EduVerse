@@ -12,6 +12,12 @@ export const siteFallback = {
   themeColor: '#0b0c0f',
 } as const
 
+/**
+ * 是否为静态预览站构建（GitHub Pages）。
+ * 预览站只用于查看页面效果：页面全部 noindex，表单提交与后台不可用，页顶显示提示条。
+ */
+export const isStaticPreview = process.env.NEXT_PUBLIC_STATIC_PREVIEW === 'true'
+
 /** 站点对外访问地址（无末尾斜杠），用于 canonical、sitemap、Open Graph */
 export function getSiteUrl(): string {
   const url = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'

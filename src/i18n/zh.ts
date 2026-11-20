@@ -7,6 +7,9 @@ export const zh = {
     skipToContent: '跳到主要内容',
     loading: '加载中',
   },
+  preview: {
+    notice: '静态预览站：仅用于查看页面效果，表单提交与后台管理不可用。',
+  },
   notFound: {
     eyebrow: '404',
     title: '页面不存在或已下线',

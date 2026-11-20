@@ -33,7 +33,13 @@ pnpm generate:types      # 改了集合 / 全局配置后重新生成 src/payloa
 pnpm generate:importmap  # 新增后台自定义组件后重新生成 importMap
 pnpm migrate:create      # 数据模型变更后创建迁移（每个改动 schema 的里程碑结束时必须做）
 pnpm migrate             # 执行迁移
+pnpm preview:build       # 以 /EduVerse 子路径构建静态预览站（会覆盖 .next）
+pnpm preview:export      # 抓取运行中的预览服务，导出到 preview-dist/
+pnpm preview:serve       # 本地模拟 GitHub Pages 查看 preview-dist/
 ```
+
+在线预览站：https://doraemonblogs.github.io/EduVerse/（推送默认分支后由 `.github/workflows/preview-pages.yml` 自动发布，详见 README）。
+新增页面若不能从首页顺着链接到达，需登记到 `scripts/preview/export-static.ts` 的 `ENTRY_PATHS`。
 
 本地数据库：`docker compose -f docker-compose.dev.yml up -d`（会同时创建 `eduverse_test`）。
 无 Docker 时自行安装 PostgreSQL 16，创建 `eduverse` 与 `eduverse_test` 两个库。
@@ -85,7 +91,8 @@ docs/        PRD、架构、进度
 - 不得在组件中硬编码营销文案、导航、图片（来自 CMS；系统提示语进 `i18n/zh.ts`）。
 - 不得随意新增依赖；确需新增时在 `docs/PROGRESS.md` 记录理由。
 - 不得手改 `src/app/(payload)/**`、`src/payload-types.ts`、`src/migrations/**`（用命令生成）。
-- 不得提交 `.env`、密钥、`media/` 上传目录。
+- 不得提交 `.env`、密钥、`media/` 上传目录、`preview-dist/` 导出目录。
+- 站内链接一律用 `next/link` 或 `next/image`（会自动带上 basePath）；不要手写以 `/` 开头的 `<a href>` / `<img src>`，否则预览站（子路径部署）会断链。
 - 不得在前台暴露线索数据；线索 REST 写入只能走服务端 Action，不开放公开 create。
 - 不得为了通过检查而跳过 / 删除测试、降低 lint 规则或加 `eslint-disable`（确有必要时写明原因）。
 - 已交付的功能不留 TODO 占位；空状态、加载态、错误态都要处理。
