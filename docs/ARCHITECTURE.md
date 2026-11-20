@@ -180,9 +180,9 @@ docs/ docker/ docker-compose.dev.yml
 - **令牌唯一来源**：`src/styles/globals.css`。
   - `@theme static`：原始令牌（色板、字号、间距、版心、圆角、阴影、动效），全部输出为 CSS 变量。
   - `@theme inline`：把语义变量映射成工具类（`bg-background`、`text-muted-foreground` …）。
-  - `:root` / `.surface-paper` / `.surface-dark`：语义令牌在三种区块下的取值。
+  - `:root` / `.surface-paper` / `.surface-dark`：语义令牌在三种区块下的取值（`.surface-paper` 先继承浅色基础令牌，可嵌套在深色区块内）。
 - **配色**：石墨 `#0b0c0f` 深色区块衬托作品；米色 `#f4f2ee` 区块制造节奏；电光橙 `#ff5b14` 仅用于 CTA，配近黑文字（6.29:1）。浅底上的强调字用橙 700 `#b93c05`（5.66:1）。
-- **对比度**：`src/styles/contrast-pairs.ts` 登记的 21 组语义组合 × 3 种区块，由单元测试按 WCAG AA 校验；`/styleguide` 实时展示。
+- **对比度**：`src/styles/contrast-pairs.ts` 登记的全部语义组合（当前 20 组）× 3 种区块，由单元测试按 WCAG AA 校验；`/styleguide` 实时展示。
 - **字体**：中文系统字体栈；标题与数字的西文用 Space Grotesk；正文 16px / 1.7；标题流式字号（390 → 1440px）。
 - **版心**：常规 1280px，宽版 1440px，正文 736px；左右留白 16 → 40px；区块上下留白 56 → 120px。
 - **圆角**：2 / 4 / 6 / 10px，克制使用；不用大圆角卡片。
@@ -197,5 +197,5 @@ docs/ docker/ docker-compose.dev.yml
 5. **软门槛**：教程解锁与测试报告只是转化引导，不是内容保护。
 6. **爬虫陷阱**：筛选组合页 noindex + canonical；专业方向用 `/majors/[slug]` 承接搜索词。
 7. **性能**：第三方客服 / 统计脚本延迟到空闲或首次交互加载；首屏轮播第一张图优先加载。
-8. **Next 遥测**：构建时默认向境外发送匿名遥测，已通过 `NEXT_TELEMETRY_DISABLED=1` 关闭。
+8. **遥测与境外请求**：Next.js 构建遥测通过 `NEXT_TELEMETRY_DISABLED=1` 关闭；Payload 运行时遥测通过 `telemetry: false` 关闭；后台头像使用内置图标（`admin.avatar: 'default'`），不请求 gravatar.com。
 9. **global-not-found** 仍是 Next 实验特性（`experimental.globalNotFound`）；升级 Next 时需回归 404 用例。

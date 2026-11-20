@@ -155,13 +155,14 @@
  * ---------------------------------------------------------------------
  *  语义令牌
  *  - :root            默认白底区块
- *  - .surface-paper   米色浅底区块（交替使用，制造节奏）
+ *  - .surface-paper   米色浅底区块（交替使用，制造节奏；先继承浅色基础令牌再覆盖，可嵌套在深色区块内）
  *  - .surface-dark    深色区块（衬托作品）
  *  primary = 品牌橙 CTA，文字一律用近黑色（白字在品牌橙上仅 3.1:1，不达标）
  * ---------------------------------------------------------------------
  */
 :root,
-.surface-light {
+.surface-light,
+.surface-paper {
   --background: var(--color-white);
   --foreground: var(--color-text);
   --muted: var(--color-paper);

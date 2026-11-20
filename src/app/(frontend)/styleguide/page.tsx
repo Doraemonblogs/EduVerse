@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { zh } from '@/i18n/zh'
 
 /**
  * 设计规范页（开发工具）：展示设计令牌与基础组件，供评审视觉方向。
@@ -198,6 +199,7 @@ function ComponentShowcase({ tone }: { tone: SectionTone }) {
               type="tel"
               inputMode="numeric"
               autoComplete="tel"
+              required
               defaultValue="1381234"
               aria-invalid
               aria-describedby={`${id}-phone-error`}
@@ -449,7 +451,8 @@ export default function StyleguidePage() {
       <Section tone="paper" spacing="sm">
         <Container className="flex flex-col gap-6">
           <h2 className="text-h3">加载占位</h2>
-          <div className="grid gap-4 sm:grid-cols-3" aria-busy="true" aria-label="加载中">
+          <div className="grid gap-4 sm:grid-cols-3" role="status" aria-busy="true">
+            <span className="sr-only">{zh.a11y.loading}</span>
             {[0, 1, 2].map((i) => (
               <div key={i} className="flex flex-col gap-3">
                 <Skeleton className="aspect-[4/3]" />

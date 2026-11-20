@@ -15,6 +15,8 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // 使用内置头像图标，避免向 gravatar.com（境外、且会泄露邮箱哈希）发请求
+    avatar: 'default',
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -30,6 +32,8 @@ export default buildConfig({
   collections: [Users, Media],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
+  // 关闭 Payload 匿名遥测（数据发往境外 telemetry.payloadcms.com）
+  telemetry: false,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

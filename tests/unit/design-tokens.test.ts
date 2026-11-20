@@ -31,7 +31,9 @@ function parseDeclarations(block: string): Record<string, string> {
 
 const primitives = parseDeclarations(extractBlock(css, /@theme\s+static\s*\{/))
 const semantic: Record<Surface, Record<string, string>> = (() => {
-  const root = parseDeclarations(extractBlock(css, /:root,\s*\.surface-light\s*\{/))
+  const root = parseDeclarations(
+    extractBlock(css, /:root,\s*\.surface-light,\s*\.surface-paper\s*\{/),
+  )
   return {
     light: root,
     paper: { ...root, ...parseDeclarations(extractBlock(css, /\n\.surface-paper\s*\{/)) },

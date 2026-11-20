@@ -9,13 +9,13 @@
 
 ## 技术栈
 
-| 层 | 选型 |
-|---|---|
-| 框架 | Next.js 16.4（App Router、Turbopack、React 19）+ TypeScript strict |
-| CMS | Payload 3.94（与 Next 同进程，后台 `/admin`，中文界面）+ PostgreSQL 16 |
-| 样式 | Tailwind CSS v4（令牌在 `src/styles/globals.css`）+ shadcn/ui（Radix，代码已拷入并改造） |
-| 校验 / 测试 | zod · Vitest（unit + int 两个 project）· Playwright（desktop 1440 / mobile 390） |
-| 包管理 | pnpm 10，Node ≥ 22.23 |
+| 层          | 选型                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| 框架        | Next.js 16.4（App Router、Turbopack、React 19）+ TypeScript strict                       |
+| CMS         | Payload 3.94（与 Next 同进程，后台 `/admin`，中文界面）+ PostgreSQL 16                   |
+| 样式        | Tailwind CSS v4（令牌在 `src/styles/globals.css`）+ shadcn/ui（Radix，代码已拷入并改造） |
+| 校验 / 测试 | zod · Vitest（unit + int 两个 project）· Playwright（desktop 1440 / mobile 390）         |
+| 包管理      | pnpm 10，Node 22 LTS（≥ 22.23.5；engines 同时允许 24.22.3+ / 26.13.1+）                  |
 
 ## 常用命令
 
@@ -93,6 +93,7 @@ docs/        PRD、架构、进度
 ## 工作流程
 
 一次只做一个里程碑（见 `docs/PRD.md` §9）。里程碑结束前必须：
+
 1. `pnpm check` 与 `pnpm build` 通过；`pnpm test:e2e` 通过（控制台无报错）。
 2. 用 1440px 与 390px 截图自查（无横向滚动）。
 3. 改了数据模型则 `pnpm migrate:create` 并提交迁移。

@@ -5,6 +5,7 @@
 export const zh = {
   a11y: {
     skipToContent: '跳到主要内容',
+    loading: '加载中',
   },
   notFound: {
     eyebrow: '404',
