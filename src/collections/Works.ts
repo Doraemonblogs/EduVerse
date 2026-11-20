@@ -54,6 +54,7 @@ export const Works: CollectionConfig = {
   versions: { drafts: true, maxPerDoc: 20 },
   access: {
     read: publishedOrEditor,
+    readVersions: isStaffEditor,
     create: isStaffEditor,
     update: isStaffEditor,
     delete: isStaffEditor,

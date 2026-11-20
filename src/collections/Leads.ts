@@ -1,4 +1,9 @@
-import type { CollectionConfig, Field } from 'payload'
+import {
+  validations,
+  type CollectionConfig,
+  type Field,
+  type TextFieldSingleValidation,
+} from 'payload'
 
 import { leadAdminField, readLeads, updateLeads } from '@/access/leads'
 import { adminFieldOnly, hasRole, isAdmin } from '@/access/roles'
@@ -24,6 +29,13 @@ export const LEAD_INTENT_OPTIONS = [
 
 /** 中国大陆手机号：1 开头，第二位 3–9，共 11 位（不维护精确号段表，避免误拒新号段） */
 export const MAINLAND_PHONE_PATTERN = /^1[3-9]\d{9}$/
+
+/** 手机号：先执行内置校验（required），再校验大陆号段格式 */
+const validatePhone: TextFieldSingleValidation = (value, options) => {
+  const base = validations.text(value, options)
+  if (base !== true) return base
+  return !value || MAINLAND_PHONE_PATTERN.test(value) ? true : '请输入 11 位中国大陆手机号'
+}
 
 /** 系统写入、后台只读的字段（来源、同意记录等） */
 const readOnly = (field: Field): Field =>
@@ -52,7 +64,7 @@ export const Leads: CollectionConfig = {
     update: updateLeads,
     delete: isAdmin,
   },
-  indexes: [{ fields: ['phone', 'createdAt'] }],
+  indexes: [{ fields: ['phone', 'createdAt'] }, { fields: ['client.ip', 'createdAt'] }],
   hooks: {
     beforeChange: [
       ({ data, originalDoc, req, operation }) => {
@@ -60,22 +72,28 @@ export const Leads: CollectionConfig = {
         const userId = req.user?.id
         const original = operation === 'update' ? originalDoc : undefined
 
-        // 跟进记录：已有条目保留原作者与时间（防止通过接口篡改），新条目自动写入当前用户与时间
+        // 跟进记录：作者与时间始终由服务端写入；非管理员只能追加，已有记录不可修改或删除
         if (Array.isArray(data.followUps)) {
-          const existing = new Map<string, { author?: unknown; createdAt?: unknown }>(
-            (original?.followUps ?? []).map(
-              (item: { id?: string; author?: unknown; createdAt?: unknown }) => [
-                String(item.id),
-                item,
-              ],
-            ),
-          )
-          data.followUps = data.followUps.map((item: Record<string, unknown>) => {
-            const prev = item.id ? existing.get(String(item.id)) : undefined
-            return prev
-              ? { ...item, author: prev.author, createdAt: prev.createdAt }
-              : { ...item, author: userId, createdAt: now }
-          })
+          type FollowUp = {
+            id?: string | null
+            content?: string
+            author?: unknown
+            createdAt?: unknown
+          }
+          const stored: FollowUp[] = original?.followUps ?? []
+          const storedById = new Map(stored.map((row) => [String(row.id), row]))
+          const submitted = data.followUps as FollowUp[]
+          const isNew = (row: FollowUp) => !row.id || !storedById.has(String(row.id))
+          const stamp = (row: FollowUp) => ({ ...row, author: userId, createdAt: now })
+
+          data.followUps = hasRole(req.user, 'admin')
+            ? submitted.map((row) => {
+                const prev = isNew(row) ? undefined : storedById.get(String(row.id))
+                return prev
+                  ? { ...row, author: prev.author, createdAt: prev.createdAt }
+                  : stamp(row)
+              })
+            : [...stored, ...submitted.filter(isNew).map(stamp)]
         }
 
         // 状态变更历史：始终以数据库中的记录为准，忽略提交的值，状态变化时追加一条
@@ -105,10 +123,7 @@ export const Leads: CollectionConfig = {
                   label: '手机号',
                   required: true,
                   index: true,
-                  validate: (value: string | null | undefined) =>
-                    !value || MAINLAND_PHONE_PATTERN.test(value)
-                      ? true
-                      : '请输入 11 位中国大陆手机号',
+                  validate: validatePhone,
                 },
               ],
             },

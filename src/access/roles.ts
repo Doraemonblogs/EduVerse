@@ -14,10 +14,13 @@ export const ROLE_OPTIONS = [
 
 export type Role = (typeof ROLE_OPTIONS)[number]['value']
 
-type MaybeUser = { id?: number | string; role?: string | null } | null | undefined
+type MaybeUser =
+  { id?: number | string; role?: string | null; active?: boolean | null } | null | undefined
 
+/** 已停用的账号（active=false）不具备任何角色 */
 export function hasRole(user: MaybeUser, ...roles: Role[]): boolean {
-  return Boolean(user?.role && (roles as string[]).includes(user.role))
+  if (!user || user.active === false) return false
+  return Boolean(user.role && (roles as string[]).includes(user.role))
 }
 
 /** 任何人（包括未登录访客）——用于公开内容的读取 */

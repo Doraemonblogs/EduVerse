@@ -7,7 +7,7 @@ import type { SeedPage } from '../types'
  */
 
 const HOTLINE = '400-000-0000'
-const HQ_ADDRESS = '北京市海淀区中关村南大街 88 号云帆大厦 6 层'
+const HQ_ADDRESS = '北京市海淀区示例路 1 号云帆大厦 6 层（示例地址）'
 const VERSION_DATE = '2026 年 11 月 20 日'
 const DRAFT_NOTICE = '本文本为示例草稿，正式上线前须经法务审核。'
 const CATALOG_NOTE = '截至 2026 年 11 月，课程目录统计'

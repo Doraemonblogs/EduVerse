@@ -1,4 +1,4 @@
-import type { Field, GroupField, TextFieldSingleValidation } from 'payload'
+import { validations, type Field, type GroupField, type TextFieldSingleValidation } from 'payload'
 
 /** 排序字段：数字越小越靠前 */
 export const orderField: Field = {
@@ -19,7 +19,10 @@ export const featuredField: Field = {
 }
 
 /** 链接地址：站内路径（/ 开头）或 http(s) 外链 */
-export const validateHref: TextFieldSingleValidation = (value) => {
+export const validateHref: TextFieldSingleValidation = (value, options) => {
+  // 先执行内置校验（required 等），再校验格式
+  const base = validations.text(value, options)
+  if (base !== true) return base
   if (!value) return true
   if (/^\/(?!\/)/.test(value) || /^https?:\/\//.test(value) || /^(tel|mailto):/.test(value)) {
     return true

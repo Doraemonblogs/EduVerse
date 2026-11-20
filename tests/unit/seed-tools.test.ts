@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { toLexical } from '../../scripts/seed/lexical'
 import {
@@ -9,6 +9,14 @@ import {
 } from '../../scripts/seed/placeholders'
 
 describe('占位图生成', () => {
+  // 不受外部 SEED_IMAGE_SCALE（集成测试 / 本地调试会设置）影响
+  beforeEach(() => {
+    vi.stubEnv('SEED_IMAGE_SCALE', '1')
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('同一个种子得到相同的随机序列，不同种子不同', () => {
     const a = createRandom('work-1')
     const b = createRandom('work-1')

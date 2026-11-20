@@ -2,6 +2,7 @@ import path from 'path'
 import type { CollectionConfig } from 'payload'
 
 import { anyone, hiddenFromConsultant, isStaffEditor } from '@/access/roles'
+import { revalidateCollection } from '@/hooks/revalidate'
 
 import { ADMIN_GROUPS } from './groups'
 
@@ -15,6 +16,7 @@ export const Media: CollectionConfig = {
     hidden: hiddenFromConsultant,
     defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'updatedAt'],
   },
+  hooks: revalidateCollection('media'),
   access: {
     read: anyone,
     create: isStaffEditor,

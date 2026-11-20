@@ -1214,9 +1214,9 @@ export interface StatsBlock {
     value: string;
     label: string;
     /**
-     * 数据口径与统计时间，如：截至 2026 年 9 月，按结业学员统计
+     * 必填：数据口径与统计时间，如：截至 2026 年 9 月，按结业学员统计
      */
-    note?: string | null;
+    note: string;
     id?: string | null;
   }[];
   id?: string | null;

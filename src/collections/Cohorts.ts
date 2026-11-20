@@ -6,7 +6,7 @@ import {
   type RelationshipFieldSingleValidation,
 } from 'payload'
 
-import { anyone, hiddenFromConsultant, isStaffEditor } from '@/access/roles'
+import { hasRole, hiddenFromConsultant, isStaffEditor } from '@/access/roles'
 import { revalidateCollection } from '@/hooks/revalidate'
 
 import { DELIVERY_MODE_OPTIONS } from './Courses'
@@ -108,7 +108,9 @@ export const Cohorts: CollectionConfig = {
   },
   defaultSort: 'startDate',
   access: {
-    read: anyone,
+    // 访客只能看到所属课程已发布的开班计划，避免自动生成的标题泄露草稿课程名称
+    read: ({ req }) =>
+      hasRole(req.user, 'admin', 'editor') ? true : { 'course._status': { equals: 'published' } },
     create: isStaffEditor,
     update: isStaffEditor,
     delete: isStaffEditor,

@@ -49,6 +49,7 @@ export const Pages: CollectionConfig = {
   versions: { drafts: true, maxPerDoc: 20 },
   access: {
     read: publishedOrEditor,
+    readVersions: isStaffEditor,
     create: isStaffEditor,
     update: isStaffEditor,
     delete: isStaffEditor,

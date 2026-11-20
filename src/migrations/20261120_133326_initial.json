@@ -13332,6 +13332,27 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "client_ip_createdAt_idx": {
+          "name": "client_ip_createdAt_idx",
+          "columns": [
+            {
+              "expression": "client_ip",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -18053,6 +18074,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "9816b687-a9ee-426b-80c2-d925759c6cfe",
+  "id": "3b5d0741-bc57-432f-9dea-e26b65ec85ae",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

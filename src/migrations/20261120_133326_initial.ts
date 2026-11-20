@@ -2023,6 +2023,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "leads_updated_at_idx" ON "leads" USING btree ("updated_at");
   CREATE INDEX "leads_created_at_idx" ON "leads" USING btree ("created_at");
   CREATE INDEX "phone_createdAt_idx" ON "leads" USING btree ("phone","created_at");
+  CREATE INDEX "client_ip_createdAt_idx" ON "leads" USING btree ("client_ip","created_at");
   CREATE INDEX "users_sessions_order_idx" ON "users_sessions" USING btree ("_order");
   CREATE INDEX "users_sessions_parent_id_idx" ON "users_sessions" USING btree ("_parent_id");
   CREATE INDEX "users_campus_idx" ON "users" USING btree ("campus_id");

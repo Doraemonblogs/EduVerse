@@ -84,6 +84,33 @@ describe('后台账号', () => {
     expect(result.docs.map((u) => u.id)).toEqual([editor.id])
   })
 
+  it('停用账号会立即吊销已登录的会话', async () => {
+    const user = await payload.create({
+      collection: 'users',
+      data: { email: `revoke@${DOMAIN}`, password: PASSWORD, name: '待停用', role: 'editor' },
+    })
+    const { token } = await payload.login({
+      collection: 'users',
+      data: { email: user.email, password: PASSWORD },
+    })
+    const headers = new Headers({ Authorization: `JWT ${token}` })
+    expect((await payload.auth({ headers })).user?.id).toBe(user.id)
+
+    await payload.update({ collection: 'users', id: user.id, data: { active: false } })
+    expect((await payload.auth({ headers })).user).toBeNull()
+  })
+
+  it('只有管理员能解锁被锁定的账号', async () => {
+    await expect(
+      payload.unlock({
+        collection: 'users',
+        data: { email: admin.email, password: '' },
+        overrideAccess: false,
+        req: { user: { ...editor, collection: 'users' } } as never,
+      }),
+    ).rejects.toThrow()
+  })
+
   it('停用的账号无法登录', async () => {
     const user = await payload.create({
       collection: 'users',
@@ -184,6 +211,34 @@ describe('线索权限', () => {
     expect(updated.followUps?.[0]?.createdAt).toBeTruthy()
   })
 
+  it('课程顾问不能修改或删除已有的跟进记录，只能追加', async () => {
+    const before = await payload.findByID({ collection: 'leads', id: leadA.id, depth: 0 })
+    const existing = before.followUps?.[0]
+    expect(existing).toBeTruthy()
+
+    // 尝试改写已有记录并删掉它，同时追加一条新记录
+    const updated = await payload.update({
+      collection: 'leads',
+      id: leadA.id,
+      data: { followUps: [{ content: '追加的记录' }] },
+      user: consultantA,
+      overrideAccess: false,
+      depth: 0,
+    })
+    expect(updated.followUps?.map((f) => f.content)).toEqual([existing!.content, '追加的记录'])
+
+    const rewritten = await payload.update({
+      collection: 'leads',
+      id: leadA.id,
+      data: { followUps: [{ id: existing!.id, content: '被篡改的内容' }] },
+      user: consultantA,
+      overrideAccess: false,
+      depth: 0,
+    })
+    expect(rewritten.followUps?.[0]?.content).toBe(existing!.content)
+    expect(rewritten.followUps).toHaveLength(2)
+  })
+
   it('课程顾问看不到线索的 IP 等设备信息', async () => {
     const lead = await payload.findByID({
       collection: 'leads',
@@ -235,6 +290,21 @@ describe('内容权限', () => {
     })
     expect(result.docs.map((d) => d.slug)).toEqual(['int-test-live'])
     await payload.delete({ collection: 'pages', where: { id: { in: [draft.id, live.id] } } })
+  })
+
+  it('课程顾问不能读取内容的历史版本', async () => {
+    await expect(
+      payload.findVersions({ collection: 'pages', user: consultantA, overrideAccess: false }),
+    ).rejects.toThrow()
+  })
+
+  it('slug 为必填：标题无法生成 slug 且未手填时拒绝保存', async () => {
+    await expect(
+      payload.create({
+        collection: 'article-categories',
+        data: { name: '！！！', slug: '' },
+      }),
+    ).rejects.toThrow()
   })
 
   it('学员作品发布前必须确认已取得授权', async () => {

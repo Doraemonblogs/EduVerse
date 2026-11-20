@@ -19,14 +19,16 @@ export const Users: CollectionConfig = {
   },
   access: {
     create: isAdmin,
+    // 登录失败被锁定的账号只能由管理员解锁
+    unlock: isAdmin,
     // 非管理员只能看到、修改自己的账号
     read: ({ req: { user } }) => {
       if (hasRole(user, 'admin')) return true
-      return user ? { id: { equals: user.id } } : false
+      return user && user.active !== false ? { id: { equals: user.id } } : false
     },
     update: ({ req: { user } }) => {
       if (hasRole(user, 'admin')) return true
-      return user ? { id: { equals: user.id } } : false
+      return user && user.active !== false ? { id: { equals: user.id } } : false
     },
     delete: isAdmin,
   },
@@ -39,6 +41,20 @@ export const Users: CollectionConfig = {
           if (totalDocs === 0) return { ...data, role: 'admin', active: true }
         }
         return data
+      },
+    ],
+    afterChange: [
+      // 停用账号时立即吊销其全部登录会话（JWT 校验会拒绝不在会话列表中的令牌，刷新令牌也随之失效）
+      async ({ doc, previousDoc, operation, req }) => {
+        if (operation === 'update' && previousDoc?.active !== false && doc.active === false) {
+          await req.payload.db.updateOne({
+            collection: 'users',
+            id: doc.id,
+            data: { sessions: [] },
+            req,
+          })
+        }
+        return doc
       },
     ],
     beforeLogin: [

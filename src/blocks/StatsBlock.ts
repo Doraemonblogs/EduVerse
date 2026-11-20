@@ -34,7 +34,9 @@ export const StatsBlock: Block = {
           name: 'note',
           type: 'text',
           label: '说明',
-          admin: { description: '数据口径与统计时间，如：截至 2026 年 9 月，按结业学员统计' },
+          // 广告法：引证数据须标明出处，口径与统计时间必填
+          required: true,
+          admin: { description: '必填：数据口径与统计时间，如：截至 2026 年 9 月，按结业学员统计' },
         },
       ],
     },

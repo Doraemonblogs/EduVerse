@@ -28,6 +28,23 @@ const buildSearchText: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
   return data
 }
 
+/**
+ * 浏览量只由前台计数（M6 原生 SQL 自增）。后台编辑表单载入的是版本快照，
+ * 保存时会把旧计数写回，因此更新时总是以主表当前值为准。
+ */
+const preserveViews: CollectionBeforeChangeHook = async ({ data, operation, originalDoc, req }) => {
+  if (operation !== 'update' || !originalDoc?.id) return data
+  const current = await req.payload.findByID({
+    collection: 'articles',
+    id: originalDoc.id,
+    depth: 0,
+    select: { views: true },
+    disableErrors: true,
+    req,
+  })
+  return { ...data, views: current?.views ?? originalDoc.views ?? 0 }
+}
+
 export const Articles: CollectionConfig = {
   slug: 'articles',
   labels: { singular: '文章', plural: '文章' },
@@ -42,13 +59,14 @@ export const Articles: CollectionConfig = {
   versions: { drafts: true, maxPerDoc: 20 },
   access: {
     read: publishedOrEditor,
+    readVersions: isStaffEditor,
     create: isStaffEditor,
     update: isStaffEditor,
     delete: isStaffEditor,
   },
   hooks: {
     ...revalidateCollection('articles'),
-    beforeChange: [buildSearchText],
+    beforeChange: [buildSearchText, preserveViews],
   },
   fields: [
     {

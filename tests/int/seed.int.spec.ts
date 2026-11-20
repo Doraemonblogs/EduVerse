@@ -89,6 +89,42 @@ describe('种子数据（集成）', () => {
     expect(nav.items?.some((i) => i.type === 'course_menu')).toBe(true)
   })
 
+  it('课程下架后，访客看不到它的开班计划（标题不会泄露草稿课程名）', async () => {
+    const { docs } = await payload.find({
+      collection: 'courses',
+      where: { slug: { equals: 'houdini-fx' } },
+    })
+    const course = docs[0]!
+    const visibleBefore = await payload.count({
+      collection: 'cohorts',
+      where: { course: { equals: course.id } },
+      overrideAccess: false,
+    })
+    expect(visibleBefore.totalDocs).toBeGreaterThan(0)
+
+    await payload.update({ collection: 'courses', id: course.id, data: { _status: 'draft' } })
+    const visibleAfter = await payload.count({
+      collection: 'cohorts',
+      where: { course: { equals: course.id } },
+      overrideAccess: false,
+    })
+    expect(visibleAfter.totalDocs).toBe(0)
+    await payload.update({ collection: 'courses', id: course.id, data: { _status: 'published' } })
+  })
+
+  it('后台保存文章不会用旧快照覆盖浏览量', async () => {
+    const { docs } = await payload.find({ collection: 'articles', limit: 1 })
+    const article = docs[0]!
+    // 模拟前台计数（M6 用原生 SQL 自增，不经过钩子）
+    await payload.db.updateOne({ collection: 'articles', id: article.id, data: { views: 42 } })
+    const saved = await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { title: `${article.title}`, views: 0 },
+    })
+    expect(saved.views).toBe(42)
+  })
+
   it('演示线索分配给了课程顾问', async () => {
     const consultant = await payload.find({
       collection: 'users',

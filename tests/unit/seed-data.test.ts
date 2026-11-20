@@ -115,6 +115,10 @@ describe('种子数据完整性', () => {
     expect(pages.map((p) => p.slug).sort()).toEqual(['about', 'contact', 'privacy', 'terms'])
   })
 
+  it('校区地址明确标注为示例，避免与真实地址重合', () => {
+    for (const c of campusDetails) expect(c.address, c.slug).toContain('示例')
+  })
+
   it('教程视频号格式合法', () => {
     for (const t of tutorials) expect(t.videoId).toMatch(/^BV[0-9A-Za-z]{10}$/)
   })
