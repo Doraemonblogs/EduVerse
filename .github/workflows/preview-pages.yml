@@ -69,6 +69,14 @@ jobs:
       - name: 生成一次性密钥（预览数据库随任务销毁）
         run: echo "PAYLOAD_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
+      # 占位图上的中文类别文字需要中文字体（文泉驿正黑，约 10MB）
+      - name: 安装中文字体
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-wqy-zenhei
+
+      # 开发模式下 Payload 会按配置自动建表；预览库是一次性的，无需迁移
+      - name: 写入种子数据
+        run: pnpm seed:reset
+
       - name: 构建
         run: pnpm build
 

@@ -26,7 +26,8 @@
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
-    "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status"
+    "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
+    "seed:reset": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed/index.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.94.0",
@@ -42,6 +43,7 @@
     "lucide-react": "^1.77.0",
     "next": "16.4.6",
     "payload": "3.94.0",
+    "pinyin-pro": "3.29.5",
     "radix-ui": "^1.8.1",
     "react": "19.2.9",
     "react-dom": "19.2.9",

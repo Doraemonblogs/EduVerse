@@ -137,6 +137,27 @@ docs/ docker/ docker-compose.dev.yml
 
 扩展预留：学员账号用新集合 `members`（与后台 `users` 分离），线索可关联；订单 / 课节作为新集合挂在课程下，不改现有字段。
 
+### 4.7 M1 落地说明（与上文的差异与补充）
+
+- **slug**：使用 Payload 内置 `slugField`，标题中的中文由 `pinyin-pro` 转为无声调拼音（`src/lib/slugify.ts`），后台可锁定 / 手改；统一校验 `^[a-z0-9]+(-[a-z0-9]+)*$`。作品详情用 `/works/[id]`，不设 slug。
+- **草稿**：专业方向、课程、讲师、作品、学员故事、文章、校区、免费教程、页面启用草稿（`_status`）。**Local API 默认 `overrideAccess: true`，前台数据层必须显式过滤 `_status: published`**。
+- **users**：新增 `active`（停用后 `beforeLogin` 拒绝登录）；库中没有账号时第一个账号自动成为管理员；`role`、`active` 仅管理员可改；非管理员只能读写自己的账号（不对其隐藏菜单，以免影响“我的账号”页）。
+- **leads**：`beforeChange` 钩子在服务端重建状态变更历史（忽略提交值，防伪造），新增跟进记录自动写入记录人与时间、已有记录保留原作者；`source / context / consent / isDuplicate / duplicateOf / webhookDeliveries` 只读且仅管理员可写；`client`（IP、UA）与推送记录仅管理员可见。
+- **cohorts**：标题由钩子按“课程 · 校区（或线上）· 开班日期（北京时间）”自动生成。
+- **articles**：`searchText` 由钩子从标题、摘要、正文（Lexical 转纯文本，`src/lib/lexical-text.ts`）生成，供 M7 站内搜索。
+- **works**：外部播放器地址只允许白名单域名（`ALLOWED_VIDEO_HOSTS`）；发布时必须勾选“已取得学员书面授权”（草稿不校验）。学员故事同理。
+- **pages**：内容区块 `richText / imageText / stats / timeline / cta`（`src/blocks/`），数据区块要求注明口径与时间。
+- **lead-settings**：群机器人地址的主机名必须与平台官方域名完全一致（`validateWebhookUrl`，防 SSRF）。
+- **缓存标签**：`collection:<slug>`、`doc:<slug>:<id>`、`global:<slug>`（`src/hooks/revalidate.ts`）；脚本写入时传 `context.disableRevalidate`。
+- **媒体**：本地目录默认 `<项目根>/media`（可用 `MEDIA_DIR` 覆盖），生成 thumbnail 400 / card 800 / hero 1920 / og 1200×630 的 WebP；字符串媒体 URL 在前台用 `withBasePath()`（`src/lib/base-path.ts`）补子路径。
+
+### 4.8 种子数据
+
+- `pnpm seed:reset`（`scripts/seed/index.ts`）：清空内容、线索与种子账号（`*@seed.eduverse.test`，不动其它账号）→ 本地生成占位图（`scripts/seed/placeholders.ts`，sharp 渲染 SVG，同一种子结果一致）→ 按依赖顺序写入 → 写全局配置 → 创建演示账号与线索。生产环境拒绝运行。
+- 骨架 `scripts/seed/registry.ts` 定义专业方向 / 课程 / 软件 / 校区的 slug，其它数据通过类型化的 slug 引用（写错即编译失败）；内容在 `scripts/seed/data/`。
+- `tests/unit/seed-data.test.ts` 校验数量、引用完整性与广告法禁用词。
+- 演示账号（仅本地开发）：`admin@ / editor@ / consultant.bj@ / consultant.sh@seed.eduverse.test`，密码见种子脚本输出。
+
 ## 5. 路由清单
 
 | 路由 | 说明 | 里程碑 |

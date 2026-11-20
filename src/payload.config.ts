@@ -6,8 +6,33 @@ import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
+import { ArticleCategories } from './collections/ArticleCategories'
+import { Articles } from './collections/Articles'
+import { Banners } from './collections/Banners'
+import { Campuses } from './collections/Campuses'
+import { CareerEvents } from './collections/CareerEvents'
+import { Cohorts } from './collections/Cohorts'
+import { Courses } from './collections/Courses'
+import { Disciplines } from './collections/Disciplines'
+import { Faqs } from './collections/Faqs'
+import { Leads } from './collections/Leads'
 import { Media } from './collections/Media'
+import { Pages } from './collections/Pages'
+import { Partners } from './collections/Partners'
+import { QuizQuestions } from './collections/QuizQuestions'
+import { Software } from './collections/Software'
+import { Stories } from './collections/Stories'
+import { Teachers } from './collections/Teachers'
+import { Tutorials } from './collections/Tutorials'
 import { Users } from './collections/Users'
+import { Works } from './collections/Works'
+import { CareersPage } from './globals/CareersPage'
+import { Footer } from './globals/Footer'
+import { HomePage } from './globals/HomePage'
+import { LeadSettings } from './globals/LeadSettings'
+import { Navigation } from './globals/Navigation'
+import { QuizSettings } from './globals/QuizSettings'
+import { SiteSettings } from './globals/SiteSettings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -29,11 +54,38 @@ export default buildConfig({
     supportedLanguages: { zh },
     fallbackLanguage: 'zh',
   },
-  collections: [Users, Media],
+  // 侧边栏顺序：课程体系 → 师资与作品 → 内容运营 → 线索 → 站点配置 → 系统
+  collections: [
+    Disciplines,
+    Courses,
+    Cohorts,
+    Software,
+    Teachers,
+    Works,
+    Stories,
+    Partners,
+    CareerEvents,
+    Articles,
+    ArticleCategories,
+    Campuses,
+    Banners,
+    Faqs,
+    Tutorials,
+    QuizQuestions,
+    Pages,
+    Leads,
+    Users,
+    Media,
+  ],
+  globals: [SiteSettings, Navigation, Footer, HomePage, CareersPage, QuizSettings, LeadSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   // 关闭 Payload 匿名遥测（数据发往境外 telemetry.payloadcms.com）
   telemetry: false,
+  upload: {
+    // 单个上传文件上限 50MB（视频）
+    limits: { fileSize: 50 * 1024 * 1024 },
+  },
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

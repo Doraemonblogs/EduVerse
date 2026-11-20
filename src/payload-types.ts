@@ -67,6 +67,24 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    disciplines: Discipline;
+    courses: Course;
+    cohorts: Cohort;
+    software: Software;
+    teachers: Teacher;
+    works: Work;
+    stories: Story;
+    partners: Partner;
+    'career-events': CareerEvent;
+    articles: Article;
+    'article-categories': ArticleCategory;
+    campuses: Campus;
+    banners: Banner;
+    faqs: Faq;
+    tutorials: Tutorial;
+    'quiz-questions': QuizQuestion;
+    pages: Page;
+    leads: Lead;
     users: User;
     media: Media;
     'payload-kv': PayloadKv;
@@ -74,8 +92,41 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    disciplines: {
+      courses: 'courses';
+      teachers: 'teachers';
+    };
+    courses: {
+      cohorts: 'cohorts';
+      works: 'works';
+    };
+    teachers: {
+      courses: 'courses';
+    };
+    campuses: {
+      courses: 'courses';
+    };
+  };
   collectionsSelect: {
+    disciplines: DisciplinesSelect<false> | DisciplinesSelect<true>;
+    courses: CoursesSelect<false> | CoursesSelect<true>;
+    cohorts: CohortsSelect<false> | CohortsSelect<true>;
+    software: SoftwareSelect<false> | SoftwareSelect<true>;
+    teachers: TeachersSelect<false> | TeachersSelect<true>;
+    works: WorksSelect<false> | WorksSelect<true>;
+    stories: StoriesSelect<false> | StoriesSelect<true>;
+    partners: PartnersSelect<false> | PartnersSelect<true>;
+    'career-events': CareerEventsSelect<false> | CareerEventsSelect<true>;
+    articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    'article-categories': ArticleCategoriesSelect<false> | ArticleCategoriesSelect<true>;
+    campuses: CampusesSelect<false> | CampusesSelect<true>;
+    banners: BannersSelect<false> | BannersSelect<true>;
+    faqs: FaqsSelect<false> | FaqsSelect<true>;
+    tutorials: TutorialsSelect<false> | TutorialsSelect<true>;
+    'quiz-questions': QuizQuestionsSelect<false> | QuizQuestionsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
+    leads: LeadsSelect<false> | LeadsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -87,8 +138,24 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+    navigation: Navigation;
+    footer: Footer;
+    'home-page': HomePage;
+    'careers-page': CareersPage;
+    'quiz-settings': QuizSetting;
+    'lead-settings': LeadSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    navigation: NavigationSelect<false> | NavigationSelect<true>;
+    footer: FooterSelect<false> | FooterSelect<true>;
+    'home-page': HomePageSelect<false> | HomePageSelect<true>;
+    'careers-page': CareersPageSelect<false> | CareersPageSelect<true>;
+    'quiz-settings': QuizSettingsSelect<false> | QuizSettingsSelect<true>;
+    'lead-settings': LeadSettingsSelect<false> | LeadSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -119,10 +186,1181 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "disciplines".
+ */
+export interface Discipline {
+  id: number;
+  name: string;
+  /**
+   * 用于导航、标签等空间有限的位置，如“三维动画”
+   */
+  shortName?: string | null;
+  tagline?: string | null;
+  cover: number | Media;
+  intro?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  careerDirections?:
+    | {
+        title: string;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 填写区间时必须同时填写数据来源与统计时间（广告法要求标明出处）。
+   */
+  salaryRef?: {
+    /**
+     * 如：8,000–15,000 元/月
+     */
+    range?: string | null;
+    source?: string | null;
+    /**
+     * 如：2026 年 9 月
+     */
+    statDate?: string | null;
+    note?: string | null;
+  };
+  courses?: {
+    docs?: (number | Course)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  teachers?: {
+    docs?: (number | Teacher)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  showInNav?: boolean | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  /**
+   * 描述图片内容，供读屏软件与搜索引擎使用，如“学员作品：雨夜街角场景渲染”
+   */
+  alt: string;
+  caption?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    hero?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    og?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses".
+ */
+export interface Course {
+  id: number;
+  title: string;
+  discipline: number | Discipline;
+  classType: 'long_term' | 'short_term';
+  deliveryModes: ('offline' | 'online' | 'dual')[];
+  /**
+   * 线下面授 / 双师课堂开设的校区；纯线上课程可不填
+   */
+  campuses?: (number | Campus)[] | null;
+  duration: {
+    value: number;
+    unit: 'week' | 'month';
+  };
+  /**
+   * 如：全日制（周一至周五）、周末班、晚班
+   */
+  schedule?: string | null;
+  summary: string;
+  cover: number | Media;
+  highlights?:
+    | {
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  audience?:
+    | {
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  stages?:
+    | {
+        title: string;
+        /**
+         * 如：4 周
+         */
+        duration?: string | null;
+        goals?: string | null;
+        topics?:
+          | {
+              text: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  software?: (number | Software)[] | null;
+  projects?:
+    | {
+        title: string;
+        description?: string | null;
+        image?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  teachers?: (number | Teacher)[] | null;
+  faqs?: (number | Faq)[] | null;
+  careerDirections?:
+    | {
+        title: string;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 留空则使用所属专业方向的薪资参考。填写区间时必须注明来源与统计时间。
+   */
+  salaryRef?: {
+    /**
+     * 如：8,000–15,000 元/月
+     */
+    range?: string | null;
+    source?: string | null;
+    /**
+     * 如：2026 年 9 月
+     */
+    statDate?: string | null;
+    note?: string | null;
+  };
+  cohorts?: {
+    docs?: (number | Cohort)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  works?: {
+    docs?: (number | Work)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  featured?: boolean | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campuses".
+ */
+export interface Campus {
+  id: number;
+  name: string;
+  /**
+   * 如：北京
+   */
+  city: string;
+  /**
+   * 用于课程筛选的城市标识，如 beijing；同城多个校区填相同值
+   */
+  citySlug: string;
+  address: string;
+  /**
+   * 高德坐标系 GCJ-02，用于生成“在高德 / 百度地图中打开”链接
+   */
+  location?: {
+    lng?: number | null;
+    lat?: number | null;
+  };
+  /**
+   * 如：地铁 10 号线某站 B 口出，步行约 5 分钟
+   */
+  transit?: string | null;
+  phone?: string | null;
+  /**
+   * 如：周一至周日 9:00–21:00
+   */
+  openingHours?: string | null;
+  cover: number | Media;
+  photos?:
+    | {
+        image: number | Media;
+        /**
+         * 如：前台接待区
+         */
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  courses?: {
+    docs?: (number | Course)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * 只填写软件名称，不上传厂商 Logo（商标）。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "software".
+ */
+export interface Software {
+  id: number;
+  name: string;
+  category: 'modeling' | 'rendering' | 'compositing' | 'design' | 'painting';
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teachers".
+ */
+export interface Teacher {
+  id: number;
+  name: string;
+  /**
+   * 如：三维动画讲师。不使用“首席”“顶级”等绝对化用语
+   */
+  title: string;
+  /**
+   * 建议正方形，不小于 600×600
+   */
+  avatar: number | Media;
+  disciplines?: (number | Discipline)[] | null;
+  campus?: (number | null) | Campus;
+  /**
+   * 如实填写行业从业年限
+   */
+  yearsOfExperience?: number | null;
+  specialties?:
+    | {
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  bio?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * 经历须真实，机构名称如实填写
+   */
+  experience?:
+    | {
+        /**
+         * 如：2018–2022
+         */
+        period?: string | null;
+        org: string;
+        role: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 在课程的「授课讲师」中关联后自动汇总到这里
+   */
+  courses?: {
+    docs?: (number | Course)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  featured?: boolean | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs".
+ */
+export interface Faq {
+  id: number;
+  question: string;
+  /**
+   * 纯文本，同时用于搜索引擎的 FAQ 结构化数据
+   */
+  answer: string;
+  category: 'course' | 'fee' | 'career' | 'general';
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * 只展示开班时间与状态，不设置“剩余名额”“倒计时”等紧迫感信息。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cohorts".
+ */
+export interface Cohort {
+  id: number;
+  /**
+   * 保存时根据课程、校区与开班日期自动生成
+   */
+  title?: string | null;
+  course: number | Course;
+  mode: 'offline' | 'online' | 'dual';
+  /**
+   * 线上直播课程可不填
+   */
+  campus?: (number | null) | Campus;
+  startDate: string;
+  endDate?: string | null;
+  status: 'enrolling' | 'upcoming' | 'full' | 'closed';
+  /**
+   * 如：周末班、需自备电脑。不写“仅剩 X 席”等紧迫性表述。
+   */
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "works".
+ */
+export interface Work {
+  id: number;
+  title: string;
+  author: {
+    /**
+     * 化名或昵称，不使用真实姓名；展示前需经学员同意
+     */
+    displayName: string;
+    /**
+     * 如 2026 届
+     */
+    cohortLabel?: string | null;
+  };
+  discipline: number | Discipline;
+  course?: (number | null) | Course;
+  software?: (number | Software)[] | null;
+  /**
+   * 封面宽高比决定瀑布流排布，建议长边 ≥ 1600px
+   */
+  cover: number | Media;
+  gallery?:
+    | {
+        image: number | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  video: {
+    kind: 'none' | 'embed' | 'file';
+    /**
+     * 平台“分享 → 嵌入代码”中 iframe 的 src，仅支持：player.bilibili.com、www.bilibili.com、v.qq.com、player.youku.com
+     */
+    embedUrl?: string | null;
+    /**
+     * MP4 格式，不超过 50MB
+     */
+    file?: (number | null) | Media;
+  };
+  description?: string | null;
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  /**
+   * 发布前必须确认已取得学员书面授权（展示作品 / 经历、使用化名或头像）。
+   */
+  consentConfirmed?: boolean | null;
+  featured?: boolean | null;
+  publishedAt?: string | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * 合规提示：使用化名，不展示个人薪资，不写“推荐/证明/保证”性质的表述（广告法第二十四条）；全站可在站点设置中关闭。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stories".
+ */
+export interface Story {
+  id: number;
+  /**
+   * 不使用学员真实姓名
+   */
+  displayName: string;
+  /**
+   * 起点，如“财务转行”
+   */
+  background?: string | null;
+  /**
+   * 可选；使用学员本人照片需取得授权，也可使用作品局部或插画头像
+   */
+  avatar?: (number | null) | Media;
+  course?: (number | null) | Course;
+  currentRole?: string | null;
+  companyName?: string | null;
+  /**
+   * 若就职于合作企业可关联
+   */
+  partner?: (number | null) | Partner;
+  /**
+   * 概括学习与转行经历，不写推荐、证明或效果承诺
+   */
+  quote?: string | null;
+  story?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  works?: (number | Work)[] | null;
+  /**
+   * 发布前必须确认已取得学员书面授权（展示作品 / 经历、使用化名或头像）。
+   */
+  consentConfirmed?: boolean | null;
+  featured?: boolean | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * 展示企业名称与 Logo 前须取得对方授权，合作关系须真实。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partners".
+ */
+export interface Partner {
+  id: number;
+  name: string;
+  logo: number | Media;
+  /**
+   * 如：游戏研发、影视后期
+   */
+  industry?: string | null;
+  /**
+   * 可不填；填写时以 https:// 开头
+   */
+  website?: string | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "career-events".
+ */
+export interface CareerEvent {
+  id: number;
+  title: string;
+  date: string;
+  location?: string | null;
+  campus?: (number | null) | Campus;
+  image?: (number | null) | Media;
+  description?: string | null;
+  /**
+   * 如：扫描页面二维码或拨打咨询热线报名
+   */
+  registrationNote?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles".
+ */
+export interface Article {
+  id: number;
+  title: string;
+  category: number | ArticleCategory;
+  cover: number | Media;
+  /**
+   * 列表页与分享卡片展示，建议 60–120 个汉字
+   */
+  excerpt: string;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * 文章底部推荐的课程
+   */
+  relatedCourses?: (number | Course)[] | null;
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  authorName?: string | null;
+  publishedAt: string;
+  /**
+   * 由前台自动统计
+   */
+  views?: number | null;
+  searchText?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-categories".
+ */
+export interface ArticleCategory {
+  id: number;
+  name: string;
+  description?: string | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners".
+ */
+export interface Banner {
+  id: number;
+  title: string;
+  subtitle?: string | null;
+  /**
+   * 桌面端建议 1920×800
+   */
+  image: number | Media;
+  /**
+   * 移动端建议 750×1000，留空则裁切桌面图
+   */
+  mobileImage?: (number | null) | Media;
+  /**
+   * 留空则不显示按钮
+   */
+  ctaLabel?: string | null;
+  /**
+   * 站内路径如 /courses，外链如 https://example.com
+   */
+  href?: string | null;
+  placement: 'home_hero' | 'careers_hero';
+  active?: boolean | null;
+  /**
+   * 留空则立即生效
+   */
+  startAt?: string | null;
+  /**
+   * 留空则长期有效
+   */
+  endAt?: string | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tutorials".
+ */
+export interface Tutorial {
+  id: number;
+  title: string;
+  discipline?: (number | null) | Discipline;
+  level?: ('beginner' | 'intermediate' | 'advanced') | null;
+  cover: number | Media;
+  provider: 'bilibili';
+  /**
+   * 视频的 BV 号，如 BV1xx411c7XX；粘贴视频链接会自动提取
+   */
+  videoId: string;
+  /**
+   * 如 12:30
+   */
+  duration?: string | null;
+  description?: string | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 用于网址，如 /courses/3d-animation。留空时根据标题自动生成拼音。
+   */
+  slug: string;
+  /**
+   * 软门槛：用于引导留资，并非内容保护
+   */
+  gated?: boolean | null;
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * 每个选项给相关专业方向加分，得分最高的方向作为推荐结果。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quiz-questions".
+ */
+export interface QuizQuestion {
+  id: number;
+  question: string;
+  options: {
+    label: string;
+    scores: {
+      discipline: number | Discipline;
+      /**
+       * 0–5，越高表示与该方向越匹配
+       */
+      weight: number;
+      id?: string | null;
+    }[];
+    id?: string | null;
+  }[];
+  /**
+   * 数字越小越靠前
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  layout: (RichTextBlock | ImageTextBlock | StatsBlock | TimelineBlock | CtaBlock)[];
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  /**
+   * 关于我们 about / 联系我们 contact / 隐私政策 privacy / 用户协议 terms 使用固定 slug
+   */
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "RichTextBlock".
+ */
+export interface RichTextBlock {
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'richText';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ImageTextBlock".
+ */
+export interface ImageTextBlock {
+  image: number | Media;
+  title?: string | null;
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * 桌面端图片所在的一侧；移动端统一图片在上、文字在下
+   */
+  imagePosition?: ('left' | 'right') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'imageText';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "StatsBlock".
+ */
+export interface StatsBlock {
+  /**
+   * 数据须真实、可查证，并在“说明”中标注口径与时间（广告法）
+   */
+  items: {
+    /**
+     * 如：12 年、3,000+
+     */
+    value: string;
+    label: string;
+    /**
+     * 数据口径与统计时间，如：截至 2026 年 9 月，按结业学员统计
+     */
+    note?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'stats';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TimelineBlock".
+ */
+export interface TimelineBlock {
+  items: {
+    /**
+     * 如：2018、2026 年 3 月
+     */
+    year: string;
+    title: string;
+    description?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'timeline';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CtaBlock".
+ */
+export interface CtaBlock {
+  title: string;
+  description?: string | null;
+  buttonLabel: string;
+  /**
+   * 点击按钮后打开的留资表单类型，线索中记录为对应意向
+   */
+  intent: 'trial' | 'tuition' | 'materials' | 'quiz' | 'tutorial' | 'consult';
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'cta';
+}
+/**
+ * 访客在前台提交的留资。课程顾问只能看到分配给自己的线索。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads".
+ */
+export interface Lead {
+  id: number;
+  name: string;
+  phone: string;
+  discipline?: (number | null) | Discipline;
+  city?: string | null;
+  intent: 'trial' | 'tuition' | 'materials' | 'quiz' | 'tutorial' | 'consult';
+  message?: string | null;
+  followUps?:
+    | {
+        content: string;
+        author?: (number | null) | User;
+        createdAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  statusHistory?:
+    | {
+        from?: ('new' | 'contacted' | 'visited' | 'enrolled' | 'invalid') | null;
+        to?: ('new' | 'contacted' | 'visited' | 'enrolled' | 'invalid') | null;
+        by?: (number | null) | User;
+        at?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  source?: {
+    pageUrl?: string | null;
+    /**
+     * 如 home_hero、course_sticky
+     */
+    position?: string | null;
+    landingUrl?: string | null;
+    referrer?: string | null;
+    utmSource?: string | null;
+    utmMedium?: string | null;
+    utmCampaign?: string | null;
+    utmTerm?: string | null;
+    utmContent?: string | null;
+  };
+  context?: {
+    course?: (number | null) | Course;
+    tutorial?: (number | null) | Tutorial;
+    quizResult?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  client?: {
+    ip?: string | null;
+    userAgent?: string | null;
+  };
+  consent?: {
+    agreed?: boolean | null;
+    policyVersion?: string | null;
+    agreedAt?: string | null;
+  };
+  status: 'new' | 'contacted' | 'visited' | 'enrolled' | 'invalid';
+  assignedTo?: (number | null) | User;
+  /**
+   * 30 天内同一手机号再次提交
+   */
+  isDuplicate?: boolean | null;
+  duplicateOf?: (number | null) | Lead;
+  webhookDeliveries?:
+    | {
+        target?: string | null;
+        status?: string | null;
+        attempts?: number | null;
+        lastError?: string | null;
+        at?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
   id: number;
+  name: string;
+  role: 'admin' | 'editor' | 'consultant';
+  phone?: string | null;
+  /**
+   * 课程顾问所属校区（用于线索分配参考）
+   */
+  campus?: (number | null) | Campus;
+  /**
+   * 停用后无法登录后台
+   */
+  active?: boolean | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -142,25 +1380,6 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -186,6 +1405,78 @@ export interface PayloadKv {
 export interface PayloadLockedDocument {
   id: number;
   document?:
+    | ({
+        relationTo: 'disciplines';
+        value: number | Discipline;
+      } | null)
+    | ({
+        relationTo: 'courses';
+        value: number | Course;
+      } | null)
+    | ({
+        relationTo: 'cohorts';
+        value: number | Cohort;
+      } | null)
+    | ({
+        relationTo: 'software';
+        value: number | Software;
+      } | null)
+    | ({
+        relationTo: 'teachers';
+        value: number | Teacher;
+      } | null)
+    | ({
+        relationTo: 'works';
+        value: number | Work;
+      } | null)
+    | ({
+        relationTo: 'stories';
+        value: number | Story;
+      } | null)
+    | ({
+        relationTo: 'partners';
+        value: number | Partner;
+      } | null)
+    | ({
+        relationTo: 'career-events';
+        value: number | CareerEvent;
+      } | null)
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'article-categories';
+        value: number | ArticleCategory;
+      } | null)
+    | ({
+        relationTo: 'campuses';
+        value: number | Campus;
+      } | null)
+    | ({
+        relationTo: 'banners';
+        value: number | Banner;
+      } | null)
+    | ({
+        relationTo: 'faqs';
+        value: number | Faq;
+      } | null)
+    | ({
+        relationTo: 'tutorials';
+        value: number | Tutorial;
+      } | null)
+    | ({
+        relationTo: 'quiz-questions';
+        value: number | QuizQuestion;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'leads';
+        value: number | Lead;
+      } | null)
     | ({
         relationTo: 'users';
         value: number | User;
@@ -238,9 +1529,653 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "disciplines_select".
+ */
+export interface DisciplinesSelect<T extends boolean = true> {
+  name?: T;
+  shortName?: T;
+  tagline?: T;
+  cover?: T;
+  intro?: T;
+  careerDirections?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  salaryRef?:
+    | T
+    | {
+        range?: T;
+        source?: T;
+        statDate?: T;
+        note?: T;
+      };
+  courses?: T;
+  teachers?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  generateSlug?: T;
+  slug?: T;
+  showInNav?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses_select".
+ */
+export interface CoursesSelect<T extends boolean = true> {
+  title?: T;
+  discipline?: T;
+  classType?: T;
+  deliveryModes?: T;
+  campuses?: T;
+  duration?:
+    | T
+    | {
+        value?: T;
+        unit?: T;
+      };
+  schedule?: T;
+  summary?: T;
+  cover?: T;
+  highlights?:
+    | T
+    | {
+        text?: T;
+        id?: T;
+      };
+  audience?:
+    | T
+    | {
+        text?: T;
+        id?: T;
+      };
+  stages?:
+    | T
+    | {
+        title?: T;
+        duration?: T;
+        goals?: T;
+        topics?:
+          | T
+          | {
+              text?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  software?: T;
+  projects?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+        id?: T;
+      };
+  teachers?: T;
+  faqs?: T;
+  careerDirections?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  salaryRef?:
+    | T
+    | {
+        range?: T;
+        source?: T;
+        statDate?: T;
+        note?: T;
+      };
+  cohorts?: T;
+  works?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  generateSlug?: T;
+  slug?: T;
+  featured?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cohorts_select".
+ */
+export interface CohortsSelect<T extends boolean = true> {
+  title?: T;
+  course?: T;
+  mode?: T;
+  campus?: T;
+  startDate?: T;
+  endDate?: T;
+  status?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "software_select".
+ */
+export interface SoftwareSelect<T extends boolean = true> {
+  name?: T;
+  category?: T;
+  generateSlug?: T;
+  slug?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teachers_select".
+ */
+export interface TeachersSelect<T extends boolean = true> {
+  name?: T;
+  title?: T;
+  avatar?: T;
+  disciplines?: T;
+  campus?: T;
+  yearsOfExperience?: T;
+  specialties?:
+    | T
+    | {
+        text?: T;
+        id?: T;
+      };
+  bio?: T;
+  experience?:
+    | T
+    | {
+        period?: T;
+        org?: T;
+        role?: T;
+        id?: T;
+      };
+  courses?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  generateSlug?: T;
+  slug?: T;
+  featured?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "works_select".
+ */
+export interface WorksSelect<T extends boolean = true> {
+  title?: T;
+  author?:
+    | T
+    | {
+        displayName?: T;
+        cohortLabel?: T;
+      };
+  discipline?: T;
+  course?: T;
+  software?: T;
+  cover?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  video?:
+    | T
+    | {
+        kind?: T;
+        embedUrl?: T;
+        file?: T;
+      };
+  description?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  consentConfirmed?: T;
+  featured?: T;
+  publishedAt?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stories_select".
+ */
+export interface StoriesSelect<T extends boolean = true> {
+  displayName?: T;
+  background?: T;
+  avatar?: T;
+  course?: T;
+  currentRole?: T;
+  companyName?: T;
+  partner?: T;
+  quote?: T;
+  story?: T;
+  works?: T;
+  consentConfirmed?: T;
+  featured?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "partners_select".
+ */
+export interface PartnersSelect<T extends boolean = true> {
+  name?: T;
+  logo?: T;
+  industry?: T;
+  website?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "career-events_select".
+ */
+export interface CareerEventsSelect<T extends boolean = true> {
+  title?: T;
+  date?: T;
+  location?: T;
+  campus?: T;
+  image?: T;
+  description?: T;
+  registrationNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles_select".
+ */
+export interface ArticlesSelect<T extends boolean = true> {
+  title?: T;
+  category?: T;
+  cover?: T;
+  excerpt?: T;
+  content?: T;
+  relatedCourses?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  generateSlug?: T;
+  slug?: T;
+  authorName?: T;
+  publishedAt?: T;
+  views?: T;
+  searchText?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-categories_select".
+ */
+export interface ArticleCategoriesSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  generateSlug?: T;
+  slug?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campuses_select".
+ */
+export interface CampusesSelect<T extends boolean = true> {
+  name?: T;
+  city?: T;
+  citySlug?: T;
+  address?: T;
+  location?:
+    | T
+    | {
+        lng?: T;
+        lat?: T;
+      };
+  transit?: T;
+  phone?: T;
+  openingHours?: T;
+  cover?: T;
+  photos?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  courses?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  generateSlug?: T;
+  slug?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners_select".
+ */
+export interface BannersSelect<T extends boolean = true> {
+  title?: T;
+  subtitle?: T;
+  image?: T;
+  mobileImage?: T;
+  ctaLabel?: T;
+  href?: T;
+  placement?: T;
+  active?: T;
+  startAt?: T;
+  endAt?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs_select".
+ */
+export interface FaqsSelect<T extends boolean = true> {
+  question?: T;
+  answer?: T;
+  category?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tutorials_select".
+ */
+export interface TutorialsSelect<T extends boolean = true> {
+  title?: T;
+  discipline?: T;
+  level?: T;
+  cover?: T;
+  provider?: T;
+  videoId?: T;
+  duration?: T;
+  description?: T;
+  generateSlug?: T;
+  slug?: T;
+  gated?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quiz-questions_select".
+ */
+export interface QuizQuestionsSelect<T extends boolean = true> {
+  question?: T;
+  options?:
+    | T
+    | {
+        label?: T;
+        scores?:
+          | T
+          | {
+              discipline?: T;
+              weight?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  layout?:
+    | T
+    | {
+        richText?: T | RichTextBlockSelect<T>;
+        imageText?: T | ImageTextBlockSelect<T>;
+        stats?: T | StatsBlockSelect<T>;
+        timeline?: T | TimelineBlockSelect<T>;
+        cta?: T | CtaBlockSelect<T>;
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "RichTextBlock_select".
+ */
+export interface RichTextBlockSelect<T extends boolean = true> {
+  content?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ImageTextBlock_select".
+ */
+export interface ImageTextBlockSelect<T extends boolean = true> {
+  image?: T;
+  title?: T;
+  content?: T;
+  imagePosition?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "StatsBlock_select".
+ */
+export interface StatsBlockSelect<T extends boolean = true> {
+  items?:
+    | T
+    | {
+        value?: T;
+        label?: T;
+        note?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TimelineBlock_select".
+ */
+export interface TimelineBlockSelect<T extends boolean = true> {
+  items?:
+    | T
+    | {
+        year?: T;
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CtaBlock_select".
+ */
+export interface CtaBlockSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  buttonLabel?: T;
+  intent?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads_select".
+ */
+export interface LeadsSelect<T extends boolean = true> {
+  name?: T;
+  phone?: T;
+  discipline?: T;
+  city?: T;
+  intent?: T;
+  message?: T;
+  followUps?:
+    | T
+    | {
+        content?: T;
+        author?: T;
+        createdAt?: T;
+        id?: T;
+      };
+  statusHistory?:
+    | T
+    | {
+        from?: T;
+        to?: T;
+        by?: T;
+        at?: T;
+        id?: T;
+      };
+  source?:
+    | T
+    | {
+        pageUrl?: T;
+        position?: T;
+        landingUrl?: T;
+        referrer?: T;
+        utmSource?: T;
+        utmMedium?: T;
+        utmCampaign?: T;
+        utmTerm?: T;
+        utmContent?: T;
+      };
+  context?:
+    | T
+    | {
+        course?: T;
+        tutorial?: T;
+        quizResult?: T;
+      };
+  client?:
+    | T
+    | {
+        ip?: T;
+        userAgent?: T;
+      };
+  consent?:
+    | T
+    | {
+        agreed?: T;
+        policyVersion?: T;
+        agreedAt?: T;
+      };
+  status?: T;
+  assignedTo?: T;
+  isDuplicate?: T;
+  duplicateOf?: T;
+  webhookDeliveries?:
+    | T
+    | {
+        target?: T;
+        status?: T;
+        attempts?: T;
+        lastError?: T;
+        at?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
+  phone?: T;
+  campus?: T;
+  active?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -265,6 +2200,7 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  caption?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -276,6 +2212,50 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        hero?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        og?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -316,6 +2296,851 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  brandName: string;
+  /**
+   * 如 EduVerse
+   */
+  shortName?: string | null;
+  /**
+   * 页脚与关于我们等位置使用
+   */
+  brandDescription?: string | null;
+  /**
+   * 留空时显示文字标
+   */
+  logo?: (number | null) | Media;
+  logoOnDark?: (number | null) | Media;
+  hotline: string;
+  /**
+   * 如：9:00–21:00（节假日不休）
+   */
+  workHours?: string | null;
+  email?: string | null;
+  wechatId?: string | null;
+  /**
+   * 悬浮栏、页脚、留资成功页展示
+   */
+  wechatQr?: (number | null) | Media;
+  address?: string | null;
+  icp?: {
+    /**
+     * 如：京ICP备00000000号-1
+     */
+    number?: string | null;
+    link?: string | null;
+  };
+  psb?: {
+    /**
+     * 如：京公网安备 11000000000000号
+     */
+    number?: string | null;
+    /**
+     * 纯数字编码，用于生成查询链接
+     */
+    code?: string | null;
+  };
+  /**
+   * hm.js? 后面的 32 位字符串
+   */
+  baiduTongjiId?: string | null;
+  /**
+   * 百度搜索资源平台 HTML 标签验证中的 content 值
+   */
+  baiduSiteVerification?: string | null;
+  customerService?: {
+    enabled?: boolean | null;
+    /**
+     * 第三方客服提供的 https 脚本地址；页面空闲后再加载，避免影响性能
+     */
+    scriptUrl?: string | null;
+    /**
+     * 点击“在线咨询”时打开的链接（脚本不可用时的兜底）
+     */
+    chatUrl?: string | null;
+  };
+  /**
+   * %s 会替换为页面标题
+   */
+  titleTemplate?: string | null;
+  /**
+   * 页面没有单独设置时使用
+   */
+  defaultSeo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+  };
+  salaryDisclaimer: string;
+  /**
+   * 全站总开关。关闭后首页、就业服务等位置的学员故事全部隐藏（广告法第二十四条风险控制）。
+   */
+  showStories?: boolean | null;
+  /**
+   * 修改隐私政策后更新此版本号，留资记录会保存用户同意时的版本
+   */
+  privacyPolicyVersion: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation".
+ */
+export interface Navigation {
+  id: number;
+  /**
+   * 按顺序显示在页头；移动端收进侧边菜单。
+   */
+  items?:
+    | {
+        label: string;
+        /**
+         * 专业课程大菜单自动读取「专业方向」中勾选了“在导航大菜单中显示”的专业及其课程
+         */
+        type: 'link' | 'course_menu';
+        /**
+         * 站内路径如 /courses，外链如 https://example.com
+         */
+        href?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 页头右侧的主按钮，点击打开预约试听弹窗
+   */
+  cta?: {
+    label?: string | null;
+  };
+  showSearch?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer".
+ */
+export interface Footer {
+  id: number;
+  columns?:
+    | {
+        title: string;
+        links?:
+          | {
+              label: string;
+              /**
+               * 站内路径如 /courses，外链如 https://example.com
+               */
+              href: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 如：微信公众号、视频号、咨询微信
+   */
+  qrcodes?:
+    | {
+        label: string;
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 版权信息旁的小链接，如：隐私政策、用户协议、网站地图
+   */
+  bottomLinks?:
+    | {
+        label: string;
+        /**
+         * 站内路径如 /courses，外链如 https://example.com
+         */
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 支持 {year} 占位，会替换为当前年份
+   */
+  copyright?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home-page".
+ */
+export interface HomePage {
+  id: number;
+  hero?: {
+    autoplay?: boolean | null;
+    interval?: number | null;
+  };
+  quickEntries: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    items?:
+      | {
+          title: string;
+          description?: string | null;
+          action: 'link' | 'lead';
+          /**
+           * 站内路径如 /courses，外链如 https://example.com
+           */
+          href?: string | null;
+          /**
+           * 留空则只显示文字
+           */
+          image?: (number | null) | Media;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  hotDisciplines: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    /**
+     * 留空则按排序取前 6 个
+     */
+    disciplines?: (number | Discipline)[] | null;
+  };
+  featuredWorks: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    mode: 'auto' | 'manual';
+    limit?: number | null;
+    /**
+     * 按所选顺序展示；未发布的作品不会出现在前台
+     */
+    works?: (number | Work)[] | null;
+  };
+  stories: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    /**
+     * 留空则取精选学员故事
+     */
+    stories?: (number | Story)[] | null;
+  };
+  teachers: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    /**
+     * 留空则取精选讲师
+     */
+    teachers?: (number | Teacher)[] | null;
+  };
+  campuses: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+  };
+  partners: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+  };
+  articles: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    limit?: number | null;
+  };
+  leadForm: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    submitLabel?: string | null;
+  };
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "careers-page".
+ */
+export interface CareersPage {
+  id: number;
+  intro: {
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+  };
+  process: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    steps?:
+      | {
+          title: string;
+          description?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  stories: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+  };
+  partners: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+  };
+  events: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+  };
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quiz-settings".
+ */
+export interface QuizSetting {
+  id: number;
+  intro: {
+    title: string;
+    description?: string | null;
+    startLabel: string;
+  };
+  result: {
+    summaryTitle: string;
+    gatedTitle: string;
+    /**
+     * 说明完整报告包含哪些内容，不得承诺学习或就业效果
+     */
+    gatedDescription?: string | null;
+    unlockLabel: string;
+  };
+  seo?: {
+    /**
+     * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+     */
+    title?: string | null;
+    /**
+     * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+     */
+    description?: string | null;
+    /**
+     * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+     */
+    keywords?: string | null;
+    /**
+     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     */
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * 留资表单的推送、防刷与提示文案。包含机器人密钥，仅管理员可查看与修改。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lead-settings".
+ */
+export interface LeadSetting {
+  id: number;
+  webhooks?:
+    | {
+        /**
+         * 便于识别，如：北京校区顾问群
+         */
+        name: string;
+        platform: 'wecom' | 'feishu' | 'dingtalk';
+        /**
+         * 在群设置 → 群机器人中复制。仅允许 https 官方域名：企业微信 qyapi.weixin.qq.com、飞书 open.feishu.cn、钉钉 oapi.dingtalk.com
+         */
+        url: string;
+        /**
+         * 飞书「签名校验」或钉钉「加签」生成的密钥；未开启可留空
+         */
+        secret?: string | null;
+        enabled?: boolean | null;
+        /**
+         * 推送时手机号脱敏，如 138****1234
+         */
+        maskPhone?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * IP 阈值宜宽松（公司、校园网常共用出口 IP，避免误伤），手机号阈值宜严格。
+   */
+  rateLimits: {
+    ipPer10Min: number;
+    ipPerDay: number;
+    phonePerDay: number;
+    /**
+     * 该天数内同一手机号再次提交，标记为重复线索
+     */
+    duplicateWindowDays: number;
+    /**
+     * 从打开表单到提交少于该时间视为机器提交；0 表示不检查
+     */
+    minFillSeconds: number;
+  };
+  /**
+   * 留资表单“所在城市”的下拉选项；留空则改为手动填写
+   */
+  cityOptions?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  successTitle: string;
+  successMessage: string;
+  /**
+   * 留空则使用站点设置中的微信二维码
+   */
+  wechatQr?: (number | null) | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  brandName?: T;
+  shortName?: T;
+  brandDescription?: T;
+  logo?: T;
+  logoOnDark?: T;
+  hotline?: T;
+  workHours?: T;
+  email?: T;
+  wechatId?: T;
+  wechatQr?: T;
+  address?: T;
+  icp?:
+    | T
+    | {
+        number?: T;
+        link?: T;
+      };
+  psb?:
+    | T
+    | {
+        number?: T;
+        code?: T;
+      };
+  baiduTongjiId?: T;
+  baiduSiteVerification?: T;
+  customerService?:
+    | T
+    | {
+        enabled?: T;
+        scriptUrl?: T;
+        chatUrl?: T;
+      };
+  titleTemplate?: T;
+  defaultSeo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+      };
+  salaryDisclaimer?: T;
+  showStories?: T;
+  privacyPolicyVersion?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation_select".
+ */
+export interface NavigationSelect<T extends boolean = true> {
+  items?:
+    | T
+    | {
+        label?: T;
+        type?: T;
+        href?: T;
+        id?: T;
+      };
+  cta?:
+    | T
+    | {
+        label?: T;
+      };
+  showSearch?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer_select".
+ */
+export interface FooterSelect<T extends boolean = true> {
+  columns?:
+    | T
+    | {
+        title?: T;
+        links?:
+          | T
+          | {
+              label?: T;
+              href?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  qrcodes?:
+    | T
+    | {
+        label?: T;
+        image?: T;
+        id?: T;
+      };
+  bottomLinks?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        id?: T;
+      };
+  copyright?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home-page_select".
+ */
+export interface HomePageSelect<T extends boolean = true> {
+  hero?:
+    | T
+    | {
+        autoplay?: T;
+        interval?: T;
+      };
+  quickEntries?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        items?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              action?: T;
+              href?: T;
+              image?: T;
+              id?: T;
+            };
+      };
+  hotDisciplines?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        disciplines?: T;
+      };
+  featuredWorks?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        mode?: T;
+        limit?: T;
+        works?: T;
+      };
+  stories?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        stories?: T;
+      };
+  teachers?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        teachers?: T;
+      };
+  campuses?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+      };
+  partners?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+      };
+  articles?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        limit?: T;
+      };
+  leadForm?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        submitLabel?: T;
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "careers-page_select".
+ */
+export interface CareersPageSelect<T extends boolean = true> {
+  intro?:
+    | T
+    | {
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+      };
+  process?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        steps?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              id?: T;
+            };
+      };
+  stories?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+      };
+  partners?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+      };
+  events?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quiz-settings_select".
+ */
+export interface QuizSettingsSelect<T extends boolean = true> {
+  intro?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        startLabel?: T;
+      };
+  result?:
+    | T
+    | {
+        summaryTitle?: T;
+        gatedTitle?: T;
+        gatedDescription?: T;
+        unlockLabel?: T;
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        keywords?: T;
+        image?: T;
+        noindex?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lead-settings_select".
+ */
+export interface LeadSettingsSelect<T extends boolean = true> {
+  webhooks?:
+    | T
+    | {
+        name?: T;
+        platform?: T;
+        url?: T;
+        secret?: T;
+        enabled?: T;
+        maskPhone?: T;
+        id?: T;
+      };
+  rateLimits?:
+    | T
+    | {
+        ipPer10Min?: T;
+        ipPerDay?: T;
+        phonePerDay?: T;
+        duplicateWindowDays?: T;
+        minFillSeconds?: T;
+      };
+  cityOptions?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  successTitle?: T;
+  successMessage?: T;
+  wechatQr?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
