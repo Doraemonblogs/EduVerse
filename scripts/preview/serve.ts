@@ -4,7 +4,7 @@
  * 用法：pnpm preview:serve [--dir preview-dist] [--base-path /EduVerse] [--port 4173]
  */
 import { readFile, stat } from 'node:fs/promises'
-import { createServer } from 'node:http'
+import { createServer, type ServerResponse } from 'node:http'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -45,7 +45,12 @@ async function isFile(file: string) {
 }
 
 async function resolveFile(urlPath: string): Promise<string | null> {
-  const rel = decodeURIComponent(urlPath).replace(/^\/+/, '')
+  let rel: string
+  try {
+    rel = decodeURIComponent(urlPath).replace(/^\/+/, '')
+  } catch {
+    return null // 非法的百分号编码，按 GitHub Pages 的行为返回 404
+  }
   const base = path.join(root, rel)
   if (base !== root && !base.startsWith(root + path.sep)) return null
   const candidates =
@@ -56,8 +61,18 @@ async function resolveFile(urlPath: string): Promise<string | null> {
   return null
 }
 
-createServer(async (req, res) => {
-  const { pathname } = new URL(req.url ?? '/', 'http://localhost')
+createServer((req, res) => {
+  handle(req.url ?? '/', res).catch((err: unknown) => {
+    console.error(err)
+    if (!res.headersSent) res.writeHead(500)
+    res.end()
+  })
+}).listen(port, () => {
+  console.info(`静态预览站：http://localhost:${port}${basePath}/`)
+})
+
+async function handle(rawUrl: string, res: ServerResponse) {
+  const { pathname } = new URL(rawUrl, 'http://localhost')
   if (pathname !== basePath && !pathname.startsWith(`${basePath}/`)) {
     res.writeHead(302, { location: `${basePath}/` }).end()
     return
@@ -70,6 +85,4 @@ createServer(async (req, res) => {
       'content-type': TYPES[path.extname(target)] ?? 'application/octet-stream',
     })
     .end(body)
-}).listen(port, () => {
-  console.info(`静态预览站：http://localhost:${port}${basePath}/`)
-})
+}

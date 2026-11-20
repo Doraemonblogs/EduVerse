@@ -11,7 +11,7 @@ describe('Payload Local API（测试数据库）', () => {
   })
 
   afterAll(async () => {
-    await payload.db.destroy?.()
+    await payload?.db.destroy?.()
   })
 
   it('连接的是独立的测试数据库', () => {

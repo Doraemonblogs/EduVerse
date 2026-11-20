@@ -37,10 +37,38 @@ export function toSitePath(ref: string, fromUrl: string, config: SiteConfig): st
   if (url.origin !== new URL(config.origin).origin) return null
 
   const { pathname } = url
-  if (!config.basePath) return pathname
-  if (pathname === config.basePath) return '/'
-  if (pathname.startsWith(`${config.basePath}/`)) return pathname.slice(config.basePath.length)
-  return null
+  let sitePath: string
+  if (!config.basePath) sitePath = pathname
+  else if (pathname === config.basePath) sitePath = '/'
+  else if (pathname.startsWith(`${config.basePath}/`))
+    sitePath = pathname.slice(config.basePath.length)
+  else return null
+  // 与 Next.js（trailingSlash: false）的规范形式一致：/foo/ → /foo
+  return sitePath.length > 1 ? sitePath.replace(/\/+$/, '') || '/' : sitePath
+}
+
+/**
+ * 同源但缺少 basePath 的引用（如 basePath 为 /EduVerse 时的 /logo.png）。
+ * 子路径部署后会指向 github.io 根域名而 404，是最常见的预览站断链原因。
+ */
+export function isMissingBasePath(ref: string, fromUrl: string, config: SiteConfig): boolean {
+  if (!config.basePath) return false
+  const trimmed = decodeHtmlEntities(ref.trim())
+  if (!trimmed || /^(mailto|tel|javascript|data|blob):/i.test(trimmed) || trimmed.startsWith('#')) {
+    return false
+  }
+  try {
+    const url = new URL(trimmed, fromUrl)
+    if (url.origin !== new URL(config.origin).origin) return false
+    return url.pathname !== config.basePath && !url.pathname.startsWith(`${config.basePath}/`)
+  } catch {
+    return false
+  }
+}
+
+/** 响应内容随查询串变化的路径（静态托管无法提供），如 Next.js 图片优化接口 */
+export function isQueryDependentPath(sitePath: string): boolean {
+  return sitePath === '/_next/image' || sitePath.startsWith('/api/') || isPagePath(sitePath)
 }
 
 /** 引用是否带查询串（静态托管无法按查询串区分文件） */

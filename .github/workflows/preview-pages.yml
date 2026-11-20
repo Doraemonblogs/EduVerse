@@ -17,9 +17,9 @@ permissions:
   pages: write
   id-token: write
 
-# 同一时间只保留一次发布；进行中的发布不取消，避免站点处于半更新状态
+# 按分支分组：其它分支的推送不会挤掉默认分支排队中的发布；进行中的发布不取消，避免站点半更新
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -59,7 +59,8 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          # 与 package.json engines 一致（runner 自带的 22.x 可能低于 22.23.5）
+          node-version: '^22.23.5'
           cache: pnpm
 
       - name: 安装依赖

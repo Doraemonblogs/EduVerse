@@ -6,7 +6,9 @@ import {
   extractCssUrls,
   extractRefs,
   hasQuery,
+  isMissingBasePath,
   isPagePath,
+  isQueryDependentPath,
   pageOutputFiles,
   pageUrl,
   toSitePath,
@@ -152,5 +154,46 @@ describe('applyNoindex', () => {
 
   it('缺少 <head> 时报错', () => {
     expect(() => applyNoindex('<div></div>')).toThrow()
+  })
+})
+
+describe('结尾斜杠归一化', () => {
+  it('/foo/ 与 /foo 视为同一页面', () => {
+    expect(toSitePath('/EduVerse/styleguide/', from, withBase)).toBe('/styleguide')
+    expect(toSitePath('/courses/', 'http://localhost:3000/', atRoot)).toBe('/courses')
+    expect(toSitePath('/', 'http://localhost:3000/', atRoot)).toBe('/')
+  })
+})
+
+describe('isMissingBasePath', () => {
+  it('同源但不在 basePath 下的引用会被识别', () => {
+    expect(isMissingBasePath('/logo.png', from, withBase)).toBe(true)
+    expect(isMissingBasePath('/api/media/file/a.webp', from, withBase)).toBe(true)
+    expect(isMissingBasePath('/EduVersePlus', from, withBase)).toBe(true)
+  })
+
+  it('basePath 内、外站、锚点与特殊协议不算', () => {
+    expect(isMissingBasePath('/EduVerse/logo.png', from, withBase)).toBe(false)
+    expect(isMissingBasePath('/EduVerse', from, withBase)).toBe(false)
+    expect(isMissingBasePath('https://example.com/logo.png', from, withBase)).toBe(false)
+    expect(isMissingBasePath('#main', from, withBase)).toBe(false)
+    expect(isMissingBasePath('tel:4000000000', from, withBase)).toBe(false)
+  })
+
+  it('根路径部署时不检查', () => {
+    expect(isMissingBasePath('/logo.png', 'http://localhost:3000/', atRoot)).toBe(false)
+  })
+})
+
+describe('isQueryDependentPath', () => {
+  it('图片优化接口、后台接口与页面依赖查询串', () => {
+    expect(isQueryDependentPath('/_next/image')).toBe(true)
+    expect(isQueryDependentPath('/api/media/file/a.webp')).toBe(true)
+    expect(isQueryDependentPath('/courses')).toBe(true)
+  })
+
+  it('带扩展名的普通静态文件（如带缓存参数的图标）不依赖查询串', () => {
+    expect(isQueryDependentPath('/icon.png')).toBe(false)
+    expect(isQueryDependentPath('/favicon.ico')).toBe(false)
   })
 })

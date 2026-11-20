@@ -20,7 +20,9 @@ import {
   extractCssUrls,
   extractRefs,
   hasQuery,
+  isMissingBasePath,
   isPagePath,
+  isQueryDependentPath,
   pageOutputFiles,
   pageUrl,
   type SiteConfig,
@@ -72,12 +74,19 @@ async function exists(file: string) {
 /** 收集页面中引用的资源（构建产物 /_next/static 整体复制，不逐个下载） */
 function collectAssets(html: string, fromUrl: string, into: Set<string>) {
   for (const ref of extractRefs(html).assets) {
-    const sitePath = toSitePath(ref, fromUrl, config)
-    if (!sitePath || isPagePath(sitePath) || sitePath.startsWith('/_next/static/')) continue
-    if (hasQuery(ref, fromUrl)) {
-      errors.push(`资源带查询串，静态托管无法提供：${ref}（页面 ${fromUrl}）`)
+    if (isMissingBasePath(ref, fromUrl, config)) {
+      errors.push(`引用缺少 basePath（${config.basePath}）：${ref}（页面 ${fromUrl}）`)
       continue
     }
+    const sitePath = toSitePath(ref, fromUrl, config)
+    if (!sitePath || sitePath.startsWith('/_next/static/')) continue
+    // 带查询串的普通静态文件（如 Next 给图标加的缓存参数）按路径导出即可；
+    // 内容随查询串变化的接口（/_next/image、/api/*）静态托管无法提供
+    if (hasQuery(ref, fromUrl) && isQueryDependentPath(sitePath)) {
+      errors.push(`资源依赖查询串，静态托管无法提供：${ref}（页面 ${fromUrl}）`)
+      continue
+    }
+    if (isPagePath(sitePath)) continue
     into.add(sitePath)
   }
 }
@@ -100,6 +109,10 @@ async function crawlPages(assets: Set<string>) {
     collectAssets(html, url, assets)
 
     for (const link of extractRefs(html).links) {
+      if (isMissingBasePath(link, url, config)) {
+        errors.push(`链接缺少 basePath（${config.basePath}）：${link}（页面 ${url}）`)
+        continue
+      }
       const target = toSitePath(link, url, config)
       if (target && isPagePath(target) && !seen.has(target)) {
         seen.add(target)
@@ -154,6 +167,11 @@ async function verifyOutput(htmlFiles: string[]) {
     const fromUrl = `${config.origin}${config.basePath}/${rel}`
     const { links, assets } = extractRefs(html)
 
+    for (const ref of [...links, ...assets]) {
+      if (isMissingBasePath(ref, fromUrl, config)) {
+        errors.push(`引用缺少 basePath（${config.basePath}）：${rel} 引用了 ${ref}`)
+      }
+    }
     for (const link of links) {
       const target = toSitePath(link, fromUrl, config)
       if (target && isPagePath(target) && !exportedPages.has(target)) {

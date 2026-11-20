@@ -208,4 +208,4 @@ docs/ docker/ docker-compose.dev.yml
 - 导出：`scripts/preview/export-static.ts` 从 `ENTRY_PATHS` 出发顺着站内链接抓取页面，每页写 `x.html` 与 `x/index.html`，注入 `noindex, nofollow`；下载页面引用的非构建资源（M1 起包括 `/api/media/file/*` 媒体文件）；整体复制 `.next/static`；生成 `404.html`；最后校验所有站内链接与资源都在输出目录中，否则失败。
 - 限制：静态托管无法执行服务端逻辑，表单提交（Server Action）、后台、按查询串筛选（`/courses?discipline=…` 只能导出无参数版本）不可用；客户端导航取不到 RSC 数据时自动回退为整页跳转。
 - 数据（M1 起）：工作流中用 PostgreSQL 服务容器 + 种子数据渲染页面，数据库随任务销毁，密钥每次随机生成。
-- 约束：站内链接必须使用 `next/link` / `next/image` 以带上 basePath。
+- 约束：站内链接用 `next/link`（自动带 basePath）；`next/image` 的字符串 `src`（媒体 URL）不会自动带 basePath，需经工具函数处理。导出脚本会把缺少 basePath 的引用、依赖查询串的资源（`/_next/image`、`/api/*`）报为错误。

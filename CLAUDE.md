@@ -92,7 +92,7 @@ docs/        PRD、架构、进度
 - 不得随意新增依赖；确需新增时在 `docs/PROGRESS.md` 记录理由。
 - 不得手改 `src/app/(payload)/**`、`src/payload-types.ts`、`src/migrations/**`（用命令生成）。
 - 不得提交 `.env`、密钥、`media/` 上传目录、`preview-dist/` 导出目录。
-- 站内链接一律用 `next/link` 或 `next/image`（会自动带上 basePath）；不要手写以 `/` 开头的 `<a href>` / `<img src>`，否则预览站（子路径部署）会断链。
+- 站内链接一律用 `next/link`（会自动带上 basePath）；不要手写以 `/` 开头的 `<a href>` / `<img src>`。`next/image` 只有静态导入的图片会带 basePath，字符串 `src`（如后台媒体 URL）不会，需经 basePath 工具函数处理（M1 提供）。预览站导出会把缺少 basePath 的引用报为错误。
 - 不得在前台暴露线索数据；线索 REST 写入只能走服务端 Action，不开放公开 create。
 - 不得为了通过检查而跳过 / 删除测试、降低 lint 规则或加 `eslint-disable`（确有必要时写明原因）。
 - 已交付的功能不留 TODO 占位；空状态、加载态、错误态都要处理。

@@ -118,6 +118,18 @@ pnpm dev
 
 ---
 
+## M0 追加：在线预览站（GitHub Pages，2026-11-20）
+
+产品方要求在 github.io 上提供预览地址。
+
+- 地址：https://doraemonblogs.github.io/EduVerse/ （仓库 Settings → Pages → Source 已设为 GitHub Actions）。
+- 工作流 `.github/workflows/preview-pages.yml`：推送默认分支 → 以 `/EduVerse` 子路径构建 → 启动生产服务 → `scripts/preview/export-static.ts` 抓取导出 → 发布。
+- 导出脚本自带校验：页面非 200、引用缺少 basePath、依赖查询串的资源（`/_next/image`、`/api/*`）、输出中缺失的资源或页面，任何一项都会让发布失败。
+- 预览站全部页面 `noindex, nofollow`，页顶提示“表单提交与后台管理不可用”。
+- 本地可用 `pnpm preview:build` / `preview:export` / `preview:serve` 复现（见 README）。
+- 评审（CI 工作流、导出脚本两个维度 × 独立复核）确认 5 项问题并已修复：并发分组导致其它分支推送可能挤掉默认分支的发布；导出校验漏掉缺少 basePath 的引用（并更正文档中“next/image 自动带 basePath”的错误说法）；带缓存参数的图标会误报；本地预览服务遇到非法 URL 编码会崩溃；预览提示条把首屏挤出视口。另修复：CI 的 Node 版本低于 `engines` 下限、集成测试在数据库不可用时的清理报错。
+- 未新增依赖。
+
 ## 决策日志
 
 | 日期       | 决策                                                                                         | 原因                                       |
@@ -126,3 +138,4 @@ pnpm dev
 | 2026-11-20 | 里程碑顺序调整：留资提前到 M2，首页移到 M5                                                   | 避免交付“死按钮”；首页依赖其它模块组件     |
 | 2026-11-20 | 新增 `/majors/[slug]` 专业方向落地页                                                         | 承接专业类搜索词，提升“快速找到专业”体验   |
 | 2026-11-20 | PRD Q1 对比度措辞改为“默认态 6.29:1，各状态 ≥ 4.5:1”                                         | 原写法“≥ 6:1”与按下态 5.12:1 不一致        |
+| 2026-11-20 | 新增 GitHub Pages 静态预览站（抓取生产服务导出，而非 `output: 'export'`） | Payload 路由、Server Action、动态页面与 `output: 'export'` 不兼容；抓取真实 SSR 输出最接近线上效果 |
