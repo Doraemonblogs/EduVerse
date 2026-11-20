@@ -16,7 +16,22 @@ pnpm install
 pnpm dev                        # http://localhost:3000
 ```
 
-首次打开 http://localhost:3000/admin 会引导创建第一个管理员账号。
+写入演示数据（专业方向、课程、作品、讲师、文章等，均为虚构；约 45 秒）：
+
+```bash
+pnpm seed:reset
+```
+
+演示账号（仅限本地开发，种子脚本结束时也会打印）：
+
+| 角色             | 邮箱                             | 密码                     |
+| ---------------- | -------------------------------- | ------------------------ |
+| 管理员           | admin@seed.eduverse.test         | EduVerse-Admin-2026      |
+| 内容编辑         | editor@seed.eduverse.test        | EduVerse-Editor-2026     |
+| 课程顾问（北京） | consultant.bj@seed.eduverse.test | EduVerse-Consultant-2026 |
+| 课程顾问（上海） | consultant.sh@seed.eduverse.test | EduVerse-Consultant-2026 |
+
+不写演示数据时，首次打开 http://localhost:3000/admin 会引导创建第一个管理员账号。
 设计规范页：http://localhost:3000/styleguide（仅开发环境）。
 
 ## 常用命令
@@ -27,6 +42,7 @@ pnpm dev                        # http://localhost:3000
 | `pnpm build` / `pnpm start`            | 生产构建 / 启动                                                               |
 | `pnpm check`                           | 类型检查 + lint + 格式检查 + 单元与集成测试                                   |
 | `pnpm test:e2e`                        | 端到端测试（先 `pnpm build`；首次需 `pnpm exec playwright install chromium`） |
+| `pnpm seed:reset`                      | 一键重置演示数据（生产环境拒绝运行）                                          |
 | `pnpm generate:types`                  | 生成 Payload 类型                                                             |
 | `pnpm migrate:create` / `pnpm migrate` | 创建 / 执行数据库迁移                                                         |
 
@@ -39,6 +55,8 @@ pnpm dev                        # http://localhost:3000
 | `PAYLOAD_SECRET`          | Payload 加密密钥，至少 32 位随机字符串                       |
 | `NEXT_PUBLIC_SITE_URL`    | 站点对外地址，用于 canonical / sitemap / OG                  |
 | `ENABLE_STYLEGUIDE`       | 生产环境是否开放 `/styleguide`，默认 `false`                 |
+| `MEDIA_DIR`               | 媒体文件目录，默认 `<项目根>/media`                          |
+| `SEED_ADMIN_PASSWORD`     | 种子管理员密码（可选）                                       |
 | `NEXT_TELEMETRY_DISABLED` | 设为 `1` 关闭 Next.js 遥测                                   |
 
 ## 在线预览站（GitHub Pages）

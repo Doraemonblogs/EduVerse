@@ -3,7 +3,7 @@
 「EduVerse 数艺学院」官网：数字艺术职业教育品牌站（参考 hxsd.com 的信息架构、m.itheima.com 的版式与交互，**素材与文案全部原创**）。
 界面语言：简体中文。面向中国大陆用户。
 
-- 需求：`docs/PRD.md`（含已确认决策 Q1–Q5）
+- 需求：`docs/PRD.md`（含已确认决策 Q1–Q6）
 - 架构与数据模型：`docs/ARCHITECTURE.md`
 - 进度与关键决策：`docs/PROGRESS.md`（每个里程碑结束时更新）
 
@@ -33,6 +33,7 @@ pnpm generate:types      # 改了集合 / 全局配置后重新生成 src/payloa
 pnpm generate:importmap  # 新增后台自定义组件后重新生成 importMap
 pnpm migrate:create      # 数据模型变更后创建迁移（每个改动 schema 的里程碑结束时必须做）
 pnpm migrate             # 执行迁移
+pnpm seed:reset          # 一键重置种子数据（清空内容 / 线索 / 种子账号，重新生成占位图与演示内容，约 45 秒）
 pnpm preview:build       # 以 /EduVerse 子路径构建静态预览站（会覆盖 .next）
 pnpm preview:export      # 抓取运行中的预览服务，导出到 preview-dist/
 pnpm preview:serve       # 本地模拟 GitHub Pages 查看 preview-dist/
@@ -62,7 +63,8 @@ src/
   fonts/               自托管字体（仅拉丁子集，附 OFL 许可证）
   config/site.ts       兜底配置与部署相关配置（站点 URL）
 tests/unit/  tests/int/  tests/e2e/（fixtures.ts 自动断言控制台无报错）
-scripts/     种子数据与占位图脚本（M1 起）
+scripts/seed/  种子数据：registry（slug 骨架）、data/（内容）、placeholders（占位图）、index（runSeed）
+scripts/preview/  静态预览站导出
 docs/        PRD、架构、进度
 ```
 
@@ -71,6 +73,10 @@ docs/        PRD、架构、进度
 - TypeScript strict，禁止 `any`、`@ts-ignore`；类型导入用 `import { type X }`。
 - 默认写服务端组件；只有需要交互时才加 `'use client'`，并尽量把客户端边界压到最小。
 - 数据访问集中在 `src/lib/data/*`（Payload Local API + 缓存标签）；页面与组件不直接拼查询。
+  Local API 默认 `overrideAccess: true`：前台查询带草稿的集合时**必须**过滤 `_status: { equals: 'published' }`，并且不要把线索、用户等数据暴露给前台。
+- 后台媒体 URL、手写站内链接用 `withBasePath()`（`src/lib/base-path.ts`）补子路径。
+- 新增集合 / 字段：在 `src/collections` 或 `src/globals` 定义 → 注册到 `payload.config.ts` → `pnpm generate:types` → 必要时 `pnpm generate:importmap` → `pnpm migrate:create`。
+- 种子数据通过 `scripts/seed/registry.ts` 的 slug 互相引用；新增内容类型时同步扩展种子脚本与 `tests/unit/seed-data.test.ts`。
 - 所有外部输入（表单、查询参数、webhook 配置）用 zod 校验；服务端必须再校验一遍。
 - 样式只用语义令牌类：`bg-background` `text-foreground` `text-muted-foreground` `bg-primary` `text-emphasis` `border-border` 等；
   不写十六进制色值，不用 Tailwind 默认色板（`gray-500`、`blue-600` …）。

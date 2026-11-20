@@ -12,6 +12,7 @@ import 'dotenv/config'
 
 import { readdir, rm } from 'node:fs/promises'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { getPayload, type CollectionSlug, type GlobalSlug, type Payload } from 'payload'
 
 import config from '../../src/payload.config'
@@ -158,6 +159,8 @@ async function reset(payload: Payload) {
     where: { email: { like: `%@${SEED_USER_DOMAIN}` } },
     context,
   })
+  // 页脚二维码的图片是必填的（外键不能置空），删除媒体前先清空，否则整个删除事务会失败
+  await payload.updateGlobal({ slug: 'footer', data: { qrcodes: [] }, context })
   for (const collection of ['campuses', 'software', 'disciplines', 'media'] as const) {
     await payload.delete({ collection, where: { id: { exists: true } }, context })
   }
@@ -171,12 +174,14 @@ async function reset(payload: Payload) {
   )
 }
 
-async function main() {
+export type SeedSummary = { counts: Record<string, number>; seconds: number }
+
+/** 重置并写入全部种子数据（CLI 与集成测试共用） */
+export async function runSeed(payload: Payload): Promise<SeedSummary> {
   if (process.env.NODE_ENV === 'production' && process.env.SEED_ALLOW_PRODUCTION !== 'true') {
     throw new Error('生产环境禁止运行种子脚本（如确需运行，设置 SEED_ALLOW_PRODUCTION=true）')
   }
   const started = Date.now()
-  const payload = await getPayload({ config })
   const dbName = new URL(process.env.DATABASE_URL ?? 'postgresql://unknown/unknown').pathname.slice(
     1,
   )
@@ -416,7 +421,7 @@ async function main() {
       offlineCampuses.length > 0
         ? offlineCampuses.map((campus) => ({
             campus,
-            mode: c.modes.includes('offline') ? 'offline' : 'dual',
+            mode: (c.modes as readonly string[]).includes('offline') ? 'offline' : 'dual',
           }))
         : [{ mode: 'online' }, { mode: 'online' }]
     for (const [j, plan] of plans.entries()) {
@@ -796,7 +801,7 @@ async function main() {
     await payload.create({ collection: 'leads', data: lead, context })
   }
 
-  const counts = await Promise.all(
+  const countEntries = await Promise.all(
     (
       [
         'disciplines',
@@ -818,17 +823,26 @@ async function main() {
         'leads',
         'media',
       ] as const
-    ).map(async (collection) => `${collection} ${(await payload.count({ collection })).totalDocs}`),
+    ).map(
+      async (collection) => [collection, (await payload.count({ collection })).totalDocs] as const,
+    ),
   )
+  const counts = Object.fromEntries(countEntries)
+  const seconds = (Date.now() - started) / 1000
   log(
-    `完成（${((Date.now() - started) / 1000).toFixed(1)}s，开班计划 ${cohortCount}）：${counts.join('，')}`,
+    `完成（${seconds.toFixed(1)}s，开班计划 ${cohortCount}）：${countEntries.map(([c, n]) => `${c} ${n}`).join('，')}`,
   )
   log(`演示账号（仅限本地开发）：${SEED_USERS.map((u) => `${u.email} / ${u.password}`).join('；')}`)
+  return { counts, seconds }
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err: unknown) => {
-    console.error(err)
-    process.exit(1)
-  })
+// 作为脚本直接运行时（pnpm seed:reset）
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  getPayload({ config })
+    .then(runSeed)
+    .then(() => process.exit(0))
+    .catch((err: unknown) => {
+      console.error(err)
+      process.exit(1)
+    })
+}

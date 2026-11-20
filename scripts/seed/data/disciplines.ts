@@ -251,7 +251,8 @@ export const disciplines: SeedDiscipline[] = [
       },
       {
         title: '场景概念设计师',
-        description: '负责环境、建筑与关卡氛围的概念设定，用画面传达空间结构、时代背景与情绪基调。',
+        description:
+          '负责环境、建筑与关卡氛围的概念设定，用画面传达空间结构、时代背景与情绪基调，为后续制作定下方向。',
       },
       {
         title: '插画师',
@@ -315,7 +316,7 @@ export const disciplines: SeedDiscipline[] = [
       {
         title: '包装设计师',
         description:
-          '结合产品定位、材质与结构完成包装方案，需要在创意表达与生产可行性之间取得平衡。',
+          '结合产品定位、材质与结构完成包装方案，需要在创意表达、成本控制与生产可行性之间取得平衡。',
       },
     ],
     salaryRef: demoSalary(
