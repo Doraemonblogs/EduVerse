@@ -2,14 +2,13 @@ import { Maximize2Icon } from 'lucide-react'
 import Image from 'next/image'
 
 import { Lightbox, LightboxTrigger } from '@/components/common/lightbox'
+import { VideoFacade } from '@/components/common/video-facade'
 import { zh } from '@/i18n/zh'
 import { formatMessage } from '@/lib/course/format'
 import { cn } from '@/lib/utils'
 import { workImageAlt, workLightboxItems } from '@/lib/works/format'
 import type { WorkDetail, WorkGalleryItem, WorkVideo } from '@/lib/works/types'
 import { isAllowedVideoEmbedUrl } from '@/lib/works/video'
-
-import { WorkVideoEmbed } from './work-video-embed'
 
 const t = zh.works.detail
 
@@ -87,11 +86,12 @@ function VideoStage({ video, work }: { video: WorkVideo; work: WorkMediaProps['w
   }
   return (
     <div className="flex flex-col gap-2">
-      <WorkVideoEmbed
+      <VideoFacade
         embedUrl={video.embedUrl}
         title={work.title}
         poster={work.heroImage ?? work.cover}
         posterSizes={STAGE_SIZES}
+        posterPreload
       />
       <p className="text-xs text-muted-foreground">{t.videoNotice}</p>
     </div>

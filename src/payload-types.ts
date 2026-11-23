@@ -153,6 +153,7 @@ export interface Config {
     'article-pages': ArticlePage;
     'campus-pages': CampusPage;
     'careers-page': CareersPage;
+    'tutorial-pages': TutorialPage;
     'quiz-settings': QuizSetting;
     'lead-settings': LeadSetting;
   };
@@ -167,6 +168,7 @@ export interface Config {
     'article-pages': ArticlePagesSelect<false> | ArticlePagesSelect<true>;
     'campus-pages': CampusPagesSelect<false> | CampusPagesSelect<true>;
     'careers-page': CareersPageSelect<false> | CareersPageSelect<true>;
+    'tutorial-pages': TutorialPagesSelect<false> | TutorialPagesSelect<true>;
     'quiz-settings': QuizSettingsSelect<false> | QuizSettingsSelect<true>;
     'lead-settings': LeadSettingsSelect<false> | LeadSettingsSelect<true>;
   };
@@ -3123,6 +3125,52 @@ export interface CareersPage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tutorial-pages".
+ */
+export interface TutorialPage {
+  id: number;
+  list: {
+    title: string;
+    /**
+     * 显示在标题下方，一两句话即可。不使用“最好”“第一”等绝对化用语。
+     */
+    description?: string | null;
+    /**
+     * 带筛选条件或播放参数的地址不会被搜索引擎收录，规范地址是 /tutorials。
+     */
+    seo?: {
+      /**
+       * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+       */
+      title?: string | null;
+      /**
+       * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+       */
+      description?: string | null;
+      /**
+       * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+       */
+      keywords?: string | null;
+      /**
+       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       */
+      image?: (number | null) | Media;
+      noindex?: boolean | null;
+    };
+  };
+  gate: {
+    title: string;
+    /**
+     * 不得承诺学习或就业效果
+     */
+    description?: string | null;
+    submitLabel: string;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "quiz-settings".
  */
 export interface QuizSetting {
@@ -3134,12 +3182,34 @@ export interface QuizSetting {
   };
   result: {
     summaryTitle: string;
+    /**
+     * 未留资时，完整报告位置显示的标题
+     */
     gatedTitle: string;
     /**
-     * 说明完整报告包含哪些内容，不得承诺学习或就业效果
+     * 说明完整报告包含哪些内容。不得承诺学习或就业效果，不使用“最好”“第一”等绝对化用语
      */
     gatedDescription?: string | null;
     unlockLabel: string;
+    /**
+     * 留资后展开的完整报告的标题
+     */
+    reportTitle: string;
+    /**
+     * 显示在结果页底部，说明测试结果仅供参考。清空则不显示。不得承诺学习或就业效果，不使用“最好”“第一”等绝对化用语
+     */
+    disclaimer?: string | null;
+    nextStepsTitle: string;
+    /**
+     * 完整报告末尾的行动建议，按顺序显示。不得承诺学习或就业效果，不使用“最好”“第一”等绝对化用语
+     */
+    nextSteps?:
+      | {
+          title: string;
+          description?: string | null;
+          id?: string | null;
+        }[]
+      | null;
   };
   seo?: {
     /**
@@ -3700,6 +3770,37 @@ export interface CareersPageSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tutorial-pages_select".
+ */
+export interface TutorialPagesSelect<T extends boolean = true> {
+  list?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        seo?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              keywords?: T;
+              image?: T;
+              noindex?: T;
+            };
+      };
+  gate?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        submitLabel?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "quiz-settings_select".
  */
 export interface QuizSettingsSelect<T extends boolean = true> {
@@ -3717,6 +3818,16 @@ export interface QuizSettingsSelect<T extends boolean = true> {
         gatedTitle?: T;
         gatedDescription?: T;
         unlockLabel?: T;
+        reportTitle?: T;
+        disclaimer?: T;
+        nextStepsTitle?: T;
+        nextSteps?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              id?: T;
+            };
       };
   seo?:
     | T

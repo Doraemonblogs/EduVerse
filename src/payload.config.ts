@@ -38,6 +38,7 @@ import { Navigation } from './globals/Navigation'
 import { QuizSettings } from './globals/QuizSettings'
 import { SiteSettings } from './globals/SiteSettings'
 import { TeacherPages } from './globals/TeacherPages'
+import { TutorialPages } from './globals/TutorialPages'
 import { WorkPages } from './globals/WorkPages'
 import { jobsConfig } from './jobs/config'
 
@@ -96,6 +97,7 @@ export default buildConfig({
     ArticlePages,
     CampusPages,
     CareersPage,
+    TutorialPages,
     QuizSettings,
     LeadSettings,
   ],

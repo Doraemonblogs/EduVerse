@@ -164,3 +164,28 @@ describe('buildMetadata 分享图（og:image）', () => {
     expect(metadata.openGraph?.images).toBeUndefined()
   })
 })
+
+describe('buildMetadata 标题模板', () => {
+  it("页面标题中的 $ 替换模式（$&、$'、$`、$$）原样放进模板，不被展开", async () => {
+    const buildMetadata = await loadBuildMetadata({
+      basePath: '',
+      siteUrl: 'https://www.example.cn',
+    })
+    settings.current = { brandName: '测试学院', titleTemplate: '%s - 测试学院' }
+    for (const title of ["搜索：$'", '搜索：$&', '搜索：$`', '搜索：a$$b', '搜索：$1 $<name>']) {
+      const metadata = await buildMetadata({ title, path: '/search' })
+      expect(metadata.title).toEqual({ absolute: `${title} - 测试学院` })
+      expect(metadata.openGraph?.title).toBe(`${title} - 测试学院`)
+    }
+  })
+
+  it('后台没有填写标题模板时用“页面标题 - 品牌名”', async () => {
+    const buildMetadata = await loadBuildMetadata({
+      basePath: '',
+      siteUrl: 'https://www.example.cn',
+    })
+    settings.current = { brandName: '测试学院' }
+    const metadata = await buildMetadata({ title: "搜索：$'", path: '/search' })
+    expect(metadata.title).toEqual({ absolute: "搜索：$' - 测试学院" })
+  })
+})

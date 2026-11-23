@@ -319,6 +319,25 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
         description: '作品集打磨、简历与面试准备、模拟面试、企业内推，帮助学员做好求职准备。',
       },
     },
+    'tutorial-pages': {
+      list: {
+        title: '免费教程',
+        description:
+          '各专业讲师录制的软件入门与技法讲解，覆盖三维、游戏、影视后期、UI/UX 等方向。按专业方向与难度筛选，点开就能看；部分教程留下联系方式后即可观看。',
+        seo: {
+          title: `免费教程｜${BRAND}`,
+          description:
+            'Blender、Maya、UE5、Nuke、Figma 等软件的免费入门与技法教程，按专业方向与难度筛选，在线观看。',
+          keywords: '免费教程,Blender教程,UE5教程,Figma教程,数字艺术教程',
+        },
+      },
+      gate: {
+        title: '留下联系方式，解锁这节教程',
+        description:
+          '提交后即可观看本节教程，课程顾问会结合你的基础提供这个方向的学习建议。不想留联系方式，也可以先看其它免费教程。',
+        submitLabel: '解锁观看',
+      },
+    },
     'quiz-settings': {
       intro: {
         title: '找到适合你的数字艺术方向',
@@ -328,8 +347,26 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
       result: {
         summaryTitle: '你的推荐方向',
         gatedTitle: '获取完整报告',
-        gatedDescription: '完整报告包含三个方向的匹配度、学习路径建议与对应课程。',
+        gatedDescription: '完整报告包含各方向的匹配度排序、推荐方向的课程与下一步建议。',
         unlockLabel: '留下联系方式查看完整报告',
+        reportTitle: '你的完整报告',
+        disclaimer:
+          '测试结果根据你的选择计算，仅供了解方向时参考。是否适合，还需要结合试听体验与自身情况判断。',
+        nextStepsTitle: '下一步建议',
+        nextSteps: [
+          {
+            title: '看看这个方向的学员作品',
+            description: '从课程作业到毕业作品，了解这个方向的同学在课程里做出了什么。',
+          },
+          {
+            title: '预约一节试听课',
+            description: '到校区或在线听一节正在进行的课，感受上课节奏与学习强度。',
+          },
+          {
+            title: '和课程顾问聊聊学习安排',
+            description: '结合你的基础与空闲时间，梳理一条可执行的学习路径，再决定是否报名。',
+          },
+        ],
       },
       seo: {
         title: `职业方向测试｜${BRAND}`,
@@ -514,7 +551,7 @@ export function buildLeads(refs: LeadRefs): LeadData[] {
       intent: 'tutorial',
       status: 'contacted',
       assignee: 'consultant-sh',
-      position: 'tutorial_unlock',
+      position: 'tutorial_gate',
       pageUrl: '/tutorials',
     },
     {

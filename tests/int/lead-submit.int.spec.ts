@@ -4,6 +4,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { notifyLead } from '@/jobs/notify-lead'
 import { BurstLimiter, KeyedMutex } from '@/lib/lead/burst-limiter'
 import { submitLead, type SubmitGuards } from '@/lib/lead/submit'
+import {
+  buildQuizResult,
+  parseQuizResult,
+  QUIZ_RESULT_LIMITS,
+  serializeQuizResult,
+} from '@/lib/quiz/result'
 import type { Lead, User } from '@/payload-types'
 import config from '@/payload.config'
 
@@ -407,6 +413,88 @@ describe('留资提交', () => {
         id: owner.id,
         data: { role: 'consultant', active: true },
       })
+    }
+  })
+
+  it('职业测试结果：意向为职业测试时按结构校验后入库（未知的键去掉），与前台序列化的结果一致', async () => {
+    const record = buildQuizResult({
+      questions: [{ id: 501 }, { id: 502 }],
+      answers: [1, 0],
+      scores: [
+        { disciplineId, score: 6, percent: 75, ratio: 1 },
+        { disciplineId: 2, score: 2, percent: 25, ratio: 0.33 },
+      ],
+      recommendedId: disciplineId,
+      disciplines: [{ id: disciplineId, name: '留资测试方向' }],
+    })
+    const serialized = serializeQuizResult(record)
+    const forged = JSON.stringify({
+      ...record,
+      note: '请联系 138xxxx',
+      recommended: { ...record.recommended, html: '<b>' },
+    })
+    const cases = [
+      { quizResult: serialized, expected: record },
+      { quizResult: forged, expected: record },
+    ]
+    for (const [i, { quizResult, expected }] of cases.entries()) {
+      const r = await submitLead(
+        payload,
+        form({
+          phone: phone(201 + i),
+          intent: 'quiz',
+          position: 'quiz_result',
+          discipline: String(disciplineId),
+          quizResult,
+        }),
+        ctx(`192.0.2.${201 + i}`),
+        limiter(),
+      )
+      expect(r.status).toBe('success')
+      const lead = await payload.findByID({
+        collection: 'leads',
+        id: (r as { leadId: number }).leadId,
+        depth: 0,
+      })
+      expect(lead.context?.quizResult).toEqual(expected)
+      expect(parseQuizResult(lead.context?.quizResult)).toEqual(expected)
+    }
+  })
+
+  it('职业测试结果格式不对、超出上限或线索不是职业测试意向时不入库，线索照常提交', async () => {
+    const valid = JSON.stringify({ version: 1, recommended: { id: disciplineId } })
+    const tooManyScores = JSON.stringify({
+      version: 1,
+      recommended: null,
+      scores: Array.from({ length: QUIZ_RESULT_LIMITS.scores + 1 }, (_, i) => ({
+        id: i + 1,
+        score: 1,
+        percent: 1,
+      })),
+    })
+    const cases: Record<string, unknown>[] = [
+      { intent: 'quiz', quizResult: '{不是 JSON' },
+      { intent: 'quiz', quizResult: JSON.stringify({ version: 2, recommended: null }) },
+      { intent: 'quiz', quizResult: JSON.stringify(['任意', { deep: { nested: true } }]) },
+      { intent: 'quiz', quizResult: JSON.stringify('保证就业') },
+      { intent: 'quiz', quizResult: tooManyScores },
+      { intent: 'trial', position: 'home_hero', quizResult: valid },
+      { intent: 'tutorial', position: 'tutorial_gate', quizResult: valid },
+    ]
+    for (const [i, overrides] of cases.entries()) {
+      const r = await submitLead(
+        payload,
+        form({ phone: phone(211 + i), ...overrides }),
+        ctx(`192.0.2.${211 + i}`),
+        limiter(),
+      )
+      expect(r.status, JSON.stringify(overrides)).toBe('success')
+      const lead = await payload.findByID({
+        collection: 'leads',
+        id: (r as { leadId: number }).leadId,
+        depth: 0,
+      })
+      expect(lead.context?.quizResult ?? null, JSON.stringify(overrides)).toBeNull()
     }
   })
 

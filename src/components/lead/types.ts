@@ -26,3 +26,9 @@ export type LeadContextProps = {
   description?: string
   submitLabel?: string
 }
+
+/** 留资提交成功的信息（LeadForm / LeadDialog 的 onSuccess 回调参数） */
+export type LeadSuccessInfo = {
+  /** 服务端写入成功的时间（毫秒时间戳） */
+  submittedAt: number
+}

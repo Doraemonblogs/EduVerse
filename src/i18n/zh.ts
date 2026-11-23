@@ -171,6 +171,20 @@ export const zh = {
     counterLabel: '第 {index} 张，共 {total} 张',
   },
   /**
+   * 通用“点击后加载”外部播放器（src/components/common/video-facade.tsx：作品详情、免费教程弹窗）。
+   * 带 {title} 占位的用 formatMessage() 替换。
+   */
+  video: {
+    /** 播放按钮的读屏名称 */
+    play: '播放视频：{title}',
+    /** 外部播放器 iframe 的 title */
+    frameTitle: '{title}（视频播放器）',
+    /** 播放器地址不在白名单（或缺失）时的占位文字 */
+    unavailable: '视频暂不可用',
+    /** 播放器下方的隐私提示（首屏不请求第三方） */
+    notice: '视频由第三方平台播放，点击播放后才会加载播放器。',
+  },
+  /**
    * 课程模块（课程列表 / 课程详情 / 专业方向页）的系统文案。
    * 带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
    * 页面专属文案只追加在 list / detail / major 子对象里。
@@ -396,11 +410,8 @@ export const zh = {
       imageCount: '共 {count} 张',
       /** 缩略图列表的无障碍名称 */
       galleryLabel: '作品图集',
-      /** 外部播放器“点击后加载”外观 */
-      playVideo: '播放视频：{title}',
+      /** 外部播放器的提示（播放按钮与 iframe 的名称见 zh.video） */
       videoNotice: '视频由第三方平台播放，点击播放后才会加载播放器。',
-      /** 外部播放器 iframe 的 title */
-      videoFrameTitle: '{title}（视频播放器）',
       videoUnsupported: '当前浏览器无法播放这段视频。',
       /** 信息栏 <dl> 的各项 */
       facts: {
@@ -660,6 +671,199 @@ export const zh = {
       eventsNote: '活动时间按北京时间计，已结束的活动不再显示。',
       /** 招聘活动空状态里链接到页尾的预约表单 */
       emptyAction: '预约就业咨询',
+    },
+  },
+  /**
+   * 职业测试（/quiz）的系统文案。开始页 / 结果页的标题、说明、按钮文字、下一步建议等运营文案来自后台「职业测试设置」，
+   * 不写在这里。带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
+   * 页面专属文案只追加在 runner / result / report / page 子对象里（Quiz Agent）。
+   */
+  quiz: {
+    /** 答题过程（QuizRunner） */
+    runner: {
+      /** 进度文字，如“第 3 / 10 题” */
+      progress: '第 {current} / {total} 题',
+      /** 进度条的无障碍名称 */
+      progressLabel: '答题进度',
+      previous: '上一题',
+      next: '下一题',
+      /** 最后一题的“下一题”按钮 */
+      finish: '查看结果',
+      /** 未选择就点“下一题”时的提示（按钮也会禁用） */
+      chooseOne: '请选择一个选项后继续',
+      /** 开始页：题目数量，{count} 为题数 */
+      questionCount: '{count} 道单选题',
+      /** 开始页：键盘操作说明（≥ md 显示） */
+      keyboardHint: '可用方向键选择选项，按回车进入下一题',
+      /** 开始页：可能的推荐方向（专业方向简称列表）的标题 */
+      coverage: '测试涵盖的方向',
+    },
+    /** 结果页：摘要（公开）与完整报告（留资后展开） */
+    result: {
+      /** 摘要里链接到推荐专业的方向页，{name} 为专业名称 */
+      learnMore: '了解{name}',
+      /** 重新测试按钮 */
+      restart: '重新测试',
+      /** 所有题目都没有计分（后台未配置加分）时，无法给出推荐 */
+      noRecommendationTitle: '暂时无法给出推荐方向',
+      noRecommendationDescription:
+        '你的选择没有匹配到具体方向。可以重新测试，或直接预约一节试听课，请课程顾问帮你分析。',
+      /** 无法推荐时的留资按钮（打开弹窗，意向 quiz） */
+      consult: '预约试听',
+    },
+    report: {
+      /** 各方向得分（条形图）区块标题；percent 是该方向得分占全部得分的比例（QuizScoreItem.percent） */
+      scoresTitle: '各方向得分占比',
+      /** 条形图每行的取值文字（不只靠颜色、长度表达） */
+      scoreValue: '{percent}%',
+      /** 条形图每行的读屏名称 */
+      scoreLabel: '{name}：得分占比 {percent}%',
+      /** 条形图中推荐方向的文字徽标（不只靠颜色区分） */
+      recommended: '推荐',
+      /** 推荐方向那一行的读屏名称 */
+      scoreLabelRecommended: '{name}：得分占比 {percent}%，推荐方向',
+      /** 推荐方向的课程区块标题 */
+      coursesTitle: '推荐课程',
+      /** 课程区块末尾链接到专业方向页，{name} 为专业名称 */
+      allCourses: '查看{name}全部课程',
+      /** 推荐方向暂时没有可报名的课程 */
+      noCourses: '这个方向的课程正在更新，可以先预约试听了解学习安排。',
+    },
+    /** 后台还没有题目或专业方向时的空状态 */
+    empty: {
+      title: '职业测试正在准备中',
+      description: '测试题更新后会在这里开放。可以先浏览各专业课程，或预约一节试听课。',
+      viewCourses: '查看专业课程',
+    },
+    /** 页面级（面包屑等；页面标题与 SEO 来自后台「职业测试设置」） */
+    page: {
+      /** 面包屑与 BreadcrumbList 中的名称 */
+      breadcrumb: '职业测试',
+    },
+  },
+  /**
+   * 免费教程（/tutorials）的系统文案。页面标题、简介、留资区标题与说明来自后台「教程页面设置」，
+   * 不写在这里。带 {name} 占位的用 formatMessage() 替换。
+   * 页面专属文案只追加在 card / filters / list / player / gate 子对象里（Tutorials Agent）。
+   */
+  tutorials: {
+    /** 难度：与后台选项标签一致（Tutorials.ts TUTORIAL_LEVEL_OPTIONS，单元测试校验） */
+    levels: { beginner: '入门', intermediate: '进阶', advanced: '高阶' },
+    /** 视频平台名称：与后台选项标签一致（TUTORIAL_PROVIDER_OPTIONS，单元测试校验） */
+    providers: { bilibili: '哔哩哔哩' },
+    /** 教程卡片 */
+    card: {
+      /** 留资后解锁的文字徽标 */
+      gated: '留资解锁',
+      /** 本浏览器已留资解锁后，徽标改为这段文字 */
+      unlocked: '已解锁',
+      /** 读屏：时长前缀（可见文字只显示“18:40”） */
+      duration: '时长',
+      /** 读屏：难度前缀 */
+      level: '难度',
+      /** 读屏：平台前缀 */
+      provider: '播放平台',
+      /** 卡片按钮的读屏名称（打开播放弹窗），{title} 为教程标题 */
+      open: '观看教程：{title}',
+    },
+    filters: {
+      /** 筛选栏 <nav> 的无障碍名称 */
+      label: '教程筛选',
+      discipline: '专业方向',
+      level: '难度',
+      resultCount: '共 {count} 个教程',
+      /** 筛选项的读屏补充（可见文字只显示数字） */
+      optionCount: '（{count} 个教程）',
+      previewNotice: '静态预览站不支持筛选，只展示全部教程；正式站点可按专业方向与难度筛选。',
+    },
+    list: {
+      /** 筛选无结果 */
+      emptyTitle: '没有符合条件的教程',
+      emptyDescription: '当前筛选条件下暂时没有教程。可以清除筛选查看全部教程。',
+      /** 还没有任何教程（未筛选） */
+      noTutorialsTitle: '教程正在录制中',
+      noTutorialsDescription:
+        '免费教程更新后会在这里展示。可以先浏览各专业课程，或预约一节试听课。',
+      viewCourses: '查看专业课程',
+      /** 还没有任何教程时的预约试听按钮 */
+      trial: '预约试听',
+    },
+    /** 播放弹窗 */
+    player: {
+      /** 弹窗关闭按钮 */
+      close: '关闭',
+      /** 深链接 ?play= 指向的教程不存在 / 已下线 */
+      notFound: '这个教程暂时无法观看，可以看看其它免费教程。',
+      /** 弹窗底部指向专业方向页的链接，{name} 为专业方向名称 */
+      learnMore: '了解{name}专业',
+    },
+    /** 留资解锁 */
+    gate: {
+      /** 解锁成功后的提示（role=status）：本浏览器留资一次即解锁全部需留资的教程 */
+      unlocked: '已解锁，可以观看了，其它需留资的教程也已一并解锁',
+    },
+  },
+  /**
+   * 站内搜索（/search?q=）的系统文案。带 {name} 占位的用 formatMessage() 替换。
+   * 页面专属文案只追加在 form / results / empty / page 子对象里（Search Agent）。
+   */
+  search: {
+    /** 结果分组的名称（与 SEARCH_GROUP_KEYS 一一对应，单元测试校验） */
+    groups: {
+      courses: '课程',
+      disciplines: '专业方向',
+      articles: '资讯',
+      teachers: '讲师',
+      works: '学员作品',
+    },
+    form: {
+      /** <label>（可视觉隐藏） */
+      label: '搜索关键词',
+      placeholder: '搜索课程、专业、资讯、讲师、作品',
+      submit: '搜索',
+      /** 关键词为空 / 只有空白 */
+      emptyHint: '请输入要搜索的关键词',
+      /** 关键词超过 50 个字（{max} 为上限） */
+      tooLong: '关键词不能超过 {max} 个字，请精简后再搜索',
+      /** 提交后等待结果时搜索按钮的读屏文字 */
+      pending: '正在搜索…',
+    },
+    results: {
+      /** aria-live 汇总，{query} 为关键词 */
+      summary: '“{query}”共找到 {count} 条结果',
+      /** 分组标题后的数量（可见），{count} 为该组匹配数 */
+      groupCount: '{count} 条',
+      /** 某组匹配超过显示上限时的说明，{shown} 为显示条数 */
+      groupMore: '仅显示前 {shown} 条，换个更具体的关键词试试',
+      /** 结果分类跳转链接（<nav>）的无障碍名称 */
+      navLabel: '按类型查看结果',
+      /** 有结果时侧栏（热门专业 / 热门课程）的无障碍名称 */
+      asideLabel: '热门推荐',
+    },
+    empty: {
+      /** 没有任何结果 */
+      title: '没有找到与“{query}”相关的内容',
+      description:
+        '换个关键词试试，比如软件名称（Blender、Figma）或专业方向（三维动画、UI 设计）。',
+      /** 热门入口（空搜索与无结果共用） */
+      hotDisciplines: '热门专业',
+      hotCourses: '热门课程',
+      /** 无结果时的在线咨询按钮 */
+      consult: '在线咨询',
+      /** 无结果时在线咨询按钮前的说明 */
+      consultHint: '也可以告诉课程顾问你想学什么，帮你一起找找合适的课程。',
+      /** 热门课程后的链接 */
+      allCourses: '查看全部课程',
+    },
+    /** 页面 SEO 与静态预览站 */
+    page: {
+      /** 有关键词时的页面标题 */
+      title: '搜索：{query}',
+      /** 没有关键词时的页面标题（也是 h1 与面包屑） */
+      titleEmpty: '站内搜索',
+      /** 页面描述（meta description） */
+      description: '搜索课程、专业方向、资讯、讲师与学员作品。',
+      previewNotice: '静态预览站不支持搜索；正式站点可搜索课程、专业方向、资讯、讲师与学员作品。',
     },
   },
   /**

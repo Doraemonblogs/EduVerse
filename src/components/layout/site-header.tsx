@@ -7,6 +7,7 @@ import { NavigationMenu } from 'radix-ui'
 import { useEffect, useState } from 'react'
 
 import { LeadCTA } from '@/components/lead/lead-cta'
+import { focusSearchInput, SEARCH_PATH } from '@/components/search/search-input'
 import { Button } from '@/components/ui/button'
 import { zh } from '@/i18n/zh'
 import type { CampusCity, MegaMenuGroup } from '@/lib/data/site'
@@ -129,7 +130,16 @@ export function SiteHeader({
         <div className="ml-auto flex items-center gap-1 lg:gap-3">
           {showSearch ? (
             <Button asChild variant="ghost" size="icon">
-              <Link href="/search" prefetch={false} aria-label={t.search}>
+              {/* 搜索页的搜索框在打开时自动获得焦点；已经在搜索页时点击，直接把焦点放进搜索框 */}
+              <Link
+                href={SEARCH_PATH}
+                prefetch={false}
+                aria-label={t.search}
+                aria-current={pathname === SEARCH_PATH ? 'page' : undefined}
+                onClick={() => {
+                  if (pathname === SEARCH_PATH) focusSearchInput()
+                }}
+              >
                 <SearchIcon className="size-5" aria-hidden />
               </Link>
             </Button>

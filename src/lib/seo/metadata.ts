@@ -56,7 +56,9 @@ export async function buildMetadata({
 
   const pageTitle =
     seo?.title || title || defaults?.title || settings.brandName || siteFallback.name
-  const fullTitle = absoluteTitle || seo?.title ? pageTitle : template.replace('%s', pageTitle)
+  // 用函数作替换值：页面标题可能含访客输入（如搜索词“$&”“$'”），字符串替换值会把 $ 模式展开
+  const fullTitle =
+    absoluteTitle || seo?.title ? pageTitle : template.replace('%s', () => pageTitle)
   const desc = seo?.description || description || defaults?.description || siteFallback.description
   const keywords = seo?.keywords || defaults?.keywords || undefined
   const og =

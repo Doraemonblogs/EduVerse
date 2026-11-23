@@ -6,6 +6,7 @@ import {
   startTransition,
   useActionState,
   useEffect,
+  useEffectEvent,
   useId,
   useRef,
   useState,
@@ -34,7 +35,7 @@ import {
 import { LeadSuccess } from './lead-success'
 import { readLandingInfo } from './source-tracker'
 import { submitLeadSafely } from './submit-lead-safely'
-import type { LeadContextProps, LeadFormConfig } from './types'
+import type { LeadContextProps, LeadFormConfig, LeadSuccessInfo } from './types'
 
 export type LeadFormVariant = 'dialog' | 'inline' | 'sidebar'
 
@@ -43,6 +44,12 @@ type LeadFormProps = LeadContextProps & {
   variant: LeadFormVariant
   /** 成功后点击“完成” */
   onDone?: () => void
+  /**
+   * 提交成功后调用一次（服务端已写入线索），如职业测试展开完整报告、教程解锁播放。
+   * 表单本身照常切换为成功提示（LeadSuccess，焦点移到其标题）；调用方若随即卸载表单、显示自己的内容，
+   * 需要自行把焦点移到新内容上。只在客户端组件中传入（函数不能从服务端组件传下来）。
+   */
+  onSuccess?: (info: LeadSuccessInfo) => void
   className?: string
 }
 
@@ -92,6 +99,7 @@ export function LeadForm({
   quizResult,
   submitLabel,
   onDone,
+  onSuccess,
   className,
 }: LeadFormProps) {
   const id = useId()
@@ -133,6 +141,12 @@ export function LeadForm({
       ;(window as HmtWindow)._hmt?.push(['_trackEvent', 'lead', 'submit', position])
     }
   }, [state, position])
+
+  // 提交成功：通知调用方（每次成功只调用一次；onSuccess 换了新函数不会重复调用）
+  const notifySuccess = useEffectEvent((info: LeadSuccessInfo) => onSuccess?.(info))
+  useEffect(() => {
+    if (state.status === 'success') notifySuccess({ submittedAt: state.submittedAt })
+  }, [state])
 
   if (state.status === 'success') {
     return <LeadSuccess config={config} onDone={onDone} className={className} />

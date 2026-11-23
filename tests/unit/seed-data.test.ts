@@ -24,7 +24,9 @@ import { CAREERS_PAGE_DEFAULTS } from '@/globals/careers-page-defaults'
 import { formatEventDateTime } from '@/lib/careers/mappers'
 import { COURSE_PAGES_DEFAULTS } from '@/globals/course-pages-defaults'
 import { HOME_PAGE_DEFAULTS } from '@/globals/home-page-defaults'
+import { QUIZ_SETTINGS_DEFAULTS } from '@/globals/quiz-settings-defaults'
 import { TEACHER_PAGES_DEFAULTS } from '@/globals/teacher-pages-defaults'
+import { TUTORIAL_PAGES_DEFAULTS } from '@/globals/tutorial-pages-defaults'
 import { WORK_PAGES_DEFAULTS } from '@/globals/work-pages-defaults'
 import { SLUG_PATTERN } from '@/lib/slugify'
 import { isAllowedVideoEmbedUrl } from '@/lib/works/video'
@@ -180,6 +182,44 @@ describe('种子数据完整性', () => {
     expect(careers?.seo?.description).toBeTruthy()
   })
 
+  it('职业测试设置写入了开始页、结果页（含完整报告、结果说明与下一步建议）与 SEO 文案', () => {
+    const quiz = buildGlobals({ wechatQr: 1, hotDisciplines: [] })['quiz-settings']
+    expect(quiz?.intro?.title).toBeTruthy()
+    expect(quiz?.intro?.startLabel).toBeTruthy()
+    expect(quiz?.result?.summaryTitle).toBeTruthy()
+    expect(quiz?.result?.gatedTitle).toBeTruthy()
+    expect(quiz?.result?.unlockLabel).toBeTruthy()
+    expect(quiz?.result?.reportTitle).toBeTruthy()
+    expect(quiz?.result?.disclaimer).toBeTruthy()
+    expect(quiz?.result?.nextStepsTitle).toBeTruthy()
+    expect(quiz?.result?.nextSteps?.length).toBeGreaterThanOrEqual(2)
+    for (const step of [
+      ...(quiz?.result?.nextSteps ?? []),
+      ...QUIZ_SETTINGS_DEFAULTS.result.nextSteps,
+    ]) {
+      expect(step.title).toBeTruthy()
+    }
+    expect(quiz?.seo?.title).toBeTruthy()
+    expect(quiz?.seo?.description).toBeTruthy()
+  })
+
+  it('教程页面设置写入了列表页与留资解锁区的文案', () => {
+    const tutorialPages = buildGlobals({ wechatQr: 1, hotDisciplines: [] })['tutorial-pages']
+    expect(tutorialPages?.list?.title).toBeTruthy()
+    expect(tutorialPages?.list?.description).toBeTruthy()
+    expect(tutorialPages?.list?.seo?.title).toBeTruthy()
+    expect(tutorialPages?.list?.seo?.description).toBeTruthy()
+    expect(tutorialPages?.gate?.title).toBeTruthy()
+    expect(tutorialPages?.gate?.description).toBeTruthy()
+    expect(tutorialPages?.gate?.submitLabel).toBeTruthy()
+  })
+
+  it('有留资后解锁的教程，也有直接可看的教程，且覆盖多个专业方向（筛选有意义）', () => {
+    expect(tutorials.some((t) => t.gated)).toBe(true)
+    expect(tutorials.some((t) => !t.gated)).toBe(true)
+    expect(new Set(tutorials.map((t) => t.discipline)).size).toBeGreaterThan(1)
+  })
+
   it('就业服务页（含默认值）不出现就业率、薪资等结果性表述', () => {
     const careers = JSON.stringify({
       seed: buildGlobals({ wechatQr: 1, hotDisciplines: [] })['careers-page'],
@@ -330,6 +370,8 @@ describe('合规（广告法）', () => {
     articlePagesDefaults: ARTICLE_PAGES_DEFAULTS,
     campusPagesDefaults: CAMPUS_PAGES_DEFAULTS,
     careersPageDefaults: CAREERS_PAGE_DEFAULTS,
+    quizSettingsDefaults: QUIZ_SETTINGS_DEFAULTS,
+    tutorialPagesDefaults: TUTORIAL_PAGES_DEFAULTS,
   })
 
   it.each([

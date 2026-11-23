@@ -39,13 +39,10 @@ const NOT_FOUND_PROBE = '/__static-preview-not-found__'
 
 /**
  * 导航 / 页脚已链接、但在后续里程碑才实现的路由。这些页面暂时 404 不算断链，只在导出日志中列出；
- * 对应里程碑完成后从这里删除，之后再出现 404 就会让导出失败。
+ * 对应里程碑完成后从这里删除，之后再出现 404 就会让导出失败。目前没有（M7 起全部路由已实现），
+ * 以后再有“先链接、后实现”的路由时登记在这里。
  */
-const PLANNED_ROUTES: { prefix: string; milestone: string }[] = [
-  { prefix: '/tutorials', milestone: 'M7' },
-  { prefix: '/quiz', milestone: 'M7' },
-  { prefix: '/search', milestone: 'M7' },
-]
+const PLANNED_ROUTES: { prefix: string; milestone: string }[] = []
 
 const plannedRoute = (sitePath: string) =>
   PLANNED_ROUTES.find((r) => sitePath === r.prefix || sitePath.startsWith(`${r.prefix}/`))

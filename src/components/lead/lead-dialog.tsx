@@ -13,7 +13,7 @@ import { zh } from '@/i18n/zh'
 
 import { LeadForm } from './lead-form'
 import { getPageLeadContext, mergePageLeadContext } from './page-lead-context'
-import type { LeadContextProps, LeadFormConfig } from './types'
+import type { LeadContextProps, LeadFormConfig, LeadSuccessInfo } from './types'
 
 export type LeadDialogOpenOptions = {
   /**
@@ -21,6 +21,12 @@ export type LeadDialogOpenOptions = {
    * 就聚焦这个元素（如菜单按钮），避免焦点掉到 <body>。
    */
   returnFocus?: HTMLElement | null
+  /**
+   * 本次打开的表单提交成功后调用一次（弹窗保持打开，显示成功提示，访客点“完成”关闭）。
+   * 只对这一次打开有效：下次 open() 不传就没有回调。放在选项里而不是 LeadContextProps 里，
+   * 是因为后者要能从服务端组件传给 LeadCTA（必须可序列化）。
+   */
+  onSuccess?: (info: LeadSuccessInfo) => void
 }
 
 type LeadDialogContextValue = {
@@ -56,9 +62,11 @@ export function LeadDialogProvider({
   const [current, setCurrent] = useState<(LeadContextProps & { key: number }) | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+  const onSuccessRef = useRef<LeadDialogOpenOptions['onSuccess']>(undefined)
 
   const open = useCallback((props: LeadContextProps, options?: LeadDialogOpenOptions) => {
     returnFocusRef.current = options?.returnFocus ?? null
+    onSuccessRef.current = options?.onSuccess
     setCurrent({ ...mergePageLeadContext(props, getPageLeadContext()), key: Date.now() })
     setIsOpen(true)
   }, [])
@@ -84,6 +92,7 @@ export function LeadDialogProvider({
                 variant="dialog"
                 {...withoutKey(current)}
                 onDone={() => setIsOpen(false)}
+                onSuccess={(info) => onSuccessRef.current?.(info)}
               />
             </div>
           </DialogContent>

@@ -32,6 +32,8 @@ export const LEAD_SPECS = [
   'campuses',
   'articles',
   'careers',
+  'tutorials',
+  'quiz',
 ] as const
 export type LeadSpec = (typeof LEAD_SPECS)[number]
 

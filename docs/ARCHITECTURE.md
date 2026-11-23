@@ -135,7 +135,9 @@ docs/ docker/ docker-compose.dev.yml
 - **course-pages**（课程页面设置，M3）：list { title, description, seo }、detail { sidebarTitle, sidebarDescription }、major { ctaTitle, ctaDescription }；默认文案在 `src/globals/course-pages-defaults.ts`，后台未保存过时前台用同一份默认值。
 - **article-pages**（资讯页面设置，M6）：list { title, description, seo }、detail { sidebarTitle, sidebarDescription }；**campus-pages**（校区页面设置，M6）：list { title, description, seo }、detail { ctaTitle, ctaDescription }；**careers-page** 增加 cta { title, description }。
 - **work-pages**（作品页面设置，M4）、**teacher-pages**（师资页面设置，M4）：list { title, description, seo }、detail { ctaTitle, ctaDescription }；默认文案分别在 `src/globals/{work,teacher}-pages-defaults.ts`。
-- **careers-page**、**quiz-settings**。
+- **careers-page**。
+- **quiz-settings**（职业测试设置，M7 补齐）：intro { title, description, startLabel }、result { summaryTitle, gatedTitle, gatedDescription, unlockLabel, reportTitle, disclaimer, nextStepsTitle, nextSteps[] { title, description } }、seo；默认文案在 `src/globals/quiz-settings-defaults.ts`。结果页的完整报告（各方向得分、推荐课程、下一步建议）在留资后展开，是营销引导而非访问控制：数据本身不敏感，随页面一起下发。
+- **tutorial-pages**（教程页面设置，M7）：list { title, description, seo }、gate { title, description, submitLabel }；默认文案在 `src/globals/tutorial-pages-defaults.ts`。“留资后解锁”（gated）同样是引导而非访问控制：视频在公开平台，播放器地址对所有教程都下发，解锁记录只存在访客浏览器（localStorage）。
 - **lead-settings**：webhooks[] { name, platform: wecom / feishu / dingtalk, url（仅允许三家官方域名）, secret, enabled, maskPhone }、rateLimits、cityOptions[]、successMessage。
 
 扩展预留：学员账号用新集合 `members`（与后台 `users` 分离），线索可关联；订单 / 课节作为新集合挂在课程下，不改现有字段。
@@ -235,6 +237,14 @@ docs/ docker/ docker-compose.dev.yml
 - **就业服务页**：不出现就业率、薪资承诺等字样（种子数据与 e2e 双重检查）；学员故事化名、无薪资，受总开关控制。
 - **留资位置**：`article_sidebar`、`campus_hero`、`campus_cohort`（校区页开班计划行）、`campus_cta`、`careers_hero`、`careers_cta`。
 
+### 4.14 M7 落地说明（职业测试、免费教程、站内搜索）
+
+- **职业测试** `/quiz`：题目、选项加分、专业方向与课程卡片在服务端取（只取已发布专业），答题与计分在客户端（`src/lib/quiz/score.ts`：按专业累计、同分按专业排序）。结果摘要公开；完整报告在留资成功后（`LeadForm onSuccess`）展开，同一标签页内记住。线索意向 `quiz`、位置 `quiz_result`，`quizResult` 为 JSON（答案与各专业得分），服务端按结构校验后才保存。完整报告是营销引导而不是访问控制（数据不敏感）。
+- **免费教程** `/tutorials?discipline=&level=&play=`：筛选组合与 `play` 深链接 `noindex`；播放弹窗使用通用 `VideoFacade`（点击后才加载哔哩哔哩播放器，域名白名单校验）；需留资的教程先显示表单（意向 `tutorial`、位置 `tutorial_gate`、`tutorialId`），提交成功后在本浏览器记住（localStorage，任一次成功即可解锁其它需留资的教程，避免重复留资触发限频）。留资解锁是引导而不是访问控制（视频本身在公开平台）。
+- **站内搜索** `/search?q=`：`next/form`（自动补 basePath）GET 提交；课程、专业、资讯、讲师、作品（已授权）只搜已发布内容，数据库模糊匹配（LIKE 特殊字符按字面处理），每类最多 10 条；高亮用 `<mark>` 拆分渲染，不拼 HTML；有 q 时 `noindex, follow`、canonical `/search`。搜索结果不进入持久数据缓存（任意查询词会无限增加缓存文件），只在单次请求内去重。
+- **通用**：`LeadForm` / `useLeadDialog().open()` 支持 `onSuccess`；`VideoFacade`（`src/components/common/video-facade.tsx`）供作品与教程共用；预览站导出的计划路由已清空。
+- **留资位置**：`quiz_result`、`tutorial_gate`、`tutorials_list_empty`、`search_empty`。
+
 ## 5. 路由清单
 
 | 路由 | 说明 | 里程碑 |
@@ -248,9 +258,9 @@ docs/ docker/ docker-compose.dev.yml
 | `/careers` | 就业服务 | M6 |
 | `/campuses`、`/campuses/[slug]` | 校区 | M6 |
 | `/articles`、`/articles/category/[slug]`、`/articles/[slug]` | 资讯 | M6 |
-| `/tutorials` | 免费教程 | M7 |
+| `/tutorials` | 免费教程（`?discipline=&level=&play=`，noindex） | M7 |
 | `/quiz` | 职业测试 | M7 |
-| `/search?q=` | 站内搜索 | M7 |
+| `/search?q=` | 站内搜索（有 q 时 noindex） | M7 |
 | `/about` `/contact` | `pages` 集合（通用页面路由 `/[pageSlug]`） | M2 |
 | `/privacy` `/terms` | `pages` 集合（通用页面路由 `/[pageSlug]`） | M2 |
 | `/sitemap.xml` `/robots.txt` | | M8 |

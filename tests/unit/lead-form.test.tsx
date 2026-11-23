@@ -32,6 +32,7 @@ vi.mock('next/link', () => ({
 }))
 
 const { LeadForm } = await import('@/components/lead/lead-form')
+const { LeadDialogProvider, useLeadDialog } = await import('@/components/lead/lead-dialog')
 
 const t = zh.lead
 
@@ -285,5 +286,113 @@ describe('留资表单', () => {
       fireEvent.click(reveal)
     })
     expect(document.activeElement).toBe(field(t.labels.message))
+  })
+})
+
+describe('留资表单：提交成功回调 onSuccess', () => {
+  it('提交成功后调用一次（带写入时间），表单照常切换为成功提示；之后父组件重渲染、换了新的回调也不会再调用', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'success', submittedAt: 1_700_000_000_000 })
+    const onSuccess = vi.fn()
+    const { rerender } = render(
+      <LeadForm config={config} variant="inline" position="quiz_result" onSuccess={onSuccess} />,
+    )
+    fillValidForm()
+    await submit()
+
+    expect(await screen.findByRole('heading', { name: config.successTitle })).toBeTruthy()
+    expect(onSuccess).toHaveBeenCalledTimes(1)
+    expect(onSuccess).toHaveBeenCalledWith({ submittedAt: 1_700_000_000_000 })
+
+    const next = vi.fn()
+    rerender(<LeadForm config={config} variant="inline" position="quiz_result" onSuccess={next} />)
+    expect(onSuccess).toHaveBeenCalledTimes(1)
+    expect(next).not.toHaveBeenCalled()
+  })
+
+  it('服务端返回错误或请求失败时不调用', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const onSuccess = vi.fn()
+    submitLeadAction.mockResolvedValueOnce({ status: 'error', message: t.errors.rateLimited })
+    submitLeadAction.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    renderForm({ onSuccess })
+    fillValidForm()
+    await submit()
+    expect(await screen.findByText(t.errors.rateLimited)).toBeTruthy()
+    await submit()
+    expect(await screen.findByText(t.errors.generic)).toBeTruthy()
+    expect(onSuccess).not.toHaveBeenCalled()
+  })
+
+  it('不传 onSuccess 时行为不变（成功提示 +“完成”按钮）', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'success', submittedAt: 1 })
+    const onDone = vi.fn()
+    renderForm({ onDone })
+    fillValidForm()
+    await submit()
+    fireEvent.click(await screen.findByRole('button', { name: t.success.again }))
+    expect(onDone).toHaveBeenCalledTimes(1)
+  })
+
+  it('职业测试与教程的上下文（意向、位置、专业、教程、测试结果）随表单提交', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'error', message: t.errors.tooFast })
+    const quizResult = JSON.stringify({ version: 1, recommended: { id: 1 } })
+    renderForm({
+      intent: 'quiz',
+      position: 'quiz_result',
+      disciplineId: 1,
+      tutorialId: 7,
+      quizResult,
+    })
+    fillValidForm()
+    await submit()
+    const data = lastSubmitted()
+    expect(data.intent).toBe('quiz')
+    expect(data.position).toBe('quiz_result')
+    expect(data.discipline).toBe('1')
+    expect(data.tutorial).toBe('7')
+    expect(data.quizResult).toBe(quizResult)
+  })
+})
+
+describe('全站留资弹窗：open() 的 onSuccess 选项', () => {
+  function Opener({ onSuccess }: { onSuccess?: () => void }) {
+    const { open } = useLeadDialog()
+    return (
+      <>
+        <button type="button" onClick={() => open({ position: 'test_a' }, { onSuccess })}>
+          带回调打开
+        </button>
+        <button type="button" onClick={() => open({ position: 'test_b' })}>
+          不带回调打开
+        </button>
+      </>
+    )
+  }
+
+  it('本次打开的表单提交成功后调用；下一次不带回调打开时不再调用', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'success', submittedAt: 2 })
+    const onSuccess = vi.fn()
+    render(
+      <LeadDialogProvider config={config}>
+        <Opener onSuccess={onSuccess} />
+      </LeadDialogProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '带回调打开' }))
+    fillValidForm()
+    await submit()
+    expect(await screen.findByRole('heading', { name: config.successTitle })).toBeTruthy()
+    expect(onSuccess).toHaveBeenCalledWith({ submittedAt: 2 })
+    expect(lastSubmitted().position).toBe('test_a')
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: t.success.again }))
+    })
+    fireEvent.click(screen.getByRole('button', { name: '不带回调打开' }))
+    fillValidForm()
+    await submit()
+    expect(await screen.findByRole('heading', { name: config.successTitle })).toBeTruthy()
+    expect(lastSubmitted().position).toBe('test_b')
+    expect(onSuccess).toHaveBeenCalledTimes(1)
   })
 })

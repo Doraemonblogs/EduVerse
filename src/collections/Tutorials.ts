@@ -5,6 +5,7 @@ import { hiddenFromConsultant, isStaffEditor, publishedOrEditor } from '@/access
 import { orderField } from '@/fields/common'
 import { slug } from '@/fields/slug'
 import { revalidateCollection } from '@/hooks/revalidate'
+import { BILIBILI_BV_PATTERN } from '@/lib/tutorials/video'
 
 import { ADMIN_GROUPS } from './groups'
 
@@ -17,8 +18,8 @@ export const TUTORIAL_LEVEL_OPTIONS = [
   { label: '高阶', value: 'advanced' },
 ]
 
-/** 哔哩哔哩 BV 号：BV + 10 位字母数字 */
-export const BILIBILI_BV_PATTERN = /^BV[0-9A-Za-z]{10}$/
+/** 哔哩哔哩 BV 号（定义在纯函数模块里，前台构造播放器地址时共用同一规则） */
+export { BILIBILI_BV_PATTERN }
 
 /** 粘贴整条视频链接时自动提取 BV 号 */
 const extractVideoId: FieldHook = ({ value }) => {

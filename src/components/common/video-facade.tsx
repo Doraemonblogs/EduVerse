@@ -11,35 +11,44 @@ import type { ImageSource } from '@/lib/media'
 import { cn } from '@/lib/utils'
 import { isAllowedVideoEmbedUrl } from '@/lib/works/video'
 
-const t = zh.works.detail
+const t = zh.video
 
-type WorkVideoEmbedProps = {
-  /** 外部播放器地址（数据层已校验白名单；插入 iframe 前这里再校验一次） */
-  embedUrl: string
-  /** 作品名：播放按钮与 iframe 的读屏名称 */
+export type VideoFacadeProps = {
+  /**
+   * 外部播放器地址。数据层应已按白名单校验；插入 iframe 前这里再校验一次（isAllowedVideoEmbedUrl），
+   * 不在白名单（或为 null）时显示“视频暂不可用”，永远不插入 iframe。
+   */
+  embedUrl: string | null
+  /** 视频名称：播放按钮与 iframe 的读屏名称（“播放视频：{title}”“{title}（视频播放器）”） */
   title: string
-  /** 播放前显示的封面（hero 尺寸）；首屏大图，预加载 */
+  /** 播放前显示的封面；为 null 时只有底色与播放按钮 */
   poster: ImageSource | null
-  /** 封面图 sizes（按主媒体区宽度） */
+  /** 封面图 sizes（按播放器实际显示宽度） */
   posterSizes: string
+  /** 封面是否是首屏大图（作品详情：true，预加载）；弹窗等非首屏位置用默认 false（懒加载） */
+  posterPreload?: boolean
+  /** 点击播放后回调（如记录统计）；iframe 插入后焦点会移到播放器上 */
+  onPlay?: () => void
   className?: string
 }
 
 /**
- * 外部播放器的“点击后加载”外观（客户端组件）：
- * 首屏只显示作品封面与播放按钮，不请求任何第三方地址；点击后才插入播放器 iframe，并把焦点移到播放器上
+ * 外部播放器的“点击后加载”外观（客户端组件，作品详情与免费教程弹窗共用）：
+ * 首屏只显示封面与播放按钮，不请求任何第三方地址；点击后才插入播放器 iframe，并把焦点移到播放器上
  * （按钮随之卸载，焦点不会掉回页面顶部）。
- * 地址不在白名单内（isAllowedVideoEmbedUrl）时永远不插入 iframe，按钮不可用；水合前按钮也不可用。
+ * 地址不在白名单内时永远不插入 iframe，显示“视频暂不可用”；水合前播放按钮不可用。
  * 圆角裁切放在按钮 / iframe 自身而不是外层容器上：按钮与容器一样大，
  * 外层 overflow-hidden 会把画在按钮外侧的焦点描边整圈裁掉（键盘用户看不到焦点）。
  */
-export function WorkVideoEmbed({
+export function VideoFacade({
   embedUrl,
   title,
   poster,
   posterSizes,
+  posterPreload = false,
+  onPlay,
   className,
-}: WorkVideoEmbedProps) {
+}: VideoFacadeProps) {
   const [playing, setPlaying] = React.useState(false)
   const frameRef = React.useRef<HTMLIFrameElement>(null)
   const allowed = isAllowedVideoEmbedUrl(embedUrl)
@@ -49,13 +58,32 @@ export function WorkVideoEmbed({
     if (playing) frameRef.current?.focus()
   }, [playing])
 
+  if (!allowed) {
+    return (
+      <div className={cn('relative aspect-video overflow-hidden rounded-md bg-muted', className)}>
+        {poster ? (
+          <Image
+            src={poster.src}
+            alt=""
+            fill
+            sizes={posterSizes}
+            className="object-cover opacity-40"
+          />
+        ) : null}
+        <p className="absolute inset-0 grid place-items-center p-4 text-center text-sm font-medium text-muted-foreground">
+          {t.unavailable}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className={cn('relative aspect-video rounded-md bg-muted', className)}>
-      {playing && allowed ? (
+      {playing ? (
         <iframe
           ref={frameRef}
           src={embedUrl}
-          title={formatMessage(t.videoFrameTitle, { title })}
+          title={formatMessage(t.frameTitle, { title })}
           allow="fullscreen"
           allowFullScreen
           referrerPolicy="strict-origin-when-cross-origin"
@@ -65,9 +93,12 @@ export function WorkVideoEmbed({
       ) : (
         <button
           type="button"
-          aria-label={formatMessage(t.playVideo, { title })}
-          disabled={!allowed || !hydrated}
-          onClick={() => setPlaying(true)}
+          aria-label={formatMessage(t.play, { title })}
+          disabled={!hydrated}
+          onClick={() => {
+            setPlaying(true)
+            onPlay?.()
+          }}
           className="group absolute inset-0 block size-full cursor-pointer overflow-hidden rounded-md disabled:cursor-default"
         >
           {poster ? (
@@ -76,7 +107,7 @@ export function WorkVideoEmbed({
               alt=""
               fill
               sizes={posterSizes}
-              preload
+              preload={posterPreload}
               className="object-cover"
             />
           ) : null}

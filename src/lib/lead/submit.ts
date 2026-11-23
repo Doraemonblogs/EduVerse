@@ -1,7 +1,13 @@
 import type { Payload } from 'payload'
 
 import { hasRole } from '@/access/roles'
-import { leadSubmissionSchema, toFieldErrors, type LeadFieldErrors } from '@/lib/validation/lead'
+import { parseQuizResult, type QuizResultRecord } from '@/lib/quiz/result'
+import {
+  leadSubmissionSchema,
+  toFieldErrors,
+  type LeadFieldErrors,
+  type LeadSubmission,
+} from '@/lib/validation/lead'
 
 import { BurstLimiter, KeyedMutex } from './burst-limiter'
 import { UNKNOWN_IP } from './client-info'
@@ -165,7 +171,7 @@ export async function submitLead(
           utmTerm: data.utmTerm,
           utmContent: data.utmContent,
         },
-        context: { course, tutorial, quizResult: parseJson(data.quizResult) },
+        context: { course, tutorial, quizResult: quizResultOf(data) },
         client: { ip: ctx.ip, userAgent: ctx.userAgent },
         consent: {
           agreed: true,
@@ -226,15 +232,13 @@ async function activeConsultantId(payload: Payload, value: unknown): Promise<num
   return hasRole(user, 'consultant') ? id : undefined
 }
 
-type JsonValue = string | number | boolean | unknown[] | { [key: string]: unknown } | null
-
-function parseJson(value: string | undefined): JsonValue | undefined {
-  if (!value) return undefined
-  try {
-    return JSON.parse(value) as JsonValue
-  } catch {
-    return undefined
-  }
+/**
+ * 职业测试结果（隐藏字段，客户端可篡改）：只有意向为“职业测试”的线索才存，并按 quizResultSchema
+ * 在服务端再校验一遍结构与上限（未知的键去掉）；格式不对时不存，不影响线索提交。
+ */
+function quizResultOf(data: LeadSubmission): QuizResultRecord | undefined {
+  if (data.intent !== 'quiz' || !data.quizResult) return undefined
+  return parseQuizResult(data.quizResult) ?? undefined
 }
 
 /** 只接受已发布内容的 ID，防止通过表单关联到草稿或不存在的文档 */
