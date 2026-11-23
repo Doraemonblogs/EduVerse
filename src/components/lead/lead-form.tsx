@@ -24,15 +24,15 @@ import { isStaticPreview } from '@/config/site'
 import { zh } from '@/i18n/zh'
 import type { LeadActionState } from '@/lib/lead/actions'
 import { cn } from '@/lib/utils'
-import {
-  leadSubmissionSchema,
-  SOURCE_FIELD_MAX,
-  toFieldErrors,
-  truncateText,
-  type LeadFieldErrors,
-} from '@/lib/validation/lead'
+import { SOURCE_FIELD_MAX, truncateText, type LeadFieldErrors } from '@/lib/validation/lead-fields'
 
 import { LeadSuccess } from './lead-success'
+import {
+  getLoadedLeadValidation,
+  loadLeadValidation,
+  preloadLeadValidation,
+  type LeadValidation,
+} from './lead-validation'
 import { readLandingInfo } from './source-tracker'
 import { submitLeadSafely } from './submit-lead-safely'
 import type { LeadContextProps, LeadFormConfig, LeadSuccessInfo } from './types'
@@ -78,6 +78,7 @@ function useHydrated(): boolean {
 /**
  * 留资表单：弹窗 / 页内 / 侧栏三种形态共用。
  * 客户端先用同一份 zod 规则校验（即时反馈），服务端 Server Action 再校验一遍。
+ * zod 规则按需加载（见 ./lead-validation）：聚焦或按下表单内的控件时开始加载，提交时通常已就绪。
  *
  * 提交由 onSubmit 手动派发（startTransition 内调用 dispatch），而不是交给 <form action>：
  * React 19 的表单 Action 结束后会自动重置表单，服务端返回错误（提交过快、限频、写库失败）时
@@ -115,6 +116,10 @@ export function LeadForm({
   const [showMessage, setShowMessage] = useState(variant !== 'sidebar')
   const messageRef = useRef<HTMLTextAreaElement>(null)
   const mountedAt = useRef(0)
+  /** 提交时校验规则仍在加载：期间再次提交直接忽略，避免重复提交（ref 同步拦截连点，state 用于按钮显示加载中） */
+  const awaitingValidation = useRef(false)
+  const [validating, setValidating] = useState(false)
+  const busy = pending || validating
 
   // 表单挂载（弹窗打开 / 页面渲染）的时刻。用单调时钟计算填写用时，与访客设备时钟是否准确无关
   useEffect(() => {
@@ -152,9 +157,24 @@ export function LeadForm({
     return <LeadSuccess config={config} onDone={onDone} className={className} />
   }
 
+  const validateAndDispatch = (validation: LeadValidation, formData: FormData) => {
+    const parsed = validation.leadSubmissionSchema.safeParse(Object.fromEntries(formData.entries()))
+    if (!parsed.success) {
+      const fieldErrors = validation.toFieldErrors(parsed.error)
+      setClientErrors(fieldErrors)
+      // 没有能标在可见控件上的错误（如隐藏字段异常）时给通用提示，而不是毫无反应
+      setClientMessage(Object.keys(fieldErrors).length > 0 ? null : t.errors.generic)
+      setClientAttempt((n) => n + 1)
+      return
+    }
+    setClientErrors({})
+    setClientMessage(null)
+    startTransition(() => dispatch(formData))
+  }
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (pending) return
+    if (pending || awaitingValidation.current) return
     if (isStaticPreview) {
       setPreviewBlocked(true)
       return
@@ -178,18 +198,23 @@ export function LeadForm({
     set('fillMs', String(Math.max(0, Math.round(performance.now() - mountedAt.current))))
 
     const formData = new FormData(form)
-    const parsed = leadSubmissionSchema.safeParse(Object.fromEntries(formData.entries()))
-    if (!parsed.success) {
-      const fieldErrors = toFieldErrors(parsed.error)
-      setClientErrors(fieldErrors)
-      // 没有能标在可见控件上的错误（如隐藏字段异常）时给通用提示，而不是毫无反应
-      setClientMessage(Object.keys(fieldErrors).length > 0 ? null : t.errors.generic)
-      setClientAttempt((n) => n + 1)
+    const validation = getLoadedLeadValidation()
+    if (validation) {
+      validateAndDispatch(validation, formData)
       return
     }
-    setClientErrors({})
-    setClientMessage(null)
-    startTransition(() => dispatch(formData))
+    // 校验规则还没加载完（如未填写直接点提交）：等加载完成再校验；加载失败给通用提示，下次提交重试
+    awaitingValidation.current = true
+    setValidating(true)
+    loadLeadValidation()
+      .then(
+        (loaded) => validateAndDispatch(loaded, formData),
+        () => setClientMessage(t.errors.generic),
+      )
+      .finally(() => {
+        awaitingValidation.current = false
+        setValidating(false)
+      })
   }
 
   // 侧栏形态：展开留言框后把焦点移进去（被点击的按钮随之卸载，否则焦点会掉到 <body>）
@@ -207,8 +232,10 @@ export function LeadForm({
     <form
       action={dispatch}
       onSubmit={handleSubmit}
+      onFocus={preloadLeadValidation}
+      onPointerDown={preloadLeadValidation}
       noValidate
-      aria-busy={pending}
+      aria-busy={busy}
       className={cn('grid gap-4', wide && 'md:grid-cols-2 md:gap-x-5', className)}
     >
       <Field
@@ -384,10 +411,10 @@ export function LeadForm({
           size={variant === 'sidebar' ? 'md' : 'lg'}
           block
           disabled={!hydrated}
-          aria-disabled={pending}
-          onClick={(e) => pending && e.preventDefault()}
+          aria-disabled={busy}
+          onClick={(e) => busy && e.preventDefault()}
         >
-          {pending ? (
+          {busy ? (
             <>
               <Loader2Icon className="animate-spin" aria-hidden />
               {t.submitting}

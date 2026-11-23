@@ -34,6 +34,10 @@ export const MEDIA_FILES_SOURCE = '/api/media/file/:path*'
  * - private：不在 CDN / 运营商代理等共享缓存中存储（本项目部署不使用 CDN 缓存 HTML；页面缓存由 Next 服务端完成）；
  * - no-cache：浏览器每次使用前向服务器确认（带 ETag，未变化时 304）。不用 no-store，前进 / 后退可用往返缓存。
  * 前台页面不含按用户区分的内容（留资走 Server Action 的 POST 请求，不受影响）。出错的响应 Next 仍会改为 no-store。
+ *
+ * 压缩由 nginx 负责：Next 内置的 gzip（compression 包）遇到 no-transform 会跳过，直接访问 `next start` 时
+ * 页面与 RSC 响应都不压缩（首页 HTML 约 540KB）；deploy/nginx.conf.example 的 gzip 不受影响（约 65KB）。
+ * 不要绕过 nginx 直接对外提供 app；在 3100 端口直接跑 Lighthouse 的分数也因此偏低，以经 nginx 测得的为准。
  */
 export const FRONTEND_CACHE_CONTROL = 'private, no-cache, no-transform'
 
@@ -46,8 +50,26 @@ export const FRONTEND_CACHE_CONTROL = 'private, no-cache, no-transform'
  */
 export const MEDIA_CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=604800'
 
+/** Next 16.4.6 默认的 HTML 受限爬虫列表（next/dist/shared/lib/router/utils/html-bots.js 的 HTML_LIMITED_BOT_UA_RE），原样复制 */
+const NEXT_DEFAULT_HTML_LIMITED_BOTS =
+  '[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight'
+
+/**
+ * 需要“阻塞式”元数据的爬虫：对这些 UA，title / description / canonical 等一定输出在 <head> 中，
+ * 不会在数据较慢时随流式渲染插入 <body>（只读 <head> 的爬虫会漏掉）。
+ * 设置后会替换 Next 的默认列表，因此先保留默认列表（已含百度 baiduspider、搜狗 sogou），
+ * 再加上国内常见而默认列表没有的：360 搜索（360Spider / HaosouSpider）、神马（YisouSpider）、头条搜索（Bytespider）。
+ * 不加微信（MicroMessenger）：同一 UA 也是微信内置浏览器，会让真实访客失去流式渲染。
+ * Next 只取正则的 source、运行时不区分大小写匹配；升级 Next 时由单元测试核对默认列表是否变化。
+ */
+export const HTML_LIMITED_BOTS = new RegExp(
+  `${NEXT_DEFAULT_HTML_LIMITED_BOTS}|360Spider|HaosouSpider|YisouSpider|Bytespider`,
+  'i',
+)
+
 const nextConfig: NextConfig = {
   basePath,
+  htmlLimitedBots: HTML_LIMITED_BOTS,
   // 不自动生成 AGENTS.md：同样的约定（以 node_modules/next/dist/docs 为准）已写在 CLAUDE.md
   agentRules: false,
   poweredByHeader: false,
@@ -68,6 +90,12 @@ const nextConfig: NextConfig = {
     // 媒体文件由 Payload 通过 /api/media/file/* 提供
     localPatterns: [{ pathname: '/api/media/file/**' }],
     formats: ['image/avif', 'image/webp'],
+    /**
+     * 去掉默认的 2048 / 3840：后台图片最大的尺寸是 hero（宽 1920，见 src/collections/Media.ts），
+     * 优化器不放大图片，更宽的候选只会返回同一张图，却让每个 <img> 的 srcset 多出两条地址
+     * （首页约 15KB HTML）、回退 src 指向 w=3840，并多占一份图片缓存。
+     */
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     // 优化后图片的磁盘缓存（.next/cache/images）上限 500MB，超出按最近最少使用淘汰（默认是可用磁盘空间的一半）
     maximumDiskCacheSize: 500 * 1000 * 1000,
   },
@@ -105,4 +133,31 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+/** 后台路由（含 /admin 本身）；Next 会自动补上 basePath */
+export const ADMIN_PAGES_SOURCE = '/admin/:path*'
+
+/**
+ * withPayload 给全站（/:path*）加 `Accept-CH` / `Critical-CH` / `Vary: Sec-CH-Prefers-Color-Scheme`，
+ * 供后台首屏按系统深浅色渲染（@payloadcms/next 的 getRequestTheme 读取该请求头）。前台不读这个请求头，
+ * 但 Critical-CH 会让 Chromium 系浏览器首次访问站点时丢弃已收到的页面、带上该请求头把导航重发一遍
+ * （多一次往返与一次服务端渲染；Lighthouse 记为一次重定向，移动端模拟约 600ms）。
+ * 这里只把这条规则的匹配范围收窄到后台，规则内容不变；Payload 改变规则形态时由单元测试发现。
+ */
+function scopeClientHintsToAdmin(config: NextConfig): NextConfig {
+  const withPayloadHeaders = config.headers
+  if (!withPayloadHeaders) return config
+  return {
+    ...config,
+    async headers() {
+      const rules = await withPayloadHeaders()
+      return rules.map((rule) =>
+        rule.source === '/:path*' &&
+        rule.headers.some((header) => header.key.toLowerCase() === 'critical-ch')
+          ? { ...rule, source: ADMIN_PAGES_SOURCE }
+          : rule,
+      )
+    },
+  }
+}
+
+export default scopeClientHintsToAdmin(withPayload(nextConfig, { devBundleServerPackages: false }))

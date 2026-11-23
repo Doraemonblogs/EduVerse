@@ -280,7 +280,7 @@ export interface Discipline {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -469,7 +469,7 @@ export interface Course {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -553,7 +553,7 @@ export interface Campus {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -677,7 +677,7 @@ export interface Teacher {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -803,7 +803,7 @@ export interface Work {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -972,7 +972,7 @@ export interface Article {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -1150,7 +1150,7 @@ export interface Page {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -2581,7 +2581,7 @@ export interface SiteSetting {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
   };
@@ -2818,7 +2818,7 @@ export interface HomePage {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -2855,7 +2855,7 @@ export interface CoursePage {
        */
       keywords?: string | null;
       /**
-       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
        */
       image?: (number | null) | Media;
       noindex?: boolean | null;
@@ -2904,7 +2904,7 @@ export interface WorkPage {
        */
       keywords?: string | null;
       /**
-       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
        */
       image?: (number | null) | Media;
       noindex?: boolean | null;
@@ -2949,7 +2949,7 @@ export interface TeacherPage {
        */
       keywords?: string | null;
       /**
-       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
        */
       image?: (number | null) | Media;
       noindex?: boolean | null;
@@ -2994,7 +2994,7 @@ export interface ArticlePage {
        */
       keywords?: string | null;
       /**
-       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
        */
       image?: (number | null) | Media;
       noindex?: boolean | null;
@@ -3036,7 +3036,7 @@ export interface CampusPage {
        */
       keywords?: string | null;
       /**
-       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
        */
       image?: (number | null) | Media;
       noindex?: boolean | null;
@@ -3115,7 +3115,7 @@ export interface CareersPage {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;
@@ -3152,7 +3152,7 @@ export interface TutorialPage {
        */
       keywords?: string | null;
       /**
-       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
        */
       image?: (number | null) | Media;
       noindex?: boolean | null;
@@ -3225,7 +3225,7 @@ export interface QuizSetting {
      */
     keywords?: string | null;
     /**
-     * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+     * 分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。
      */
     image?: (number | null) | Media;
     noindex?: boolean | null;

@@ -47,6 +47,26 @@ describe('next.config 响应头', () => {
     }
   })
 
+  it('Payload 的深浅色客户端提示（Critical-CH）只发给后台：前台首次访问不会被浏览器重发一遍', async () => {
+    for (const path of [
+      '/',
+      '/courses/ui-ux-career',
+      '/articles',
+      '/administration',
+      '/api/health',
+    ]) {
+      const headers = await headersFor(path)
+      expect(headers.get('critical-ch'), path).toBeNull()
+      expect(headers.get('accept-ch'), path).toBeNull()
+    }
+    for (const path of ['/admin', '/admin/login', '/admin/collections/leads']) {
+      const headers = await headersFor(path)
+      expect(headers.get('critical-ch'), path).toBe('Sec-CH-Prefers-Color-Scheme')
+      expect(headers.get('accept-ch'), path).toBe('Sec-CH-Prefers-Color-Scheme')
+      expect(headers.get('vary'), path).toContain('Sec-CH-Prefers-Color-Scheme')
+    }
+  })
+
   it('媒体文件：缓存 1 天并允许过期后先用旧文件（文件名不含内容哈希，不用 immutable）', async () => {
     const headers = await headersFor('/api/media/file/course-cover-800x450.webp')
     expect(headers.get('cache-control')).toBe(MEDIA_CACHE_CONTROL)

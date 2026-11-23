@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { hydrateRoot } from 'react-dom/client'
 import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -394,5 +394,132 @@ describe('全站留资弹窗：open() 的 onSuccess 选项', () => {
     expect(await screen.findByRole('heading', { name: config.successTitle })).toBeTruthy()
     expect(lastSubmitted().position).toBe('test_b')
     expect(onSuccess).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('留资表单：zod 校验规则按需加载', () => {
+  type LoadControl = {
+    loads: number
+    fail: boolean
+    release: () => void
+    /** 等这次表单实例的加载结束（成功或失败都算），用于清理 */
+    settle: () => Promise<void>
+  }
+  let current: LoadControl | null = null
+
+  /**
+   * 用全新的模块实例渲染表单（校验规则尚未加载），并拦截 @/lib/validation/lead 的加载：
+   * gate 未放行前加载一直挂起；fail 为 true 时加载失败。
+   */
+  async function freshForm(): Promise<LoadControl> {
+    vi.resetModules()
+    const control: LoadControl = {
+      loads: 0,
+      fail: false,
+      release: () => {},
+      settle: async () => {},
+    }
+    const gate = new Promise<void>((resolve) => {
+      control.release = resolve
+    })
+    vi.doMock('@/lib/validation/lead', async (importOriginal) => {
+      control.loads += 1
+      await gate
+      if (control.fail) throw new TypeError('Failed to fetch dynamically imported module')
+      return importOriginal()
+    })
+    const { LeadForm: FreshLeadForm } = await import('@/components/lead/lead-form')
+    // 与表单共用同一个模块实例（同一次 resetModules 之后导入）
+    const { loadLeadValidation } = await import('@/components/lead/lead-validation')
+    control.settle = () =>
+      loadLeadValidation().then(
+        () => {},
+        () => {},
+      )
+    current = control
+    render(<FreshLeadForm config={config} variant="dialog" position="test_form" />)
+    return control
+  }
+
+  afterEach(async () => {
+    // 先放行并等本次加载结束，再撤销模拟：否则挂起的加载会在下一个用例 resetModules 之后才完成，
+    // 把真实模块留在模块缓存里，下一个用例的模拟就不生效了
+    if (current) {
+      current.fail = false
+      current.release()
+      await act(async () => {
+        await current?.settle()
+      })
+      current = null
+    }
+    vi.doUnmock('@/lib/validation/lead')
+    vi.resetModules()
+  })
+
+  it('渲染表单时不加载校验规则；聚焦任一控件时开始加载（只加载一次）', async () => {
+    const control = await freshForm()
+    expect(control.loads).toBe(0)
+
+    act(() => field(t.labels.name).focus())
+    act(() => field(t.labels.phone).focus())
+    await waitFor(() => expect(control.loads).toBe(1))
+    control.release()
+  })
+
+  it('按下表单内的控件（不聚焦，如 Safari 点按钮）也开始加载', async () => {
+    const control = await freshForm()
+    fireEvent.pointerDown(screen.getByRole('button', { name: t.submit }))
+    await waitFor(() => expect(control.loads).toBe(1))
+    control.release()
+  })
+
+  it('校验规则未加载完时提交：按钮显示提交中，加载完成后照常校验并提交；等待期间重复提交被忽略', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'error', message: t.errors.tooFast })
+    const control = await freshForm()
+    fillValidForm()
+    await submit()
+    // 等待校验规则期间：按钮显示加载中并标记 aria-disabled，表单 aria-busy
+    const busyButton = screen.getByRole('button', { name: t.submitting })
+    expect(busyButton.getAttribute('aria-disabled')).toBe('true')
+    const form = busyButton.closest('form')
+    expect(form?.getAttribute('aria-busy')).toBe('true')
+    // 再次提交（如在输入框里按回车）被忽略
+    await act(async () => {
+      fireEvent.submit(form as HTMLFormElement)
+    })
+    expect(submitLeadAction).not.toHaveBeenCalled()
+
+    await act(async () => control.release())
+    expect(await screen.findByText(t.errors.tooFast)).toBeTruthy()
+    expect(submitLeadAction).toHaveBeenCalledTimes(1)
+    expect(lastSubmitted().phone).toBe('138 0013 8000')
+  })
+
+  it('校验规则未加载完时提交空表单：加载完成后标出错误并把焦点移到第一个错误字段', async () => {
+    const control = await freshForm()
+    await submit()
+    await act(async () => control.release())
+
+    expect(await screen.findByText(t.errors.nameRequired)).toBeTruthy()
+    expect(document.activeElement).toBe(field(t.labels.name))
+    expect(submitLeadAction).not.toHaveBeenCalled()
+  })
+
+  it('校验规则加载失败（断网等）时显示通用错误提示，下次提交重新加载', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'error', message: t.errors.tooFast })
+    const control = await freshForm()
+    control.fail = true
+    fillValidForm()
+    await submit()
+    await act(async () => control.release())
+    const status = screen.getByRole('status')
+    expect(await within(status).findByText(t.errors.generic)).toBeTruthy()
+    expect(submitLeadAction).not.toHaveBeenCalled()
+
+    control.fail = false
+    await submit()
+    expect(await screen.findByText(t.errors.tooFast)).toBeTruthy()
+    expect(control.loads).toBe(2)
+    expect(submitLeadAction).toHaveBeenCalledTimes(1)
   })
 })
