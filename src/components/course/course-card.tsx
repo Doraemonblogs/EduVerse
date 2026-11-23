@@ -36,13 +36,15 @@ export type CourseCardProps = {
   now?: Date
   /** 封面图 sizes；默认按 1 / 2 / 3 列网格计算，网格列数不同时传入 */
   imageSizes?: string
+  /** “预约试听”按钮的留资位置标识，默认 course_card（首页精选课程传 home_course） */
+  leadPosition?: string
   className?: string
 }
 
 /**
  * 课程卡片（服务端组件）：封面、专业方向 + 班型、标题（链接到详情）、两行简介、
  * 时长 / 授课方式 / 城市、编号式学习路线（最多 5 个阶段）、近期开班，
- * 以及两个出口：“课程详情”（链接）与“预约试听”（留资弹窗，position=course_card，带课程与专业）。
+ * 以及两个出口：“课程详情”（链接）与“预约试听”（留资弹窗，position 默认 course_card，带课程与专业）。
  * 卡片在网格里等高（h-full），按钮贴底。深色区块内自动切换配色。
  */
 export function CourseCard({
@@ -50,6 +52,7 @@ export function CourseCard({
   headingLevel: Heading = 'h3',
   now = new Date(),
   imageSizes = DEFAULT_SIZES,
+  leadPosition = 'course_card',
   className,
 }: CourseCardProps) {
   const href = coursePath(course.slug)
@@ -154,7 +157,7 @@ export function CourseCard({
             </Link>
           </Button>
           <LeadCTA
-            position="course_card"
+            position={leadPosition}
             intent="trial"
             courseId={course.id}
             disciplineId={course.discipline.id}

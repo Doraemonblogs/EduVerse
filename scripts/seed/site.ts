@@ -136,6 +136,14 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
         description: '每个方向都从基础讲起，按阶段完成作品。',
         disciplines: refs.hotDisciplines,
       },
+      // 指定课程留空：前台自动取每个专业方向的长期就业班（src/lib/home/rules.ts）
+      courses: {
+        enabled: true,
+        eyebrow: 'Courses',
+        title: '长期就业班',
+        description:
+          '每个方向一门系统课程，从软件基础到项目实训分阶段推进。先看学习路线，再预约一节试听课。',
+      },
       featuredWorks: {
         enabled: true,
         eyebrow: 'Student Works',
@@ -144,10 +152,30 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
         mode: 'auto',
         limit: 12,
       },
-      stories: { enabled: true, eyebrow: 'Stories', title: '学员故事' },
-      teachers: { enabled: true, eyebrow: 'Mentors', title: '师资团队' },
-      campuses: { enabled: true, eyebrow: 'Campuses', title: '校区分布' },
-      partners: { enabled: true, eyebrow: 'Partners', title: '合作企业' },
+      stories: {
+        enabled: true,
+        eyebrow: 'Stories',
+        title: '学员故事',
+        description: '他们从不同的起点出发，把一段学习经历变成了新的工作方向。',
+      },
+      teachers: {
+        enabled: true,
+        eyebrow: 'Mentors',
+        title: '师资团队',
+        description: '讲师来自动画、游戏、影视与设计行业，按专业方向分工授课。',
+      },
+      campuses: {
+        enabled: true,
+        eyebrow: 'Campuses',
+        title: '校区分布',
+        description: '线下校区可到校试听，也可以选择线上直播课程。',
+      },
+      partners: {
+        enabled: true,
+        eyebrow: 'Partners',
+        title: '合作企业',
+        description: '与动画、游戏、影视、设计等领域的企业开展实训与招聘合作。',
+      },
       articles: { enabled: true, eyebrow: 'News', title: '最新资讯', limit: 6 },
       leadForm: {
         enabled: true,

@@ -36,7 +36,7 @@ const { SalaryReferenceCard } = await import('@/components/course/salary-referen
 const { SyllabusList } = await import('@/components/course/syllabus-list')
 const { FaqList } = await import('@/components/course/faq-list')
 const { WorkThumbGrid } = await import('@/components/course/work-thumb-grid')
-const { TeacherCardGrid } = await import('@/components/course/teacher-card-grid')
+const { TeacherCard, TeacherCardGrid } = await import('@/components/course/teacher-card-grid')
 const { CareerDirectionList } = await import('@/components/course/career-direction-list')
 const { SoftwareTags } = await import('@/components/course/software-tags')
 const { CourseTags } = await import('@/components/course/course-tags')
@@ -165,6 +165,20 @@ describe('CourseCard', () => {
     )
     expect(form.querySelector<HTMLSelectElement>('select[name="discipline"]')?.value).toBe(
       String(DEFAULT_DISCIPLINE_ID),
+    )
+  })
+
+  it('预约试听的留资位置可以传入（首页精选课程用 home_course）', async () => {
+    withProvider(<CourseCard course={course} now={now} leadPosition="home_course" />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: `预约试听：${course.title}` }))
+    })
+    const form = screen.getByRole('dialog').querySelector('form')!
+    expect(form.querySelector<HTMLInputElement>('input[name="position"]')?.value).toBe(
+      'home_course',
+    )
+    expect(form.querySelector<HTMLInputElement>('input[name="course"]')?.value).toBe(
+      String(DEFAULT_COURSE_ID),
     )
   })
 })
@@ -447,6 +461,15 @@ describe('WorkThumbGrid / TeacherCardGrid', () => {
     const specialties = screen.getByText(/镜头语言与分镜/)
     expect(specialties.className).toContain('break-keep')
     expect(specialties.textContent).toContain('镜头语言与分镜\u00a0/ 动画短片指导')
+  })
+
+  it('单张讲师卡片可单独使用（如首页横滑列表）：整体链接、标题层级与头像加载可配置', () => {
+    const { container } = render(<TeacherCard teacher={teacher} headingLevel="h4" priority />)
+    expect(screen.getByRole('link', { name: '林老师' }).getAttribute('href')).toBe('/teachers/lin')
+    expect(screen.getByRole('heading', { level: 4, name: '林老师' })).toBeTruthy()
+    const img = container.querySelector('img')!
+    expect(img.getAttribute('loading')).toBe('eager')
+    expect(img.getAttribute('fetchpriority')).toBe('high')
   })
 
   it('讲师头像默认全部懒加载；priorityCount 让前几位立即加载并提高优先级（只给首屏的网格）', () => {

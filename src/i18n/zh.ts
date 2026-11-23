@@ -154,6 +154,11 @@ export const zh = {
     /** 移动端紧凑显示“2 / 3”时的读屏文字 */
     status: '第 {page} 页，共 {total} 页',
   },
+  /** 通用横滑容器（src/components/common/horizontal-scroller.tsx）按钮的读屏名称，{label} 为列表名称 */
+  scroller: {
+    previous: '{label}：上一组',
+    next: '{label}：下一组',
+  },
   /**
    * 课程模块（课程列表 / 课程详情 / 专业方向页）的系统文案。
    * 带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
@@ -468,6 +473,101 @@ export const zh = {
       worksNote: '作品来自这位讲师授课的课程，均已获得学员授权。',
       /** 学员作品区块右侧链接到作品列表 */
       allWorks: '查看全部作品',
+    },
+  },
+  /**
+   * 首页（/）的系统文案。区块标题 / 眉标 / 描述、轮播图文字、入口卡片、表单按钮文字等运营文案一律来自后台「首页」配置，
+   * 不写在这里。带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
+   * 区块 1–4（src/components/home/top）只追加在 top 里，区块 5–11（src/components/home/bottom）只追加在 bottom 里，
+   * 页面组装（SEO、结构化数据）只追加在 page 里。
+   */
+  home: {
+    top: {
+      /** 主视觉轮播（HeroCarousel） */
+      hero: {
+        /** 轮播区域（section）的无障碍名称 */
+        label: '主视觉',
+        /** aria-roledescription：轮播区域 / 每一张 */
+        roleDescription: '轮播',
+        slideRoleDescription: '幻灯片',
+        /** 每一张的无障碍名称 */
+        slideLabel: '第 {index} 张，共 {total} 张',
+        previous: '上一张',
+        next: '下一张',
+        pause: '暂停自动轮播',
+        /** 自动轮播暂停后（或系统开启“减少动态效果”、默认不自动轮播时）的播放按钮 */
+        play: '开始自动轮播',
+        /** 圆点导航的无障碍名称 / 每个圆点 */
+        dotsLabel: '选择轮播图',
+        goTo: '第 {index} 张：{title}',
+        /** 手动切换后读屏播报（视觉隐藏的 aria-live 区域；自动轮播时不播报） */
+        announce: '第 {index} 张，共 {total} 张：{title}',
+      },
+      /** 外链（轮播按钮、入口卡片）的读屏补充 */
+      opensInNewTab: '（在新窗口打开）',
+      /** 热门专业（HotDisciplines） */
+      hotDisciplines: {
+        /** 卡片上的课程数 */
+        courseCount: '{count} 门课程',
+        /** 区块末尾链接到课程列表 */
+        allCourses: '查看全部课程',
+      },
+      /** 精选课程（CoursesRail） */
+      courses: {
+        allCourses: '查看全部课程',
+      },
+    },
+    bottom: {
+      /** 学员作品（WorksSection） */
+      works: {
+        more: '查看更多作品',
+        /** 作品署名说明（与作品列表一致） */
+        pseudonymNote: '作品均已获得学员授权，署名为学员化名。',
+      },
+      /** 学员故事（StoriesSection）：不展示个人薪资，必须注明化名 */
+      stories: {
+        pseudonymNote: '学员姓名为化名，经历均已取得本人授权后展示。',
+        /** 现任岗位与公司之间的分隔（“UI 设计师 · 星槎网络科技”） */
+        roleSeparator: ' · ',
+        /** 卡片底部的事实标签（学习前背景、所学课程）；currentRole 只作读屏前缀（可见文字只显示取值） */
+        background: '学习前',
+        currentRole: '现任',
+        course: '所学课程',
+      },
+      /** 合作企业（PartnersSection） */
+      partners: {
+        /** Logo 墙列表的无障碍名称补充：企业名称即 Logo 的 alt */
+        listLabel: '合作企业名单',
+      },
+      /** 师资团队（TeachersSection） */
+      teachers: {
+        all: '查看全部讲师',
+      },
+      /** 校区分布（CampusesSection） */
+      campuses: {
+        address: '地址',
+        phone: '电话',
+        openingHours: '开放时间',
+        /** 外链到高德地图（新窗口） */
+        openMap: '在地图中打开',
+        /** 无障碍名称以可见文字开头（语音控制按可见文字即可点到，WCAG 2.5.3） */
+        openMapLabel: '在地图中打开：{name}（高德地图，在新窗口打开）',
+        detail: '查看校区',
+        detailLabel: '查看校区：{name}',
+      },
+      /** 最新资讯（ArticlesSection） */
+      articles: {
+        all: '查看全部资讯',
+        /** 分类 Tab：第一项（全部分类） */
+        allTab: '全部',
+        tabsLabel: '资讯分类',
+        publishedAt: '发布于',
+      },
+    },
+    /** 页面组装（src/app/(frontend)/page.tsx）：SEO 与结构化数据 */
+    page: {
+      /** Organization 结构化数据 contactPoint.contactType（咨询热线） */
+      contactType: '课程咨询',
     },
   },
 } as const

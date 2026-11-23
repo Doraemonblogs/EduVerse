@@ -28,6 +28,7 @@ export const LEAD_SPECS = [
   'majors',
   'work-detail',
   'teachers',
+  'home',
 ] as const
 export type LeadSpec = (typeof LEAD_SPECS)[number]
 

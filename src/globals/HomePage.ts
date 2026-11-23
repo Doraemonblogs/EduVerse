@@ -6,6 +6,10 @@ import { sectionFields, validateHref } from '@/fields/common'
 import { seoTab } from '@/fields/seo'
 import { revalidateGlobal } from '@/hooks/revalidate'
 
+import { HOME_PAGE_DEFAULTS } from './home-page-defaults'
+
+const D = HOME_PAGE_DEFAULTS
+
 export const QUICK_ENTRY_ACTION_OPTIONS = [
   { label: '跳转链接', value: 'link' },
   { label: '打开预约弹窗', value: 'lead' },
@@ -25,7 +29,8 @@ const validateEntryHref: TextFieldSingleValidation = (value, options) => {
 
 /**
  * 首页配置：每个标签页对应一个区块（数据按区块分组存储，如 hotDisciplines.title）。
- * 关联内容留空时由前台数据层按规则自动取数。
+ * 关联内容留空时由前台数据层按规则自动取数（规则见 src/lib/home/rules.ts）；
+ * 默认值见 src/globals/home-page-defaults.ts（前台兜底共用）。
  */
 export const HomePage: GlobalConfig = {
   slug: 'home-page',
@@ -45,13 +50,19 @@ export const HomePage: GlobalConfig = {
             {
               type: 'row',
               fields: [
-                { name: 'autoplay', type: 'checkbox', label: '自动轮播', defaultValue: true },
+                {
+                  name: 'autoplay',
+                  type: 'checkbox',
+                  label: '自动轮播',
+                  defaultValue: D.hero.autoplay,
+                  admin: { description: '访客开启“减少动态效果”时不会自动轮播' },
+                },
                 {
                   name: 'interval',
                   type: 'number',
                   label: '轮播间隔（秒）',
-                  defaultValue: 6,
-                  min: 3,
+                  defaultValue: D.hero.interval,
+                  min: D.hero.minInterval,
                   admin: { condition: (_, siblingData) => siblingData?.autoplay !== false },
                 },
               ],
@@ -62,7 +73,7 @@ export const HomePage: GlobalConfig = {
           name: 'quickEntries',
           label: '快速了解',
           fields: [
-            ...sectionFields({ title: '快速了解', eyebrow: 'Start Here' }),
+            ...sectionFields(D.sections.quickEntries),
             {
               name: 'items',
               type: 'array',
@@ -110,14 +121,35 @@ export const HomePage: GlobalConfig = {
           name: 'hotDisciplines',
           label: '热门专业',
           fields: [
-            ...sectionFields({ title: '热门专业', eyebrow: 'Majors' }),
+            ...sectionFields(D.sections.hotDisciplines),
             {
               name: 'disciplines',
               type: 'relationship',
               relationTo: 'disciplines',
               hasMany: true,
               label: '指定专业',
-              admin: { description: '留空则按排序取前 6 个' },
+              admin: {
+                description:
+                  '按所选顺序展示；留空则取全部“在导航大菜单中显示”的已发布专业（按排序，最多 8 个）',
+              },
+            },
+          ],
+        },
+        {
+          name: 'courses',
+          label: '精选课程',
+          fields: [
+            ...sectionFields(D.sections.courses),
+            {
+              name: 'courses',
+              type: 'relationship',
+              relationTo: 'courses',
+              hasMany: true,
+              label: '指定课程',
+              admin: {
+                description:
+                  '按所选顺序展示；留空则取每个专业方向排序最靠前的长期就业班（按专业方向排序）。未发布的课程不会出现在前台',
+              },
             },
           ],
         },
@@ -125,7 +157,7 @@ export const HomePage: GlobalConfig = {
           name: 'featuredWorks',
           label: '学员作品',
           fields: [
-            ...sectionFields({ title: '学员作品', eyebrow: 'Student Works' }),
+            ...sectionFields(D.sections.featuredWorks),
             {
               type: 'row',
               fields: [
@@ -141,9 +173,9 @@ export const HomePage: GlobalConfig = {
                   name: 'limit',
                   type: 'number',
                   label: '展示数量',
-                  defaultValue: 12,
-                  min: 4,
-                  max: 24,
+                  defaultValue: D.featuredWorks.limit,
+                  min: D.featuredWorks.min,
+                  max: D.featuredWorks.max,
                 },
               ],
             },
@@ -155,7 +187,8 @@ export const HomePage: GlobalConfig = {
               label: '指定作品',
               admin: {
                 condition: (_, siblingData) => siblingData?.mode === 'manual',
-                description: '按所选顺序展示；未发布的作品不会出现在前台',
+                description:
+                  '按所选顺序展示；未发布或未确认授权的作品不会出现在前台，全部不可用时改为自动取精选作品',
               },
             },
           ],
@@ -165,14 +198,17 @@ export const HomePage: GlobalConfig = {
           label: '学员故事',
           description: '受站点设置“展示学员故事模块”总开关控制',
           fields: [
-            ...sectionFields({ title: '学员故事', eyebrow: 'Stories' }),
+            ...sectionFields(D.sections.stories),
             {
               name: 'stories',
               type: 'relationship',
               relationTo: 'stories',
               hasMany: true,
               label: '指定学员故事',
-              admin: { description: '留空则取精选学员故事' },
+              admin: {
+                description:
+                  '按所选顺序展示；留空则取精选学员故事。未发布或未确认授权的故事不会出现在前台',
+              },
             },
           ],
         },
@@ -180,14 +216,17 @@ export const HomePage: GlobalConfig = {
           name: 'teachers',
           label: '师资团队',
           fields: [
-            ...sectionFields({ title: '师资团队', eyebrow: 'Mentors' }),
+            ...sectionFields(D.sections.teachers),
             {
               name: 'teachers',
               type: 'relationship',
               relationTo: 'teachers',
               hasMany: true,
               label: '指定讲师',
-              admin: { description: '留空则取精选讲师' },
+              admin: {
+                description:
+                  '按所选顺序展示（最多 8 位）；留空则取精选讲师，再按排序补足到 4 或 8 位',
+              },
             },
           ],
         },
@@ -195,26 +234,26 @@ export const HomePage: GlobalConfig = {
           name: 'campuses',
           label: '校区分布',
           description: '校区信息在「校区」中维护',
-          fields: sectionFields({ title: '校区分布', eyebrow: 'Campuses' }),
+          fields: sectionFields(D.sections.campuses),
         },
         {
           name: 'partners',
           label: '合作企业',
           description: '合作企业在「合作企业」中维护',
-          fields: sectionFields({ title: '合作企业', eyebrow: 'Partners' }),
+          fields: sectionFields(D.sections.partners),
         },
         {
           name: 'articles',
           label: '最新资讯',
           fields: [
-            ...sectionFields({ title: '最新资讯', eyebrow: 'News' }),
+            ...sectionFields(D.sections.articles),
             {
               name: 'limit',
               type: 'number',
               label: '展示数量',
-              defaultValue: 6,
-              min: 1,
-              max: 12,
+              defaultValue: D.articles.limit,
+              min: D.articles.min,
+              max: D.articles.max,
             },
           ],
         },
@@ -222,8 +261,13 @@ export const HomePage: GlobalConfig = {
           name: 'leadForm',
           label: '预约试听',
           fields: [
-            ...sectionFields({ title: '预约一节免费试听课', eyebrow: 'Free Trial' }),
-            { name: 'submitLabel', type: 'text', label: '提交按钮文字', defaultValue: '立即预约' },
+            ...sectionFields(D.sections.leadForm),
+            {
+              name: 'submitLabel',
+              type: 'text',
+              label: '提交按钮文字',
+              defaultValue: D.leadForm.submitLabel,
+            },
           ],
         },
         seoTab,

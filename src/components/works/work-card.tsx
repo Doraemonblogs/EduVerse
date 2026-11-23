@@ -21,12 +21,20 @@ export type WorkCardProps = {
   imageSizes?: string
   /** 首屏图：立即加载并提高优先级（只给首屏可见的少数几张，其余懒加载） */
   priority?: boolean
+  /**
+   * 封面排布：natural 按原图宽高比、不裁切（瀑布流，默认）；
+   * uniform 统一裁切为 4:3（object-cover，用于整齐网格，如首页学员作品）
+   */
+  cover?: 'natural' | 'uniform'
+  /** 精选作品是否显示“精选”徽标（默认显示；区块本身就是精选展示时可关闭，避免每张卡片重复） */
+  showFeatured?: boolean
   className?: string
 }
 
 /**
  * 作品卡片（服务端组件）：整张卡片是一个链接（→ /works/{id}），
- * 内容为封面（按原图宽高比，不裁切）、作品名、“化名 · 届别”、专业方向简称，精选作品在封面左上角加文字徽标。
+ * 内容为封面（默认按原图宽高比、不裁切；cover="uniform" 时统一裁切为 4:3）、作品名、“化名 · 届别”、
+ * 专业方向简称，精选作品在封面左上角加文字徽标（showFeatured=false 时不显示）。
  * 链接的无障碍名称只取作品名（aria-labelledby），署名 / 专业 / 精选作为描述（aria-describedby），
  * 避免读屏把封面替代文字与全部信息连读成一长串。键盘焦点描边落在整张卡片上。
  * 深色区块内自动切换配色。
@@ -36,6 +44,8 @@ export function WorkCard({
   headingLevel: Heading = 'h3',
   imageSizes = WORK_CARD_SIZES,
   priority = false,
+  cover = 'natural',
+  showFeatured = true,
   className,
 }: WorkCardProps) {
   const id = useId()
@@ -44,7 +54,9 @@ export function WorkCard({
   const metaId = `${id}-meta`
   const byline = workByline(work)
   const hasMeta = Boolean(byline || work.discipline)
-  const describedBy = [work.featured && featuredId, hasMeta && metaId].filter(Boolean).join(' ')
+  const featured = work.featured && showFeatured
+  const uniform = cover === 'uniform'
+  const describedBy = [featured && featuredId, hasMeta && metaId].filter(Boolean).join(' ')
 
   return (
     <Link
@@ -54,7 +66,9 @@ export function WorkCard({
       aria-describedby={describedBy || undefined}
       className={cn('group flex flex-col gap-3 rounded-sm', className)}
     >
-      <div className="relative overflow-hidden rounded-sm bg-muted">
+      <div
+        className={cn('relative overflow-hidden rounded-sm bg-muted', uniform && 'aspect-[4/3]')}
+      >
         {work.cover ? (
           <Image
             src={work.cover.src}
@@ -64,12 +78,15 @@ export function WorkCard({
             sizes={imageSizes}
             loading={priority ? 'eager' : 'lazy'}
             fetchPriority={priority ? 'high' : undefined}
-            className="h-auto w-full transition-transform duration-300 ease-standard group-hover:scale-[1.02]"
+            className={cn(
+              'w-full transition-transform duration-300 ease-standard group-hover:scale-[1.02]',
+              uniform ? 'h-full object-cover' : 'h-auto',
+            )}
           />
-        ) : (
+        ) : uniform ? null : (
           <div className="aspect-[4/3]" />
         )}
-        {work.featured ? (
+        {featured ? (
           <Badge id={featuredId} variant="inverse" className="absolute top-2 left-2">
             {zh.works.featured}
           </Badge>

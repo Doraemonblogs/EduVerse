@@ -774,7 +774,8 @@ export async function runSeed(payload: Payload): Promise<SeedSummary> {
   })
   const globals = buildGlobals({
     wechatQr,
-    hotDisciplines: DISCIPLINES.slice(0, 6).map((d) => disciplineId(d.slug)),
+    // 指定全部 8 个方向（桌面端 4 列正好两行）；留空时前台按排序自动取在导航中显示的方向
+    hotDisciplines: DISCIPLINES.slice(0, 8).map((d) => disciplineId(d.slug)),
   })
   for (const slug of Object.keys(globals) as GlobalSlug[]) {
     // 各全局配置的数据类型已在 buildGlobals 中按 slug 校验

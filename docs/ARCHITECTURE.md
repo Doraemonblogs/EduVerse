@@ -214,11 +214,21 @@ docs/ docker/ docker-compose.dev.yml
 - **留资位置**：`works_list_empty`、`work_detail`、`teacher_hero`、`teacher_cta`。
 - **e2e**：fixtures 增加 `allowedThirdPartyHosts`（按用例声明，用于验证点击播放后才加载外部播放器，请求被拦截）。
 
+### 4.12 M5 落地说明（首页）
+
+- **数据**：`getHomePageData(now)`（`src/lib/data/home.ts`）一次返回各区块视图模型，关闭、无内容或（学员故事）总开关关闭的区块为 `null`，页面只渲染非空区块；取数规则在 `src/lib/home/rules.ts`（指定内容为空时：热门专业取导航中的专业，精选课程取各专业长期就业班，作品取精选，故事取精选且已授权，讲师取精选再按排序补足）。复用课程 / 作品 / 讲师的查询与映射，草稿、授权过滤与其它页面一致。
+- **主视觉轮播**：缓存保存全部启用的首页轮播图，按投放时间窗在渲染时过滤；首页 `revalidate = 3600`。只有首张图立即加载并设 `fetchpriority=high`（不使用 `ReactDOM.preload`：预取首页时其提示会插入其它页面）；可暂停、上一张 / 下一张、圆点；悬停、键盘聚焦、页面隐藏或滚出视口时暂停；减少动态效果时默认不自动播放。只有 1 张时不渲染任何客户端脚本。
+- **横滑容器** `HorizontalScroller`（`src/components/common/`）：CSS scroll-snap，移动端露出下一张；桌面可切换为网格；按钮与进度条是唯一的客户端部分；键盘聚焦的卡片自动滚入视口。
+- **区块节奏**：深浅底色由页面统一决定（`src/components/home/rhythm.ts`）：作品与预约区为深色，其余区块浅色 / 米色交替，关闭区块后仍保持交替。
+- **结构化数据**：Organization（上传了 Logo 才输出 logo）+ WebSite（SearchAction 指向 `/search?q=`，M7 实现）。
+- **留资位置**：`home_hero`、`home_quick`、`home_course`、`home_form`。
+- **首页全局**新增“精选课程”区块；默认文案在 `src/globals/home-page-defaults.ts`。
+
 ## 5. 路由清单
 
 | 路由 | 说明 | 里程碑 |
 |---|---|---|
-| `/` | 首页 | M5 |
+| `/` | 首页（`revalidate = 3600`） | M5 |
 | `/courses` | `?discipline=&type=&mode=&city=`，多条件组合页 noindex | M3 |
 | `/courses/[slug]` | 课程详情 | M3 |
 | `/majors/[slug]` | 专业方向落地页（`/majors` 永久重定向到 `/courses`） | M3 |

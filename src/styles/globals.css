@@ -384,6 +384,37 @@
   );
 }
 
+/* ---------- 横滑容器（src/components/common/horizontal-scroller.tsx） ---------- */
+/* 出血：放在版心（container-*）里的横滑列表左右伸到视口边缘——负外边距等于版心留白（含刘海屏安全区），
+   再用同样宽度的内边距补回，第一项仍与版心对齐；scroll-padding 让吸附位置也对齐版心。
+   列表自身横向滚动，不会撑出页面级横向滚动条。 */
+@utility scroller-bleed {
+  margin-left: calc(-1 * max(var(--spacing-gutter), env(safe-area-inset-left, 0px)));
+  margin-right: calc(-1 * max(var(--spacing-gutter), env(safe-area-inset-right, 0px)));
+  padding-left: max(var(--spacing-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--spacing-gutter), env(safe-area-inset-right, 0px));
+  scroll-padding-left: max(var(--spacing-gutter), env(safe-area-inset-left, 0px));
+  scroll-padding-right: max(var(--spacing-gutter), env(safe-area-inset-right, 0px));
+}
+
+/* 横滑项宽度：每屏可见 --scroller-per-view 项（可为小数，露出下一项的一部分），项间距 --scroller-gap。
+   百分比按列表内容宽度（不含出血内边距）计算，即版心宽度。 */
+@utility scroller-item {
+  flex: 0 0
+    calc(
+      (100% - (var(--scroller-per-view, 1) - 1) * var(--scroller-gap, 1rem)) /
+        var(--scroller-per-view, 1)
+    );
+}
+
+/* 隐藏滚动条（仍可滚动）：有底部进度条或上一组 / 下一组按钮时使用 */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* 英文眉标：小号大写 + 字距，用于区块标题上方 */
 @utility eyebrow {
   font-family: var(--font-space-grotesk), var(--font-sans);

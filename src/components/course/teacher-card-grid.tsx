@@ -72,17 +72,26 @@ export function TeacherCardGrid({
   )
 }
 
-function TeacherCard({
-  teacher,
-  headingLevel: Heading,
-  imageSizes,
-  priority,
-}: {
+export type TeacherCardProps = {
   teacher: TeacherCardGridItem
-  headingLevel: 'h2' | 'h3' | 'h4'
-  imageSizes: string
-  priority: boolean
-}) {
+  /** 讲师姓名的标题层级，默认 h3 */
+  headingLevel?: 'h2' | 'h3' | 'h4'
+  /** 头像 sizes；默认按通栏 4 列网格计算 */
+  imageSizes?: string
+  /** 头像立即加载并提高优先级（只给首屏可见的卡片） */
+  priority?: boolean
+}
+
+/**
+ * 单张讲师卡片（服务端组件），即 TeacherCardGrid 的每一项；放进其它容器（如首页横滑列表
+ * HorizontalScroller）时单独使用。整张卡片是一个链接（→ /teachers/{slug}）。
+ */
+export function TeacherCard({
+  teacher,
+  headingLevel: Heading = 'h3',
+  imageSizes = DEFAULT_SIZES,
+  priority = false,
+}: TeacherCardProps) {
   const id = useId()
   const nameId = `${id}-name`
   const detailsId = `${id}-details`

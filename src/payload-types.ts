@@ -2692,6 +2692,9 @@ export interface Footer {
 export interface HomePage {
   id: number;
   hero?: {
+    /**
+     * 访客开启“减少动态效果”时不会自动轮播
+     */
     autoplay?: boolean | null;
     interval?: number | null;
   };
@@ -2723,9 +2726,19 @@ export interface HomePage {
     title: string;
     description?: string | null;
     /**
-     * 留空则按排序取前 6 个
+     * 按所选顺序展示；留空则取全部“在导航大菜单中显示”的已发布专业（按排序，最多 8 个）
      */
     disciplines?: (number | Discipline)[] | null;
+  };
+  courses: {
+    enabled?: boolean | null;
+    eyebrow?: string | null;
+    title: string;
+    description?: string | null;
+    /**
+     * 按所选顺序展示；留空则取每个专业方向排序最靠前的长期就业班（按专业方向排序）。未发布的课程不会出现在前台
+     */
+    courses?: (number | Course)[] | null;
   };
   featuredWorks: {
     enabled?: boolean | null;
@@ -2735,7 +2748,7 @@ export interface HomePage {
     mode: 'auto' | 'manual';
     limit?: number | null;
     /**
-     * 按所选顺序展示；未发布的作品不会出现在前台
+     * 按所选顺序展示；未发布或未确认授权的作品不会出现在前台，全部不可用时改为自动取精选作品
      */
     works?: (number | Work)[] | null;
   };
@@ -2745,7 +2758,7 @@ export interface HomePage {
     title: string;
     description?: string | null;
     /**
-     * 留空则取精选学员故事
+     * 按所选顺序展示；留空则取精选学员故事。未发布或未确认授权的故事不会出现在前台
      */
     stories?: (number | Story)[] | null;
   };
@@ -2755,7 +2768,7 @@ export interface HomePage {
     title: string;
     description?: string | null;
     /**
-     * 留空则取精选讲师
+     * 按所选顺序展示（最多 8 位）；留空则取精选讲师，再按排序补足到 4 或 8 位
      */
     teachers?: (number | Teacher)[] | null;
   };
@@ -3275,6 +3288,15 @@ export interface HomePageSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         disciplines?: T;
+      };
+  courses?:
+    | T
+    | {
+        enabled?: T;
+        eyebrow?: T;
+        title?: T;
+        description?: T;
+        courses?: T;
       };
   featuredWorks?:
     | T

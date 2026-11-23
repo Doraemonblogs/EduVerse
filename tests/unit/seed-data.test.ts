@@ -18,6 +18,7 @@ import { CAMPUSES, COURSES, DISCIPLINES } from '../../scripts/seed/registry'
 import { buildGlobals } from '../../scripts/seed/site'
 
 import { COURSE_PAGES_DEFAULTS } from '@/globals/course-pages-defaults'
+import { HOME_PAGE_DEFAULTS } from '@/globals/home-page-defaults'
 import { TEACHER_PAGES_DEFAULTS } from '@/globals/teacher-pages-defaults'
 import { WORK_PAGES_DEFAULTS } from '@/globals/work-pages-defaults'
 import { SLUG_PATTERN } from '@/lib/slugify'
@@ -144,6 +145,45 @@ describe('种子数据完整性', () => {
     }
   })
 
+  it('首页：每个区块都写入了标题，精选课程区块不指定课程（走自动规则）', () => {
+    const home = buildGlobals({ wechatQr: 1, hotDisciplines: [] })['home-page']
+    const sections = [
+      home?.quickEntries,
+      home?.hotDisciplines,
+      home?.courses,
+      home?.featuredWorks,
+      home?.stories,
+      home?.teachers,
+      home?.campuses,
+      home?.partners,
+      home?.articles,
+      home?.leadForm,
+    ]
+    for (const section of sections) {
+      expect(section?.enabled).toBe(true)
+      expect(section?.title).toBeTruthy()
+    }
+    expect(home?.courses?.description).toBeTruthy()
+    expect(home?.courses?.courses ?? []).toEqual([])
+    expect(home?.quickEntries?.items?.length).toBe(4)
+  })
+
+  it('首页主视觉至少有 2 张轮播图（种子写入时全部启用、不设时间窗，始终可见）', () => {
+    const hero = banners.filter((b) => b.placement === 'home_hero')
+    expect(hero.length).toBeGreaterThanOrEqual(2)
+    for (const banner of hero) {
+      expect(banner.title).toBeTruthy()
+      expect(banner.ctaLabel).toBeTruthy()
+      // 不设投放时间窗（启用状态由种子脚本统一写入 active: true）
+      expect(Object.keys(banner)).not.toContain('startAt')
+      expect(Object.keys(banner)).not.toContain('endAt')
+    }
+  })
+
+  it('有精选学员故事可供首页自动取用（种子写入时均已发布、已确认授权）', () => {
+    expect(stories.filter((s) => s.featured).length).toBeGreaterThanOrEqual(3)
+  })
+
   it('教程视频号格式合法', () => {
     for (const t of tutorials) expect(t.videoId).toMatch(/^BV[0-9A-Za-z]{10}$/)
   })
@@ -189,6 +229,7 @@ describe('合规（广告法）', () => {
     globals: buildGlobals({ wechatQr: 1, hotDisciplines: [] }),
     // 后台字段默认值（全局从未保存时前台也会显示）
     coursePagesDefaults: COURSE_PAGES_DEFAULTS,
+    homePageDefaults: HOME_PAGE_DEFAULTS,
     workPagesDefaults: WORK_PAGES_DEFAULTS,
     teacherPagesDefaults: TEACHER_PAGES_DEFAULTS,
   })
