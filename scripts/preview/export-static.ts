@@ -8,6 +8,7 @@
  *   pnpm preview:export --origin http://localhost:3000 --base-path /EduVerse --out preview-dist
  *
  * 做的事：从入口页开始抓取站内页面 → 保存 HTML（注入 noindex）→ 下载页面引用的非构建资源
+ * （属性与 CSS 里的引用，以及只出现在 RSC 数据 / <meta content> / JSON-LD 里的媒体文件）
  * → 复制 .next/static → 生成 404.html 与 .nojekyll → 校验输出中没有断链。任何错误都以非零退出。
  */
 import { access, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -18,6 +19,7 @@ import {
   applyNoindex,
   assetOutputFile,
   extractCssUrls,
+  extractMediaRefs,
   extractRefs,
   hasQuery,
   isMissingBasePath,
@@ -40,8 +42,6 @@ const NOT_FOUND_PROBE = '/__static-preview-not-found__'
  * 对应里程碑完成后从这里删除，之后再出现 404 就会让导出失败。
  */
 const PLANNED_ROUTES: { prefix: string; milestone: string }[] = [
-  { prefix: '/works', milestone: 'M4' },
-  { prefix: '/teachers', milestone: 'M4' },
   { prefix: '/careers', milestone: 'M6' },
   { prefix: '/campuses', milestone: 'M6' },
   { prefix: '/articles', milestone: 'M6' },
@@ -108,6 +108,13 @@ function collectAssets(html: string, fromUrl: string, into: Set<string>) {
     if (isPagePath(sitePath)) continue
     into.add(sitePath)
   }
+  // 不在属性里的媒体文件：只在客户端渲染的图片（如作品灯箱大图，只在 RSC 数据里）、
+  // 分享图（<meta content>）、JSON-LD 图片。漏掉它们，预览站上会 404
+  const media = extractMediaRefs(html, config.basePath)
+  for (const ref of media.missingBasePath) {
+    errors.push(`媒体引用缺少 basePath（${config.basePath}）：${ref}（页面 ${fromUrl}）`)
+  }
+  for (const sitePath of media.paths) into.add(sitePath)
 }
 
 async function crawlPages(assets: Set<string>) {
@@ -183,17 +190,24 @@ async function downloadAssets(assets: Set<string>) {
   }
 }
 
-/** 校验：输出中的每个站内页面链接与资源引用都能在输出目录里找到 */
+/**
+ * 校验：输出中的每个站内页面链接与资源引用（含只出现在 RSC 数据 / <meta content> / JSON-LD 里的
+ * 媒体文件）都能在输出目录里找到
+ */
 async function verifyOutput(htmlFiles: string[]) {
   for (const rel of htmlFiles) {
     const html = await readFile(path.join(outDir, rel), 'utf8')
     const fromUrl = `${config.origin}${config.basePath}/${rel}`
     const { links, assets } = extractRefs(html)
+    const media = extractMediaRefs(html, config.basePath)
 
     for (const ref of [...links, ...assets]) {
       if (isMissingBasePath(ref, fromUrl, config)) {
         errors.push(`引用缺少 basePath（${config.basePath}）：${rel} 引用了 ${ref}`)
       }
+    }
+    for (const ref of media.missingBasePath) {
+      errors.push(`媒体引用缺少 basePath（${config.basePath}）：${rel} 引用了 ${ref}`)
     }
     for (const link of links) {
       const target = toSitePath(link, fromUrl, config)
@@ -206,9 +220,12 @@ async function verifyOutput(htmlFiles: string[]) {
         errors.push(`断链：${rel} 链接到未导出的页面 ${target}`)
       }
     }
+    const targets = new Set(media.paths)
     for (const ref of assets) {
       const target = toSitePath(ref, fromUrl, config)
-      if (!target || isPagePath(target)) continue
+      if (target && !isPagePath(target)) targets.add(target)
+    }
+    for (const target of targets) {
       if (!(await exists(path.join(outDir, assetOutputFile(target))))) {
         errors.push(`缺少资源：${rel} 引用了 ${target}`)
       }

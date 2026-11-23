@@ -4,18 +4,25 @@ import { test as base, expect } from '@playwright/test'
  * 扩展的 test，每个用例结束时自动断言：
  * 1. 浏览器控制台没有报错、没有未捕获异常；
  * 2. 页面没有请求任何第三方域名（面向中国大陆用户，禁止依赖境外服务 / 外链资源）。
- * 个别用例需要放行时，用 test.use({ allowedConsoleErrors: [...] }) 或 test.use({ allowedHosts: [...] })。
+ * 个别用例需要放行时，用 test.use({ allowedConsoleErrors: [...] })
+ * 或 test.use({ allowedThirdPartyHosts: [...] })。
  */
 type Fixtures = {
   allowedConsoleErrors: RegExp[]
-  allowedHosts: string[]
+  /**
+   * 允许请求的第三方主机（URL 的 host，含端口时写上端口），默认空。
+   * 只给“点击后才加载”的场景用，如作品详情点击播放后插入的外部播放器
+   * （test.use({ allowedThirdPartyHosts: ['player.bilibili.com'] })，并用 page.route 拦截返回空页面，
+   * 测试不真的访问外网）。首屏不请求第三方的断言要在点击前单独做。
+   */
+  allowedThirdPartyHosts: string[]
   consoleErrors: string[]
   externalRequests: string[]
 }
 
 export const test = base.extend<Fixtures>({
   allowedConsoleErrors: [[], { option: true }],
-  allowedHosts: [[], { option: true }],
+  allowedThirdPartyHosts: [[], { option: true }],
 
   consoleErrors: [
     async ({ page, allowedConsoleErrors }, use) => {
@@ -33,13 +40,13 @@ export const test = base.extend<Fixtures>({
   ],
 
   externalRequests: [
-    async ({ page, baseURL, allowedHosts }, use) => {
+    async ({ page, baseURL, allowedThirdPartyHosts }, use) => {
       const siteHost = new URL(baseURL ?? 'http://localhost').host
       const external: string[] = []
       page.on('request', (request) => {
         const url = new URL(request.url())
         if (!url.protocol.startsWith('http')) return
-        if (url.host === siteHost || allowedHosts.includes(url.host)) return
+        if (url.host === siteHost || allowedThirdPartyHosts.includes(url.host)) return
         external.push(request.url())
       })
       await use(external)

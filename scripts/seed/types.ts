@@ -87,6 +87,16 @@ export type SeedWork = {
   featured: boolean
   /** 封面宽高比，用于生成占位图（让瀑布流有真实的高低变化） */
   aspect: WorkAspect
+  /**
+   * 作品图集每张图的说明（每项生成一张占位图）。
+   * 不填时：精选作品 2 张（过程稿、细节），其余作品没有图集（见 data/works.ts 的 galleryCaptions）。
+   */
+  gallery?: string[]
+  /**
+   * 外部播放器视频：哔哩哔哩占位 BV 号（格式合法，不对应真实视频），
+   * 种子脚本拼成 https://player.bilibili.com/player.html?bvid=… 写入 video.embedUrl
+   */
+  videoBvid?: string
 }
 
 export type SeedStory = {

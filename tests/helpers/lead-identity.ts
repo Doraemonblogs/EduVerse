@@ -21,7 +21,14 @@ import { type TestInfo } from '@playwright/test'
  * 会提交线索的端到端测试文件。新增时追加到末尾（最多 64 个）。
  * 每个文件独占一段模拟 IP（198.18.x.0/24 中的若干个 /24）与一段手机号。
  */
-export const LEAD_SPECS = ['lead', 'courses-list', 'course-detail', 'majors'] as const
+export const LEAD_SPECS = [
+  'lead',
+  'courses-list',
+  'course-detail',
+  'majors',
+  'work-detail',
+  'teachers',
+] as const
 export type LeadSpec = (typeof LEAD_SPECS)[number]
 
 /** playwright.config.ts 中的项目名；新增项目时在这里登记（最多 4 个） */

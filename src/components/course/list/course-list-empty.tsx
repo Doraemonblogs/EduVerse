@@ -31,7 +31,7 @@ export function CourseListEmpty({ className }: { className?: string }) {
         </LeadCTA>
         <Button asChild variant="outline">
           <Link href={COURSES_PATH} rel="nofollow" prefetch={false} scroll={false}>
-            {t.filters.clear}
+            {zh.filterBar.clear}
           </Link>
         </Button>
       </div>

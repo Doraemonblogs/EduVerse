@@ -31,6 +31,7 @@ import type {
   CourseDetail,
   CoursePagesSettings,
   DisciplineDetail,
+  DisciplineRef,
   TeacherCardData,
   WorkThumb,
 } from '@/lib/course/types'
@@ -161,10 +162,11 @@ async function findCohortsByCourse(
 }
 
 /**
- * 已发布、且所属专业方向已发布的课程卡片。
+ * 已发布、且所属专业方向已发布的课程卡片（where 为附加条件，null 表示全部）。
  * 排序：专业方向排序 → 课程排序 → ID（与导航大菜单一致）。
+ * 讲师详情（src/lib/data/teachers.ts）也用它查询“授课课程”。
  */
-async function findCourseCards(
+export async function findCourseCards(
   payload: Payload,
   where: Where | null,
   limit?: number,
@@ -194,6 +196,30 @@ async function findCourseCards(
   return sorted
     .map((course) => toCourseCard(course, cohorts.get(course.id) ?? []))
     .filter((card): card is CourseCardData => card !== null)
+}
+
+/** 专业方向引用（DisciplineRef）需要的字段，填充或查询专业方向时用 */
+export const DISCIPLINE_REF_SELECT = {
+  name: true,
+  shortName: true,
+  slug: true,
+  _status: true,
+} as const
+
+/**
+ * 查询：已发布的专业方向（按后台排序），作品 / 讲师列表筛选项的来源（筛选项按这个顺序排列）。
+ * 缓存标签：disciplines。
+ */
+export async function queryDisciplineRefs(payload: Payload): Promise<DisciplineRef[]> {
+  const { docs } = await payload.find({
+    collection: 'disciplines',
+    where: published,
+    select: DISCIPLINE_REF_SELECT,
+    depth: 0,
+    sort: ['order', 'id'],
+    pagination: false,
+  })
+  return docs.map(toDisciplineRef)
 }
 
 /** 已发布的讲师卡片 */
@@ -398,8 +424,11 @@ export async function queryPublishedDisciplineSlugs(payload: Payload): Promise<s
   return docs.map((doc) => doc.slug).filter((slug) => SLUG_PATTERN.test(slug))
 }
 
-/** 可选文本：从未保存过（undefined）用默认值；后台清空（null / 空字符串）则不显示 */
-function optionalText(value: string | null | undefined, fallback: string): string | null {
+/**
+ * 页面设置里的可选文本：从未保存过（undefined）用默认值；后台清空（null / 空字符串）则不显示。
+ * 作品 / 师资页面设置（src/lib/data/works.ts、teachers.ts）共用。
+ */
+export function optionalText(value: string | null | undefined, fallback: string): string | null {
   if (value === undefined) return fallback
   return value?.trim() || null
 }

@@ -4,6 +4,7 @@ import {
   applyNoindex,
   assetOutputFile,
   extractCssUrls,
+  extractMediaRefs,
   extractRefs,
   hasQuery,
   isMissingBasePath,
@@ -195,5 +196,114 @@ describe('isQueryDependentPath', () => {
   it('带扩展名的普通静态文件（如带缓存参数的图标）不依赖查询串', () => {
     expect(isQueryDependentPath('/icon.png')).toBe(false)
     expect(isQueryDependentPath('/favicon.ico')).toBe(false)
+  })
+})
+
+describe('extractMediaRefs', () => {
+  /**
+   * 按预览构建（basePath /EduVerse、图片不经优化接口）的作品详情页结构整理的样例：
+   * - 灯箱大图（1050x1400）只在 RSC 数据里：React key（"2-/EduVerse/…"）与 items 的 props；
+   * - 缩略图同时在 srcSet 属性与 RSC 数据里；
+   * - 分享图只在 <meta content>（站点正式地址，域名与抓取地址不同）与 RSC 的 metadata 里；
+   * - JSON-LD 图片是完整地址。
+   */
+  const html = [
+    '<!DOCTYPE html><html lang="zh-CN"><head>',
+    '<meta property="og:image" content="https://doraemonblogs.github.io/EduVerse/api/media/file/seed-work-05-1200x630.webp"/>',
+    '<meta name="twitter:image" content="https://doraemonblogs.github.io/EduVerse/api/media/file/seed-work-05-1200x630.webp"/>',
+    '</head><body>',
+    '<script type="application/ld+json">{"@type":"CreativeWork","image":"https://doraemonblogs.github.io/EduVerse/api/media/file/seed-work-05-1200x1600.webp"}</script>',
+    '<img alt="" srcSet="/EduVerse/api/media/file/seed-work-05-detail-0-400x533.webp 1x" src="/EduVerse/api/media/file/seed-work-05-detail-0-400x533.webp"/>',
+    String.raw`<script>self.__next_f.push([1,"212:[\"$\",\"$L218\",null,{\"items\":[{\"image\":{\"src\":\"/EduVerse/api/media/file/seed-work-05-detail-0-1050x1400.webp\",\"alt\":\"高模雕刻（占位图）\",\"width\":1050,\"height\":1400},\"thumb\":{\"src\":\"/EduVerse/api/media/file/seed-work-05-detail-0-400x533.webp\",\"alt\":\"\",\"width\":400,\"height\":533},\"caption\":\"高模雕刻\"}]}]\n"])</script>`,
+    String.raw`<script>self.__next_f.push([1,"[\"$\",\"li\",\"2-/EduVerse/api/media/file/seed-work-05-detail-1-1050x1400.webp\",{\"className\":\"shrink-0\"}],[\"$\",\"meta\",\"11\",{\"property\":\"og:image\",\"content\":\"https://doraemonblogs.github.io/EduVerse/api/media/file/seed-work-05-1200x630.webp\"}]\n"])</script>`,
+    '</body></html>',
+  ].join('')
+
+  it('从 RSC 数据、<meta content> 与 JSON-LD 中提取媒体文件（去重，去掉域名与 basePath）', () => {
+    const { paths, missingBasePath } = extractMediaRefs(html, '/EduVerse')
+    expect(paths.sort()).toEqual(
+      [
+        '/api/media/file/seed-work-05-1200x630.webp',
+        '/api/media/file/seed-work-05-1200x1600.webp',
+        '/api/media/file/seed-work-05-detail-0-400x533.webp',
+        '/api/media/file/seed-work-05-detail-0-1050x1400.webp',
+        '/api/media/file/seed-work-05-detail-1-1050x1400.webp',
+      ].sort(),
+    )
+    expect(missingBasePath).toEqual([])
+  })
+
+  it('补上 extractRefs 看不到的引用：灯箱大图与分享图不在任何属性里', () => {
+    const fromUrl = 'http://localhost:3000/EduVerse/works/736'
+    const inAttributes = extractRefs(html).assets.map((ref) => toSitePath(ref, fromUrl, withBase))
+    expect(inAttributes).not.toContain('/api/media/file/seed-work-05-detail-1-1050x1400.webp')
+    expect(inAttributes).not.toContain('/api/media/file/seed-work-05-1200x630.webp')
+    expect(extractMediaRefs(html, '/EduVerse').paths).toEqual(
+      expect.arrayContaining([
+        '/api/media/file/seed-work-05-detail-1-1050x1400.webp',
+        '/api/media/file/seed-work-05-1200x630.webp',
+      ]),
+    )
+  })
+
+  it('缺少 basePath 的媒体引用（含 RSC 数据里的）单独列出，不当作可导出的资源', () => {
+    const broken = String.raw`<script>self.__next_f.push([1,"{\"src\":\"/api/media/file/a-1050x1400.webp\"}"])</script><img src="/EduVerse/api/media/file/b.webp"/>`
+    expect(extractMediaRefs(broken, '/EduVerse')).toEqual({
+      paths: ['/api/media/file/b.webp'],
+      missingBasePath: ['/api/media/file/a-1050x1400.webp'],
+    })
+    // 只有前缀相似的子路径不算
+    expect(
+      extractMediaRefs('<img src="/EduVersePlus/api/media/file/c.webp"/>', '/EduVerse')
+        .missingBasePath,
+    ).toEqual(['/api/media/file/c.webp'])
+  })
+
+  it('根路径部署时不检查 basePath', () => {
+    expect(extractMediaRefs(String.raw`{\"src\":\"/api/media/file/a.webp\"}`, '')).toEqual({
+      paths: ['/api/media/file/a.webp'],
+      missingBasePath: [],
+    })
+  })
+
+  it('文件名按 encodeURIComponent 的字符集识别：保留 %XX 与成对括号，去掉 url() 的引号与右括号', () => {
+    const css = [
+      `<div style="background-image:url('/EduVerse/api/media/file/bg.webp')"></div>`,
+      '<div style="background-image:url(/EduVerse/api/media/file/bg2.webp)"></div>',
+      '<img src="/EduVerse/api/media/file/%E5%B0%81%E9%9D%A2(1).webp"/>',
+      '<img srcset="/EduVerse/api/media/file/x-400.webp 400w,/EduVerse/api/media/file/x-800.webp 800w"/>',
+      '<a href="/EduVerse/api/media/file/doc.pdf?download=1#p2">附件</a>',
+    ].join('')
+    expect(extractMediaRefs(css, '/EduVerse').paths).toEqual([
+      '/api/media/file/bg.webp',
+      '/api/media/file/bg2.webp',
+      '/api/media/file/%E5%B0%81%E9%9D%A2(1).webp',
+      '/api/media/file/x-400.webp',
+      '/api/media/file/x-800.webp',
+      '/api/media/file/doc.pdf',
+    ])
+  })
+
+  it("属性里经 HTML 转义的文件名（' 写成 &#x27;）与 RSC 数据里的原样文件名识别为同一个文件", () => {
+    // sanitize-filename 与 encodeURIComponent 都保留 '；React 输出属性时把它转义为 &#x27;
+    const name = "director's-cut-1200x630.webp"
+    const escaped = [
+      `<meta property="og:image" content="https://doraemonblogs.github.io/EduVerse/api/media/file/director&#x27;s-cut-1200x630.webp"/>`,
+      `<div style="background-image:url(&#x27;/EduVerse/api/media/file/bg&#39;s.webp&#x27;)"></div>`,
+      String.raw`<script>self.__next_f.push([1,"{\"src\":\"/EduVerse/api/media/file/${name}\"}"])</script>`,
+    ].join('')
+    expect(extractMediaRefs(escaped, '/EduVerse')).toEqual({
+      paths: [`/api/media/file/${name}`, "/api/media/file/bg's.webp"],
+      missingBasePath: [],
+    })
+  })
+
+  it('经优化接口的图片地址（url 参数已编码）不算媒体文件引用', () => {
+    expect(
+      extractMediaRefs(
+        '<img src="/EduVerse/_next/image?url=%2FEduVerse%2Fapi%2Fmedia%2Ffile%2Fa.webp&amp;w=640&amp;q=75"/>',
+        '/EduVerse',
+      ),
+    ).toEqual({ paths: [], missingBasePath: [] })
   })
 })

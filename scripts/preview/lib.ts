@@ -149,6 +149,59 @@ export function extractRefs(html: string): { links: string[]; assets: string[] }
   return { links: [...new Set(links)], assets: [...new Set(assets)] }
 }
 
+/** Payload 媒体文件的站内路径前缀（不含 basePath） */
+export const MEDIA_FILE_PREFIX = '/api/media/file/'
+
+/**
+ * 媒体文件引用。Payload 用 encodeURIComponent 生成媒体地址，文件名只含
+ * 字母数字、- _ . ! ~ * ' ( ) 与 %XX，遇到引号（含 RSC 数据里转义的 \"）、空白、? # & , 等即结束。
+ */
+const MEDIA_FILE_REF = /\/api\/media\/file\/([\w.!~*'()%-]+)/g
+
+const countOf = (value: string, char: string) => value.split(char).length - 1
+
+/** 去掉文件名末尾误匹配的字符：CSS url('…') 的引号，以及不成对的右括号 */
+function trimMediaFileName(name: string): string {
+  let result = name
+  for (;;) {
+    if (result.endsWith("'")) result = result.slice(0, -1)
+    else if (result.endsWith(')') && countOf(result, ')') > countOf(result, '(')) {
+      result = result.slice(0, -1)
+    } else return result
+  }
+}
+
+export type MediaRefs = {
+  /** 媒体文件的站内路径（相对 basePath，如 /api/media/file/a.webp），已去重 */
+  paths: string[]
+  /** 缺少 basePath 的媒体引用（站内路径），子路径部署后会 404 */
+  missingBasePath: string[]
+}
+
+/**
+ * 按文本扫描整页 HTML 中的 Payload 媒体文件引用，补上 extractRefs（只看属性与 CSS url()）看不到的：
+ * - 只在客户端渲染的图片，如作品灯箱的大图：只出现在 RSC 数据里
+ *   （`<script>self.__next_f.push([1,"…"])</script>` 中的 JSON 字符串，引号转义为 \"）；
+ * - 只出现在 `<meta content>` 里的分享图（og:image / twitter:image）与 JSON-LD 里的图片。
+ * 只按路径识别：完整地址的域名不参与判断（分享图用站点正式地址，域名与抓取地址不同）。
+ * 部署在子路径时，路径前面必须紧接 basePath，否则记入 missingBasePath。
+ * 先解码 HTML 实体：文件名可以含 '，React 输出属性时转义为 &#x27;，不解码会在 & 处截断成不存在的文件。
+ */
+export function extractMediaRefs(html: string, basePath: string): MediaRefs {
+  const text = decodeHtmlEntities(html)
+  const paths = new Set<string>()
+  const missingBasePath = new Set<string>()
+  for (const match of text.matchAll(MEDIA_FILE_REF)) {
+    const name = trimMediaFileName(match[1] ?? '')
+    if (!name) continue
+    const sitePath = `${MEDIA_FILE_PREFIX}${name}`
+    const before = text.slice(Math.max(0, match.index - basePath.length), match.index)
+    if (before === basePath) paths.add(sitePath)
+    else missingBasePath.add(sitePath)
+  }
+  return { paths: [...paths], missingBasePath: [...missingBasePath] }
+}
+
 const NOINDEX_META = '<meta name="robots" content="noindex, nofollow"/>'
 
 /** 预览站一律禁止搜索引擎收录，避免与正式站形成重复内容 */

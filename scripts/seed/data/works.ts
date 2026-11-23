@@ -3,7 +3,18 @@ import type { SeedWork } from '../types'
 /**
  * 学员作品（作者均为化名，作品与客户均为虚构，仅用于演示）。
  * 按课程分组排列；学员故事通过下标引用，调整顺序时需同步更新 stories.ts 的 workIndexes。
+ * videoBvid 为格式合法的占位 BV 号，不对应真实视频（同免费教程）。
  */
+/** 哔哩哔哩官方外部播放器地址（域名在作品视频白名单内，见 src/lib/works/video.ts） */
+export function bilibiliPlayerUrl(bvid: string): string {
+  return `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}`
+}
+
+/** 作品图集每张图的说明：作品自己填写的优先；否则精选作品 2 张（过程稿、细节），其余没有图集 */
+export function galleryCaptions(work: Pick<SeedWork, 'gallery' | 'featured'>): string[] {
+  return work.gallery ?? (work.featured ? ['过程稿', '细节'] : [])
+}
+
 export const works: SeedWork[] = [
   // —— 三维动画 · 三维动画设计长期就业班（0–3）
   {
@@ -16,6 +27,7 @@ export const works: SeedWork[] = [
       '毕业短片，讲述老守塔人与一只海鸟的告别。独立完成角色表演、镜头调度与灯光，重点打磨了雨夜里的细微表情变化。',
     featured: true,
     aspect: '16:9',
+    videoBvid: 'BV1ED00000w1',
   },
   {
     title: '《纸鹤快递》三维动画短片',
@@ -61,6 +73,7 @@ export const works: SeedWork[] = [
       '从原画拆解到高模雕刻、拓扑与贴图的全流程练习。服装部分借助 Marvelous Designer 制作褶皱，收尾时核对了面数与贴图规格。',
     featured: true,
     aspect: '3:4',
+    gallery: ['高模雕刻', '拓扑与 UV 展开', '贴图细节', '服装褶皱'],
   },
   {
     title: '《老木匠》角色绑定与表情系统',
@@ -278,6 +291,7 @@ export const works: SeedWork[] = [
       '从用户访谈出发，梳理新手养花的常见困扰，完成信息架构、低保真原型到高保真界面，并做了两轮可用性测试。',
     featured: true,
     aspect: '3:4',
+    gallery: ['信息架构', '首页与植物详情', '养护提醒流程', '组件与配色规范'],
   },
   {
     title: '《记账小管家》界面重设计',
@@ -369,6 +383,7 @@ export const works: SeedWork[] = [
       '为一款虚构的蒸汽朋克游戏绘制港口夜景。先用剪影快速试了十余版构图，再确定雾气层次与灯光叙事。',
     featured: true,
     aspect: '16:9',
+    gallery: ['构图线稿', '色彩小稿', '光影细化'],
   },
   {
     title: '《山鬼》角色设定',
@@ -540,6 +555,7 @@ export const works: SeedWork[] = [
       '一支 60 秒的城市公共服务科普动画，脚本、分镜、图形与动画均独立完成，重点练习了转场之间的节奏衔接。',
     featured: true,
     aspect: '16:9',
+    videoBvid: 'BV1ED00000w2',
   },
   {
     title: '《节气字》动态字体实验',

@@ -148,6 +148,8 @@ export interface Config {
     footer: Footer;
     'home-page': HomePage;
     'course-pages': CoursePage;
+    'work-pages': WorkPage;
+    'teacher-pages': TeacherPage;
     'careers-page': CareersPage;
     'quiz-settings': QuizSetting;
     'lead-settings': LeadSetting;
@@ -158,6 +160,8 @@ export interface Config {
     footer: FooterSelect<false> | FooterSelect<true>;
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
     'course-pages': CoursePagesSelect<false> | CoursePagesSelect<true>;
+    'work-pages': WorkPagesSelect<false> | WorkPagesSelect<true>;
+    'teacher-pages': TeacherPagesSelect<false> | TeacherPagesSelect<true>;
     'careers-page': CareersPageSelect<false> | CareersPageSelect<true>;
     'quiz-settings': QuizSettingsSelect<false> | QuizSettingsSelect<true>;
     'lead-settings': LeadSettingsSelect<false> | LeadSettingsSelect<true>;
@@ -2854,6 +2858,96 @@ export interface CoursePage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-pages".
+ */
+export interface WorkPage {
+  id: number;
+  list: {
+    title: string;
+    /**
+     * 显示在标题下方，一两句话即可。不使用“最好”“第一”等绝对化用语。
+     */
+    description?: string | null;
+    /**
+     * 带筛选条件的列表页不会被搜索引擎收录，规范地址是 /works；不带筛选的分页（/works?page=2）可以收录。
+     */
+    seo?: {
+      /**
+       * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+       */
+      title?: string | null;
+      /**
+       * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+       */
+      description?: string | null;
+      /**
+       * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+       */
+      keywords?: string | null;
+      /**
+       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       */
+      image?: (number | null) | Media;
+      noindex?: boolean | null;
+    };
+  };
+  detail: {
+    ctaTitle: string;
+    /**
+     * 不得承诺学习或就业效果
+     */
+    ctaDescription?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teacher-pages".
+ */
+export interface TeacherPage {
+  id: number;
+  list: {
+    title: string;
+    /**
+     * 显示在标题下方，一两句话即可。不使用“最好”“第一”等绝对化用语。
+     */
+    description?: string | null;
+    /**
+     * 带筛选条件的列表页不会被搜索引擎收录，规范地址始终是 /teachers。
+     */
+    seo?: {
+      /**
+       * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+       */
+      title?: string | null;
+      /**
+       * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+       */
+      description?: string | null;
+      /**
+       * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+       */
+      keywords?: string | null;
+      /**
+       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       */
+      image?: (number | null) | Media;
+      noindex?: boolean | null;
+    };
+  };
+  detail: {
+    ctaTitle: string;
+    /**
+     * 不得承诺学习或就业效果
+     */
+    ctaDescription?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "careers-page".
  */
 export interface CareersPage {
@@ -3285,6 +3379,66 @@ export interface CoursePagesSelect<T extends boolean = true> {
         sidebarDescription?: T;
       };
   major?:
+    | T
+    | {
+        ctaTitle?: T;
+        ctaDescription?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-pages_select".
+ */
+export interface WorkPagesSelect<T extends boolean = true> {
+  list?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        seo?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              keywords?: T;
+              image?: T;
+              noindex?: T;
+            };
+      };
+  detail?:
+    | T
+    | {
+        ctaTitle?: T;
+        ctaDescription?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teacher-pages_select".
+ */
+export interface TeacherPagesSelect<T extends boolean = true> {
+  list?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        seo?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              keywords?: T;
+              image?: T;
+              noindex?: T;
+            };
+      };
+  detail?:
     | T
     | {
         ctaTitle?: T;

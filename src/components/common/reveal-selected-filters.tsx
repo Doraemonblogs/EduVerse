@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 
-/** 筛选行（横向滚动的 <ul>）的选择器，与 CourseFilterBar 的 aria-labelledby 约定一致 */
-export const FILTER_ROW_SELECTOR = 'ul[aria-labelledby^="course-filter-"]'
+/** 筛选行（横向滚动的 <ul>）的选择器：通用筛选栏 FilterBar 给每一行加 data-filter-row */
+export const FILTER_ROW_SELECTOR = 'ul[data-filter-row]'
 
 /**
  * 把横向滚动的筛选行滚到当前选中项（aria-current）上，让它居中显示。
@@ -25,7 +25,7 @@ export function revealSelectedFilters(root: ParentNode): void {
 
 /**
  * 移动端筛选行默认停在最左侧，排在后面的选中项（如“杭州”）会在屏幕外，
- * 打开分享链接或从课程详情返回时看不出当前筛了什么。挂载后、以及筛选条件变化后
+ * 打开分享链接或从详情页返回时看不出当前筛了什么。挂载后、以及筛选条件变化后
  * 把每一行的选中项滚进可见范围。不渲染任何可见内容（桌面端各行自动换行，不受影响）。
  */
 export function RevealSelectedFilters({ selection }: { selection: string }) {

@@ -29,7 +29,7 @@ import { quizQuestions } from './data/quiz'
 import { stories } from './data/stories'
 import { teachers } from './data/teachers'
 import { tutorials } from './data/tutorials'
-import { works } from './data/works'
+import { bilibiliPlayerUrl, galleryCaptions, works } from './data/works'
 import { toLexical } from './lexical'
 import { generatePlaceholder, type Aspect, type PlaceholderKind } from './placeholders'
 import {
@@ -457,20 +457,19 @@ export async function runSeed(payload: Payload): Promise<SeedSummary> {
       aspect: w.aspect,
       label: `占位图 · ${disciplineName(w.discipline)}`,
     })
-    const gallery = w.featured
-      ? await mapLimit([0, 1], 2, async (j) => ({
-          caption: j === 0 ? '过程稿' : '细节',
-          image: await uploadImage(payload, {
-            name: `work-${String(i + 1).padStart(2, '0')}-detail-${j}`,
-            alt: `学员作品：${w.title} ${j === 0 ? '过程稿' : '细节'}（占位图）`,
-            kind: 'art',
-            hue: hue + 15 * (j + 1),
-            aspect: w.aspect,
-            label: `占位图 · ${disciplineName(w.discipline)}`,
-            size: 1400,
-          }),
-        }))
-      : []
+    const captions = galleryCaptions(w)
+    const gallery = await mapLimit(captions, 2, async (caption, j) => ({
+      caption,
+      image: await uploadImage(payload, {
+        name: `work-${String(i + 1).padStart(2, '0')}-detail-${j}`,
+        alt: `学员作品：${w.title} ${caption}（占位图）`,
+        kind: 'art',
+        hue: hue + 15 * (j + 1),
+        aspect: w.aspect,
+        label: `占位图 · ${disciplineName(w.discipline)}`,
+        size: 1400,
+      }),
+    }))
     const doc = await payload.create({
       collection: 'works',
       draft: false,
@@ -483,7 +482,9 @@ export async function runSeed(payload: Payload): Promise<SeedSummary> {
         software: softwareIdsOf(w.software),
         cover,
         gallery,
-        video: { kind: 'none' },
+        video: w.videoBvid
+          ? { kind: 'embed', embedUrl: bilibiliPlayerUrl(w.videoBvid) }
+          : { kind: 'none' },
         description: w.description,
         consentConfirmed: true,
         featured: w.featured,

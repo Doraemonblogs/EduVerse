@@ -335,7 +335,7 @@ describe('FaqList', () => {
 describe('WorkThumbGrid / TeacherCardGrid', () => {
   const cover = { src: '/api/media/file/w.webp', alt: '', width: 800, height: 600 }
 
-  it('作品只展示不加链接，图片 alt 缺省时用作品名，支持数量上限', () => {
+  it('每件作品整体链接到作品详情（名称为作品名、署名为描述），图片 alt 缺省时用作品名，支持数量上限', () => {
     render(
       <WorkThumbGrid
         works={[
@@ -352,14 +352,24 @@ describe('WorkThumbGrid / TeacherCardGrid', () => {
         limit={2}
       />,
     )
-    expect(screen.queryByRole('link')).toBeNull()
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
+    const links = screen.getAllByRole('link')
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/works/1', '/works/2'])
+    const first = screen.getByRole('link', { name: '雨夜街角' })
+    expect(first).toHaveProperty('href', expect.stringMatching(/\/works\/1$/))
+    expect(document.getElementById(first.getAttribute('aria-describedby')!)?.textContent).toBe(
+      '小林 · 2026 届',
+    )
+    // 没有署名时不加描述
+    expect(screen.getByRole('link', { name: '机甲设计' }).hasAttribute('aria-describedby')).toBe(
+      false,
+    )
     expect(screen.getByAltText('雨夜街角')).toBeTruthy()
     expect(screen.getByAltText('机甲正面图')).toBeTruthy()
     expect(screen.getByText('小林 · 2026 届')).toBeTruthy()
   })
 
-  it('讲师只展示不加链接：姓名标题、头衔、从业年限与擅长领域', () => {
+  it('讲师卡片整体链接到讲师详情：姓名标题、头衔、从业年限与擅长领域', () => {
     render(
       <TeacherCardGrid
         teachers={[
@@ -375,7 +385,12 @@ describe('WorkThumbGrid / TeacherCardGrid', () => {
         ]}
       />,
     )
-    expect(screen.queryByRole('link')).toBeNull()
+    const link = screen.getByRole('link', { name: '林老师' })
+    expect(link.getAttribute('href')).toBe('/teachers/lin')
+    // 头衔、年限、擅长作为链接描述
+    const details = document.getElementById(link.getAttribute('aria-describedby')!)
+    expect(details?.textContent).toContain('三维动画讲师')
+    expect(details?.textContent).toContain('从业 8 年')
     expect(screen.getByRole('heading', { level: 3, name: '林老师' })).toBeTruthy()
     expect(screen.getByAltText('林老师')).toBeTruthy()
     expect(screen.getByText('从业 8 年')).toBeTruthy()
@@ -401,6 +416,27 @@ describe('WorkThumbGrid / TeacherCardGrid', () => {
     expect(list.className).not.toContain('lg:grid-cols-4')
   })
 
+  it('讲师带专业方向（讲师列表）时列出简称，读屏有“专业方向”前缀；不带时不显示', () => {
+    const { rerender } = render(
+      <TeacherCardGrid
+        teachers={[
+          {
+            ...teacher,
+            disciplines: [
+              disciplineRef(),
+              disciplineRef({ id: 2, name: '游戏美术', shortName: '游戏', slug: 'game-art' }),
+            ],
+          },
+        ]}
+      />,
+    )
+    // getByText 会把不换行空格规范成普通空格
+    const line = screen.getByText(/三维动画 \/ 游戏/)
+    expect(line.textContent).toBe('专业方向：三维动画\u00a0/ 游戏')
+    rerender(<TeacherCardGrid teachers={[teacher]} />)
+    expect(screen.queryByText(/专业方向：/)).toBeNull()
+  })
+
   it('讲师头像 sizes 可按所在栏宽传入；擅长领域只在“/”后换行', () => {
     const { container } = render(
       <TeacherCardGrid teachers={[teacher]} imageSizes="(min-width: 1024px) 18vw, 96px" />,
@@ -411,6 +447,31 @@ describe('WorkThumbGrid / TeacherCardGrid', () => {
     const specialties = screen.getByText(/镜头语言与分镜/)
     expect(specialties.className).toContain('break-keep')
     expect(specialties.textContent).toContain('镜头语言与分镜\u00a0/ 动画短片指导')
+  })
+
+  it('讲师头像默认全部懒加载；priorityCount 让前几位立即加载并提高优先级（只给首屏的网格）', () => {
+    const many = [1, 2, 3, 4, 5].map((id) => ({
+      ...teacher,
+      id,
+      slug: `teacher-${id}`,
+      name: `讲师${id}`,
+    }))
+    const { container, rerender } = render(<TeacherCardGrid teachers={many} />)
+    const loading = () =>
+      [...container.querySelectorAll('img')].map((img) => [
+        img.getAttribute('loading'),
+        img.getAttribute('fetchpriority'),
+      ])
+    expect(loading()).toEqual(many.map(() => ['lazy', null]))
+
+    rerender(<TeacherCardGrid teachers={many} priorityCount={2} />)
+    expect(loading()).toEqual([
+      ['eager', 'high'],
+      ['eager', 'high'],
+      ['lazy', null],
+      ['lazy', null],
+      ['lazy', null],
+    ])
   })
 })
 

@@ -145,7 +145,8 @@ export function SiteFooter({ footer, settings }: { footer: FooterData; settings:
         ) : null}
 
         {footer.qrcodes?.length ? (
-          <div className="flex gap-4">
+          // 二维码多于一行能放下的数量时换行，而不是被压窄（max-w-none：二维码始终保持正方形）
+          <div className="flex flex-wrap gap-4">
             {footer.qrcodes.map((qr) => {
               const image = imageSource(qr.image, 'thumbnail')
               return image ? (
@@ -156,7 +157,7 @@ export function SiteFooter({ footer, settings }: { footer: FooterData; settings:
                     width={112}
                     height={112}
                     sizes="112px"
-                    className="size-28 rounded-sm bg-white p-1.5"
+                    className="size-28 max-w-none rounded-sm bg-white p-1.5"
                   />
                   <figcaption className="text-xs text-muted-foreground">{qr.label}</figcaption>
                 </figure>

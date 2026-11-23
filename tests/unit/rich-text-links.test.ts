@@ -14,8 +14,16 @@ describe('docHref', () => {
   })
 
   it('作品详情按 ID 生成路径', () => {
-    expect(docHref('works', { id: 12, _status: 'published' })).toBe('/works/12')
-    expect(docHref('works', { slug: 'no-id' })).toBeNull()
+    expect(docHref('works', { id: 12, _status: 'published', consentConfirmed: true })).toBe(
+      '/works/12',
+    )
+    expect(docHref('works', { slug: 'no-id', consentConfirmed: true })).toBeNull()
+  })
+
+  it('未确认学员授权的作品（详情页 404）不输出链接', () => {
+    expect(docHref('works', { id: 12, _status: 'published', consentConfirmed: false })).toBeNull()
+    // 字段缺失（填充时没有选取）也按未授权处理，宁可只渲染文字
+    expect(docHref('works', { id: 12, _status: 'published' })).toBeNull()
   })
 
   it('草稿文档不输出链接，避免指向 404', () => {
@@ -47,9 +55,12 @@ describe('docHref', () => {
 })
 
 describe('LINKABLE_COLLECTIONS', () => {
+  /** 各集合都能输出链接的样例文档（作品还要求已确认授权） */
+  const sample = { id: 1, slug: 'sample', _status: 'published', consentConfirmed: true }
+
   it('覆盖富文本所有会输出链接的集合（含通用页面与作品）', () => {
     for (const collection of LINKABLE_COLLECTIONS) {
-      const href = docHref(collection, { id: 1, slug: 'sample', _status: 'published' })
+      const href = docHref(collection, sample)
       expect(href, collection).toMatch(/^\//)
     }
     expect(LINKABLE_COLLECTIONS).toEqual(expect.arrayContaining(['pages', 'courses', 'works']))
@@ -59,7 +70,7 @@ describe('LINKABLE_COLLECTIONS', () => {
   it('除通用页面外，各集合的一级路径都已登记为固定路由，不会被同名页面占用', () => {
     for (const collection of LINKABLE_COLLECTIONS) {
       if (collection === 'pages') continue
-      const href = docHref(collection, { id: 1, slug: 'sample' })
+      const href = docHref(collection, sample)
       const segment = href?.split('/')[1]
       expect(segment && RESERVED_ROUTE_SEGMENTS.has(segment), collection).toBe(true)
     }

@@ -186,6 +186,42 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
           '先来听一节课，或请课程顾问根据你的基础和目标，梳理一条可执行的学习路径，再决定是否报名。',
       },
     },
+    'work-pages': {
+      list: {
+        title: '学员作品',
+        description:
+          '收录各专业在读与毕业学员的课程作业、阶段项目与毕业作品，全部取得学员授权后展示，署名为学员化名。可按专业方向、使用软件筛选，也可以只看精选。',
+        seo: {
+          title: `学员作品｜${BRAND}`,
+          description:
+            '三维动画、游戏美术、影视特效、UI/UX、原画、平面、动态设计、室内可视化等方向的学员作品，查看作品说明、所用软件与所学课程。',
+          keywords: '学员作品,三维动画作品,游戏美术作品,UI设计作品,数字艺术作品集',
+        },
+      },
+      detail: {
+        ctaTitle: '想做出这样的作品？',
+        ctaDescription:
+          '预约一节试听课，课程顾问会介绍这件作品所在课程的学习路线与开班安排，帮你判断从哪里开始。',
+      },
+    },
+    'teacher-pages': {
+      list: {
+        title: '师资团队',
+        description:
+          '讲师来自动画、游戏、影视与设计等行业，按专业方向分工授课。查看每位讲师的从业经历、擅长领域与授课课程。',
+        seo: {
+          title: `师资团队｜${BRAND}`,
+          description:
+            '了解各专业方向讲师的从业经历、擅长领域与授课课程，可预约讲师所授课程的免费试听。',
+          keywords: '数字艺术讲师,三维动画讲师,游戏美术讲师,UI设计讲师',
+        },
+      },
+      detail: {
+        ctaTitle: '想先听一节这位讲师的课？',
+        ctaDescription:
+          '留下联系方式，课程顾问会查询这位讲师近期的授课安排，为你预约就近校区或线上试听。',
+      },
+    },
     'careers-page': {
       intro: {
         eyebrow: 'Career Services',

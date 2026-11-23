@@ -133,6 +133,7 @@ docs/ docker/ docker-compose.dev.yml
 - **footer**：columns[] { title, links[] }、qrcodes[] { label, image }、copyright。
 - **home-page**：各区块 { enabled, eyebrow, title, description, 手选 / 自动内容 }。
 - **course-pages**（课程页面设置，M3）：list { title, description, seo }、detail { sidebarTitle, sidebarDescription }、major { ctaTitle, ctaDescription }；默认文案在 `src/globals/course-pages-defaults.ts`，后台未保存过时前台用同一份默认值。
+- **work-pages**（作品页面设置，M4）、**teacher-pages**（师资页面设置，M4）：list { title, description, seo }、detail { ctaTitle, ctaDescription }；默认文案分别在 `src/globals/{work,teacher}-pages-defaults.ts`。
 - **careers-page**、**quiz-settings**。
 - **lead-settings**：webhooks[] { name, platform: wecom / feishu / dingtalk, url（仅允许三家官方域名）, secret, enabled, maskPhone }、rateLimits、cityOptions[]、successMessage。
 
@@ -199,8 +200,19 @@ docs/ docker/ docker-compose.dev.yml
 - **富文本中的课程链接**：课程本身已发布但所属专业方向已下线时课程页 404。`guardCourseLinks()` 收集富文本里链接 / 关联到的课程，一次查询确认可访问，不可访问的只渲染文字；用于专业介绍与通用页面区块，以后渲染其它富文本时同样要经过它。
 - **数据缓存与构建**：`unstable_cache` 持久化在 `.next/cache/fetch-cache`，键只由回调源码与 keyParts 决定，视图模型结构变化时键可能不变；`pnpm build` 开始前清除该目录（`scripts/clear-next-data-cache.mjs`），`pnpm seed:reset` 结束时同样清除。
 - **桌面悬浮栏让位**：课程详情两栏区与页脚在 1024–1440px 之间用 `lg:avoid-floating-actions` 给右侧悬浮栏留出位置，避免盖住吸顶侧栏表单与页脚热线。
-- **暂不链接**：作品详情、讲师详情（M4）与校区详情（M6）尚未上线，课程与专业页中只展示、不加链接。
+- **暂不链接**：校区详情（M6）尚未上线，课程与专业页中只展示、不加链接；作品与讲师自 M4 起链接到详情页。
 - `/majors` 永久重定向到 `/courses`；`/courses`、`/majors` 已从预览站导出脚本的 `PLANNED_ROUTES` 移除。
+
+### 4.11 M4 落地说明（学员作品与师资）
+
+- **数据层**：`src/lib/data/{works,teachers}.ts`（query* / get* 分离），纯函数在 `src/lib/{works,teachers}/*`，通用分页 `src/lib/pagination.ts`、查询参数工具 `src/lib/search-params.ts`。作品一律要求已发布 + `consentConfirmed`（列表、详情、相关作品、讲师作品、富文本链接、结构化数据）；作品的所属课程只在课程及其专业方向都已发布时给出链接；讲师简介经 `guardCourseLinks()`。
+- **外部视频**：播放器白名单在 `src/lib/works/video.ts`（https、白名单主机、无账号与端口），后台校验与前台渲染共用；前台为“点击后加载”：首屏只有封面与播放按钮，点击后才插入 iframe，访问页面时不请求第三方。
+- **作品列表** `/works?discipline=&software=&featured=1&page=`：每页 24 件，CSS 多列瀑布流；有筛选参数时 `noindex, follow`、canonical `/works`；无筛选的第 N 页可收录、canonical `/works?page=N`、标题带“（第 N 页）”；页码超出范围 404。
+- **作品详情** `/works/[id]`：深色媒体区（视频或大图 + 作品集缩略图）、可键盘操作的灯箱、作者化名说明、专业 / 课程链接、相关作品（同课程优先，最多 8）；结构化数据 CreativeWork（creator 为化名）+ BreadcrumbList。
+- **师资** `/teachers?discipline=`（有筛选参数时 noindex）与 `/teachers/[slug]`（简介、从业经历、授课课程、学员作品、结尾留资）；结构化数据 Person + BreadcrumbList。校区暂不链接（M6）。
+- **通用组件**：`FilterBar`（数据驱动的筛选栏，课程列表也改用它）、`Pagination`（可抓取的分页链接）、`WorkCard` / `WorkMasonry`；M3 的作品缩略图网格与讲师卡片网格整卡链接到详情。
+- **留资位置**：`works_list_empty`、`work_detail`、`teacher_hero`、`teacher_cta`。
+- **e2e**：fixtures 增加 `allowedThirdPartyHosts`（按用例声明，用于验证点击播放后才加载外部播放器，请求被拦截）。
 
 ## 5. 路由清单
 
@@ -210,8 +222,8 @@ docs/ docker/ docker-compose.dev.yml
 | `/courses` | `?discipline=&type=&mode=&city=`，多条件组合页 noindex | M3 |
 | `/courses/[slug]` | 课程详情 | M3 |
 | `/majors/[slug]` | 专业方向落地页（`/majors` 永久重定向到 `/courses`） | M3 |
-| `/works`、`/works/[id]` | `?discipline=&software=&featured=&page=` | M4 |
-| `/teachers`、`/teachers/[slug]` | 师资 | M4 |
+| `/works`、`/works/[id]` | `?discipline=&software=&featured=1&page=`（筛选组合 noindex，分页可收录） | M4 |
+| `/teachers`、`/teachers/[slug]` | 师资（`?discipline=` 筛选，noindex） | M4 |
 | `/careers` | 就业服务 | M6 |
 | `/campuses`、`/campuses/[slug]` | 校区 | M6 |
 | `/articles`、`/articles/category/[slug]`、`/articles/[slug]` | 资讯 | M6 |

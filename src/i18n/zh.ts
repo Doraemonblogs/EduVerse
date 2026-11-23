@@ -138,6 +138,22 @@ export const zh = {
     label: '面包屑',
     home: '首页',
   },
+  /** 通用筛选栏（src/components/common/filter-bar.tsx） */
+  filterBar: {
+    all: '全部',
+    clear: '清除筛选',
+  },
+  /** 通用分页导航（src/components/common/pagination.tsx）；带 {name} 占位的用 formatMessage() 替换 */
+  pagination: {
+    /** <nav> 的无障碍名称 */
+    label: '分页',
+    previous: '上一页',
+    next: '下一页',
+    /** 页码链接的无障碍名称 */
+    page: '第 {page} 页',
+    /** 移动端紧凑显示“2 / 3”时的读屏文字 */
+    status: '第 {page} 页，共 {total} 页',
+  },
   /**
    * 课程模块（课程列表 / 课程详情 / 专业方向页）的系统文案。
    * 带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
@@ -185,8 +201,6 @@ export const zh = {
       type: '班型',
       mode: '授课方式',
       city: '城市',
-      all: '全部',
-      clear: '清除筛选',
       resultCount: '共 {count} 门课程',
       previewNotice: '静态预览站不支持按条件筛选，正式站点可直接筛选课程。',
     },
@@ -308,6 +322,152 @@ export const zh = {
       /** 开设课程区块右侧链接到课程列表 */
       allCourses: '全部专业课程',
       worksNote: '展示的作品均已获得学员授权。',
+    },
+  },
+  /**
+   * 学员作品模块（作品列表 /works、作品详情 /works/[id]）的系统文案。
+   * 带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
+   * 页面专属文案只追加在 list / detail 子对象里。
+   */
+  works: {
+    /** 作品卡片上的精选徽标（文字） */
+    featured: '精选',
+    /** 作者署名说明（学员化名，PRD Q4） */
+    pseudonymNote: '作者署名为学员化名',
+    filters: {
+      /** 筛选栏 <nav> 的无障碍名称 */
+      label: '作品筛选',
+      discipline: '专业方向',
+      software: '软件',
+      featured: '精选',
+      /** “精选”一行的唯一选项（另一项是“全部”） */
+      featuredOnly: '只看精选',
+      resultCount: '共 {count} 件作品',
+      /** 筛选项的读屏补充（可见文字只显示数字） */
+      optionCount: '（{count} 件作品）',
+      previewNotice: '静态预览站不支持筛选与翻页，只展示第 1 页的作品；正式站点可正常筛选与翻页。',
+    },
+    /** 作品列表页 /works 专属文案（Works List Agent 追加） */
+    list: {
+      /** 第 2 页起的页面标题（{title} 为列表页标题），避免各页标题重复 */
+      pagedTitle: '{title}（第 {page} 页）',
+      /**
+       * 多于 1 页时筛选栏底部的结果数（{count} 由筛选栏加粗显示，{page} / {total} 先由页面替换），
+       * 翻页后在页面上方也能看到当前是第几页
+       */
+      resultCountPaged: '共 {count} 件作品 · 第 {page} / {total} 页',
+      /** 筛选无结果 */
+      emptyTitle: '没有符合条件的作品',
+      emptyDescription:
+        '当前筛选条件下暂时没有可展示的作品。可以清除筛选查看全部作品，或者预约一节试听课，了解课程里的作品是怎么完成的。',
+      /** 还没有任何作品（未筛选） */
+      noWorksTitle: '作品正在整理中',
+      noWorksDescription:
+        '学员作品取得本人授权后才会在这里展示。可以先预约一节试听课，了解课程内容与作品要求。',
+      emptyTrial: '预约试听',
+    },
+    /** 作品详情页 /works/[id] 专属文案（Work Detail Agent 追加） */
+    detail: {
+      /** 主图按钮的读屏名称，{alt} 为图片替代文字 */
+      openImage: '查看大图：{alt}',
+      /** 缩略图按钮的读屏名称（带序号，与主图按钮区分），{name} 为图片说明或替代文字 */
+      openThumb: '查看第 {index} 张大图：{name}',
+      /** 主图右下角的提示 */
+      viewLarge: '查看大图',
+      /** 多张图时提示里的张数 */
+      imageCount: '共 {count} 张',
+      /** 缩略图列表的无障碍名称 */
+      galleryLabel: '作品图集',
+      /** 外部播放器“点击后加载”外观 */
+      playVideo: '播放视频：{title}',
+      videoNotice: '视频由第三方平台播放，点击播放后才会加载播放器。',
+      /** 外部播放器 iframe 的 title */
+      videoFrameTitle: '{title}（视频播放器）',
+      videoUnsupported: '当前浏览器无法播放这段视频。',
+      /** 信息栏 <dl> 的各项 */
+      facts: {
+        discipline: '专业方向',
+        course: '所属课程',
+        software: '所用软件',
+        publishedAt: '发布时间',
+      },
+      descriptionTitle: '作品说明',
+      /** 行动号召按钮 */
+      trial: '预约试听',
+      related: '相关作品',
+      allWorks: '查看全部作品',
+      /** 作品没有说明时的页面描述（meta description），{byline} 为“化名 · 届别” */
+      metaDescription: '{title}，{byline}的学员作品。',
+      /** 灯箱 */
+      lightbox: {
+        /** 读屏：对话框说明（对话框标题是作品名） */
+        hint: '按左右方向键切换图片，按 Esc 关闭。',
+        previous: '上一张',
+        next: '下一张',
+        close: '关闭大图',
+        counter: '{index} / {total}',
+        /** 读屏：序号变化时播报 */
+        counterLabel: '第 {index} 张，共 {total} 张',
+      },
+    },
+  },
+  /**
+   * 师资模块（讲师列表 /teachers、讲师详情 /teachers/[slug]）的系统文案。
+   * 讲师卡片的“从业 N 年”“擅长”复用 course.teacher。页面专属文案只追加在 list / detail 子对象里。
+   */
+  teachers: {
+    filters: {
+      /** 筛选栏 <nav> 的无障碍名称 */
+      label: '讲师筛选',
+      discipline: '专业方向',
+      resultCount: '共 {count} 位讲师',
+      /** 筛选项的读屏补充（可见文字只显示数字） */
+      optionCount: '（{count} 位讲师）',
+      previewNotice: '静态预览站不支持按条件筛选，正式站点可直接按专业方向筛选讲师。',
+    },
+    /** 讲师卡片上专业方向的读屏前缀（可见文字只列出专业方向） */
+    disciplines: '专业方向',
+    /** 讲师列表页 /teachers 专属文案（Teachers Agent 追加） */
+    list: {
+      /** 筛选无结果 */
+      emptyTitle: '没有符合条件的讲师',
+      emptyDescription:
+        '当前专业方向下暂时没有可展示的讲师。可以清除筛选查看全部讲师，或者先了解各专业的课程安排。',
+      /** 还没有任何讲师（未筛选） */
+      noTeachersTitle: '讲师介绍正在整理中',
+      noTeachersDescription: '讲师介绍更新后会在这里展示。可以先了解各专业的课程安排与授课方式。',
+      /** 空状态里链接到课程列表 */
+      viewCourses: '查看专业课程',
+    },
+    /** 讲师详情页 /teachers/[slug] 专属文案（Teachers Agent 追加） */
+    detail: {
+      /** 页面标题（SEO 标题未填写时），{name} 为姓名、{title} 为头衔 */
+      metaTitle: '{name} · {title}',
+      /** 个人简介为空时的页面描述（meta description） */
+      metaDescription: '{name}，{title}。',
+      /** 首屏概况 <dl> 的各项 */
+      facts: {
+        years: '从业年限',
+        campus: '所在校区',
+        disciplines: '专业方向',
+        specialties: '擅长领域',
+      },
+      /** 从业年限的取值，{years} 为年数 */
+      yearsValue: '{years} 年',
+      /** 首屏按钮 */
+      trial: '预约试听',
+      /** 各区块标题 */
+      sections: {
+        bio: '个人简介',
+        experience: '从业经历',
+        courses: '授课课程',
+        works: '学员作品',
+      },
+      /** 授课课程区块标题下的概要，{count} 为课程数 */
+      coursesSummary: '共 {count} 门课程',
+      worksNote: '作品来自这位讲师授课的课程，均已获得学员授权。',
+      /** 学员作品区块右侧链接到作品列表 */
+      allWorks: '查看全部作品',
     },
   },
 } as const

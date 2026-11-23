@@ -11,13 +11,26 @@ async function tabTo(page: Page, target: Locator, maxPresses = 20) {
   await expect(target).toBeFocused()
 }
 
+/** 元素实际渲染的宽高（取整到像素） */
+async function renderedSize(target: Locator) {
+  const box = await target.boundingBox()
+  if (!box) throw new Error('元素没有尺寸')
+  return { width: Math.round(box.width), height: Math.round(box.height) }
+}
+
 test.describe('全站框架', () => {
   test('桌面端：专业课程大菜单按专业方向列出课程', async ({ page, isMobile }) => {
     test.skip(isMobile, '桌面端专属')
     await page.goto('/')
-    await page.getByRole('button', { name: '专业课程' }).hover()
     const menu = page.getByRole('navigation', { name: '主导航' })
-    await expect(menu.getByRole('link', { name: '三维动画设计长期就业班' })).toBeVisible()
+    // 大菜单靠指针移动打开：水合前的悬停不会生效（开发服务器上水合较慢），移开再悬停直到展开
+    await expect(async () => {
+      await page.mouse.move(0, 0)
+      await page.getByRole('button', { name: '专业课程' }).hover()
+      await expect(menu.getByRole('link', { name: '三维动画设计长期就业班' })).toBeVisible({
+        timeout: 1_000,
+      })
+    }).toPass({ timeout: 15_000 })
     await expect(menu.locator('a[href$="/majors/arch-viz"]')).toBeVisible()
     await expect(menu.getByRole('link', { name: '查看全部课程 →' })).toHaveAttribute(
       'href',
@@ -66,6 +79,70 @@ test.describe('全站框架', () => {
     // 指针不动，按 Esc 关闭
     await page.keyboard.press('Escape')
     await expect(tooltip).toBeHidden()
+  })
+
+  test('微信二维码保持正方形：悬浮栏详情 / 移动端弹窗与页脚的二维码都按设定尺寸显示', async ({
+    page,
+    isMobile,
+  }) => {
+    // 开发模式下 next/image 发现图片只被 CSS 改了宽或高（变形）时告警；生产构建不输出，此时只靠尺寸断言
+    const resized: string[] = []
+    page.on('console', (msg) => {
+      if (/width or height modified/.test(msg.text())) resized.push(msg.text())
+    })
+    await page.goto('/')
+
+    // 弹窗 / 浮层要水合后才响应：水合前的点击、悬停不生效，重试直到出现
+    if (isMobile) {
+      const qr = page.getByRole('dialog').getByRole('img', { name: '课程顾问微信二维码' })
+      await expect(async () => {
+        await page
+          .getByRole('navigation', { name: '快捷咨询' })
+          .getByRole('button', { name: '微信' })
+          .click()
+        await expect(qr).toBeVisible({ timeout: 1_000 })
+      }).toPass({ timeout: 15_000 })
+      expect(await renderedSize(qr)).toEqual({ width: 192, height: 192 })
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('dialog')).toBeHidden()
+    } else {
+      // 浮层定位在按钮左侧、按最小内容宽度收缩：二维码不能被压成说明文字的宽度
+      const quick = page.getByRole('complementary', { name: '快捷咨询' })
+      const qr = quick.getByRole('tooltip').getByRole('img', { name: '课程顾问微信二维码' })
+      await expect(async () => {
+        await page.mouse.move(0, 0)
+        await quick.getByRole('button', { name: '微信' }).hover()
+        await expect(qr).toBeVisible({ timeout: 1_000 })
+      }).toPass({ timeout: 15_000 })
+      expect(await renderedSize(qr)).toEqual({ width: 128, height: 128 })
+    }
+
+    const footerQrs = page.getByRole('contentinfo').locator('figure img')
+    const seeded = await footerQrs.count()
+    expect(seeded, '种子数据的页脚应有二维码').toBeGreaterThan(0)
+    await footerQrs.first().scrollIntoViewIfNeeded()
+    for (const qr of await footerQrs.all()) {
+      expect(await renderedSize(qr)).toEqual({ width: 112, height: 112 })
+    }
+
+    // 后台可配置多个二维码：一行放不下时换行，不能被压窄（390px 下 4 个曾被压成 78×112）。
+    // 上面的浮层 / 弹窗依赖水合才会打开，此时页面已水合，复制出的节点不会被 React 回收
+    await page
+      .getByRole('contentinfo')
+      .locator('figure')
+      .first()
+      .evaluate((figure) => {
+        for (let i = 0; i < 3; i++) figure.parentElement?.append(figure.cloneNode(true))
+      })
+    await expect(footerQrs).toHaveCount(seeded + 3)
+    for (const qr of await footerQrs.all()) {
+      expect(await renderedSize(qr)).toEqual({ width: 112, height: 112 })
+    }
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow, '多个二维码不应撑出横向滚动').toBe(0)
+    expect(resized, '图片不应只被改了宽或高').toEqual([])
   })
 
   test('桌面端显示右侧悬浮栏，不显示底部操作条', async ({ page, isMobile }) => {

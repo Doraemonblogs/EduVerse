@@ -4,34 +4,15 @@ import { hiddenFromConsultant, isStaffEditor, publishedOrEditor } from '@/access
 import { consentField, featuredField, orderField } from '@/fields/common'
 import { seoTab } from '@/fields/seo'
 import { revalidateCollection } from '@/hooks/revalidate'
+import { ALLOWED_VIDEO_HOSTS, isAllowedVideoEmbedUrl } from '@/lib/works/video'
 
 import { ADMIN_GROUPS } from './groups'
-
-/** 外部播放器白名单：只允许大陆可稳定访问的视频平台官方播放器域名（https） */
-export const ALLOWED_VIDEO_HOSTS = [
-  'player.bilibili.com',
-  'www.bilibili.com',
-  'v.qq.com',
-  'player.youku.com',
-] as const
 
 export const VIDEO_KIND_OPTIONS = [
   { label: '无', value: 'none' },
   { label: '外部播放器', value: 'embed' },
   { label: '上传视频', value: 'file' },
 ]
-
-/** 是否为白名单内的 https 播放器地址（前台渲染 iframe 前也应再校验一次） */
-export function isAllowedVideoEmbedUrl(value: string): boolean {
-  try {
-    const url = new URL(value)
-    return (
-      url.protocol === 'https:' && (ALLOWED_VIDEO_HOSTS as readonly string[]).includes(url.hostname)
-    )
-  } catch {
-    return false
-  }
-}
 
 const validateEmbedUrl: TextFieldSingleValidation = (value, { siblingData }) => {
   if ((siblingData as { kind?: string } | undefined)?.kind !== 'embed') return true

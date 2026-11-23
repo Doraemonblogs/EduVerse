@@ -189,12 +189,23 @@ test.describe('专业方向落地页', () => {
     await expect(works.getByRole('heading', { level: 2, name: '学员作品' })).toBeVisible()
     await expect(works).toHaveClass(/surface-dark/)
     await expect(works.locator('figure')).toHaveCount(Math.min(8, workCount))
-    // 作品只展示、暂不链接（作品详情在 M4 上线）
-    await expect(works.getByRole('link')).toHaveCount(0)
+    // 每件作品整体链接到作品详情
+    const workLinks = works.getByRole('link')
+    await expect(workLinks).toHaveCount(Math.min(8, workCount))
+    for (const href of await workLinks.evaluateAll((links) =>
+      links.map((link) => link.getAttribute('href')),
+    )) {
+      expect(href).toMatch(/\/works\/\d+$/)
+    }
 
     const teachers = page.getByRole('region', { name: '专业讲师' })
     for (const name of teacherNames.slice(0, 8)) {
       await expect(teachers.getByRole('heading', { level: 3, name, exact: true })).toBeVisible()
+      // 讲师卡片整体链接到讲师详情（链接名称为姓名）
+      await expect(teachers.getByRole('link', { name, exact: true })).toHaveAttribute(
+        'href',
+        /\/teachers\/[a-z0-9-]+$/,
+      )
     }
     await expectNoHorizontalOverflow(page)
   })

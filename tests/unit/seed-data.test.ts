@@ -13,12 +13,15 @@ import { quizQuestions } from '../../scripts/seed/data/quiz'
 import { stories } from '../../scripts/seed/data/stories'
 import { teachers } from '../../scripts/seed/data/teachers'
 import { tutorials } from '../../scripts/seed/data/tutorials'
-import { works } from '../../scripts/seed/data/works'
+import { bilibiliPlayerUrl, galleryCaptions, works } from '../../scripts/seed/data/works'
 import { CAMPUSES, COURSES, DISCIPLINES } from '../../scripts/seed/registry'
 import { buildGlobals } from '../../scripts/seed/site'
 
 import { COURSE_PAGES_DEFAULTS } from '@/globals/course-pages-defaults'
+import { TEACHER_PAGES_DEFAULTS } from '@/globals/teacher-pages-defaults'
+import { WORK_PAGES_DEFAULTS } from '@/globals/work-pages-defaults'
 import { SLUG_PATTERN } from '@/lib/slugify'
+import { isAllowedVideoEmbedUrl } from '@/lib/works/video'
 
 const unique = (values: string[]) => new Set(values).size === values.length
 
@@ -129,8 +132,41 @@ describe('种子数据完整性', () => {
     expect(coursePages?.major?.ctaTitle).toBeTruthy()
   })
 
+  it('作品页面设置与师资页面设置写入了列表与详情行动号召的文案', () => {
+    const globals = buildGlobals({ wechatQr: 1, hotDisciplines: [] })
+    for (const settings of [globals['work-pages'], globals['teacher-pages']]) {
+      expect(settings?.list?.title).toBeTruthy()
+      expect(settings?.list?.description).toBeTruthy()
+      expect(settings?.list?.seo?.title).toBeTruthy()
+      expect(settings?.list?.seo?.description).toBeTruthy()
+      expect(settings?.detail?.ctaTitle).toBeTruthy()
+      expect(settings?.detail?.ctaDescription).toBeTruthy()
+    }
+  })
+
   it('教程视频号格式合法', () => {
     for (const t of tutorials) expect(t.videoId).toMatch(/^BV[0-9A-Za-z]{10}$/)
+  })
+
+  it('有 2 件作品带外部播放器视频：占位 BV 号格式合法、不重复，播放器地址在白名单内', () => {
+    const bvids = works.flatMap((w) => (w.videoBvid ? [w.videoBvid] : []))
+    expect(bvids).toHaveLength(2)
+    expect(unique(bvids)).toBe(true)
+    // 不与免费教程的占位视频号重复
+    for (const bvid of bvids) {
+      expect(bvid).toMatch(/^BV[0-9A-Za-z]{10}$/)
+      expect(tutorials.map((t) => t.videoId)).not.toContain(bvid)
+      const url = bilibiliPlayerUrl(bvid)
+      expect(url).toBe(`https://player.bilibili.com/player.html?bvid=${bvid}`)
+      expect(isAllowedVideoEmbedUrl(url)).toBe(true)
+    }
+  })
+
+  it('至少 3 件作品有 3 张以上的作品图集（灯箱翻页），图集说明不为空', () => {
+    expect(works.filter((w) => galleryCaptions(w).length >= 3).length).toBeGreaterThanOrEqual(3)
+    for (const w of works) {
+      for (const caption of galleryCaptions(w)) expect(caption.trim(), w.title).toBeTruthy()
+    }
   })
 })
 
@@ -153,6 +189,8 @@ describe('合规（广告法）', () => {
     globals: buildGlobals({ wechatQr: 1, hotDisciplines: [] }),
     // 后台字段默认值（全局从未保存时前台也会显示）
     coursePagesDefaults: COURSE_PAGES_DEFAULTS,
+    workPagesDefaults: WORK_PAGES_DEFAULTS,
+    teacherPagesDefaults: TEACHER_PAGES_DEFAULTS,
   })
 
   it.each([

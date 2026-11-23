@@ -157,13 +157,17 @@ export function FloatingActions({
             detail={
               wechatQr ? (
                 <>
+                  {/*
+                    max-w-none：浮层按最小内容宽度收缩（定位在按钮左侧，可用宽度为 0），
+                    预设的 img { max-width: 100% } 会把二维码压到说明文字的宽度（变形且 Next 告警）
+                  */}
                   <Image
                     src={wechatQr.src}
                     alt={zh.lead.success.qrAlt}
                     width={128}
                     height={128}
                     sizes="128px"
-                    className="size-32"
+                    className="size-32 max-w-none"
                   />
                   <span className="text-xs text-muted-foreground">{t.wechatTitle}</span>
                 </>

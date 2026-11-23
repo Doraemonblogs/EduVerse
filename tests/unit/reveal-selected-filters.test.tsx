@@ -24,7 +24,7 @@ vi.mock('next/link', () => ({
 }))
 
 const { FILTER_ROW_SELECTOR, RevealSelectedFilters, revealSelectedFilters } =
-  await import('@/components/course/list/reveal-selected-filters')
+  await import('@/components/common/reveal-selected-filters')
 const { CourseFilterBar } = await import('@/components/course/list/course-filter-bar')
 
 afterEach(() => {
@@ -89,7 +89,7 @@ function layoutRow(
 
 function Row({ name, selected }: { name: string; selected: number }) {
   return (
-    <ul aria-labelledby={`course-filter-${name}`}>
+    <ul aria-labelledby={`filter-${name}`} data-filter-row="">
       {['全部', '北京', '上海', '广州', '深圳', '杭州'].map((label, index) => (
         <li key={label}>
           <a href="#" aria-current={index === selected ? 'true' : undefined}>
@@ -181,7 +181,7 @@ describe('CourseFilterBar 接入', () => {
     courseCard({ id: 2, slug: 'b', campuses: [SHENZHEN] }),
   ]
 
-  it('筛选栏的四行都能被选择器找到，选中项带 aria-current="true"', () => {
+  it('课程筛选栏的四行都能被选择器找到，选中项带 aria-current="true"', () => {
     const filters: CourseFilters = { city: 'shenzhen' }
     const { container } = render(
       <CourseFilterBar cards={cards} filters={filters} resultCount={2} />,

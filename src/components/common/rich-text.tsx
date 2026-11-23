@@ -54,7 +54,14 @@ export const LINKABLE_COLLECTIONS: readonly CollectionSlug[] = [
   'works',
 ]
 
-type DocLike = { id?: unknown; slug?: unknown; title?: unknown; name?: unknown; _status?: unknown }
+type DocLike = {
+  id?: unknown
+  slug?: unknown
+  title?: unknown
+  name?: unknown
+  _status?: unknown
+  consentConfirmed?: unknown
+}
 
 function isDocLike(value: unknown): value is DocLike {
   return Boolean(value && typeof value === 'object')
@@ -64,10 +71,12 @@ function isDocLike(value: unknown): value is DocLike {
  * 关联文档的前台地址。关联未填充（只有 ID）、文档仍是草稿、集合没有前台页面，
  * 或通用页面的 slug 被固定路由占用（/[pageSlug] 永远访问不到）时返回 null，
  * 此时只渲染文字，不输出会 404 的链接。
+ * 作品详情只展示已确认学员授权的作品（src/lib/data/works.ts），未确认授权（consentConfirmed 不为 true）的作品同样不输出链接。
  */
 export function docHref(relationTo: string, value: unknown): string | null {
   if (!isDocLike(value) || value._status === 'draft') return null
   if (relationTo === 'works') {
+    if (value.consentConfirmed !== true) return null
     return typeof value.id === 'number' || typeof value.id === 'string'
       ? `/works/${value.id}`
       : null

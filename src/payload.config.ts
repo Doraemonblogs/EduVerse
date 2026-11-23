@@ -35,6 +35,8 @@ import { LeadSettings } from './globals/LeadSettings'
 import { Navigation } from './globals/Navigation'
 import { QuizSettings } from './globals/QuizSettings'
 import { SiteSettings } from './globals/SiteSettings'
+import { TeacherPages } from './globals/TeacherPages'
+import { WorkPages } from './globals/WorkPages'
 import { jobsConfig } from './jobs/config'
 
 const filename = fileURLToPath(import.meta.url)
@@ -87,6 +89,8 @@ export default buildConfig({
     Footer,
     HomePage,
     CoursePages,
+    WorkPages,
+    TeacherPages,
     CareersPage,
     QuizSettings,
     LeadSettings,

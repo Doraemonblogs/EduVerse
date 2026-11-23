@@ -327,8 +327,14 @@ describe('课程详情页主体', () => {
     ).toBeTruthy()
     const teachers = screen.getByRole('region', { name: '授课讲师' })
     expect(within(teachers).getByRole('heading', { level: 3, name: '林雨晴' })).toBeTruthy()
-    // M3 讲师与作品只展示，不加链接
-    expect(within(teachers).queryByRole('link')).toBeNull()
+    // 讲师卡片整体链接到讲师详情，作品链接到作品详情
+    expect(within(teachers).getByRole('link', { name: '林雨晴' }).getAttribute('href')).toBe(
+      '/teachers/lin',
+    )
+    const works = screen.getByRole('region', { name: '学员作品' })
+    for (const link of within(works).getAllByRole('link')) {
+      expect(link.getAttribute('href')).toMatch(/^\/works\/\d+$/)
+    }
     // 主栏里讲师固定 3 列：通栏默认的 lg:grid-cols-4 必须被覆盖（否则主栏变窄时反而排 4 列）
     const grid = teachers.querySelector('ul')!
     expect(grid.className).toContain('md:grid-cols-3')

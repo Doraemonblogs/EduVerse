@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { zh } from '@/i18n/zh'
+import { readSearchParam, slugParam, type SearchParamsInput } from '@/lib/search-params'
 
 import { COURSES_PATH } from './paths'
 import type {
@@ -28,12 +29,6 @@ export const COURSE_FILTER_KEYS = [
 const CLASS_TYPES = ['long_term', 'short_term'] as const satisfies readonly ClassType[]
 const DELIVERY_MODES = ['offline', 'online', 'dual'] as const satisfies readonly DeliveryMode[]
 
-/** 与后台 slug / 城市标识一致的格式（不引入 src/lib/slugify.ts，它依赖服务端的拼音库） */
-const slugParam = z
-  .string()
-  .max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-
 /** 每个参数单独校验：非法取值变成 undefined（按“全部”处理），不影响其它参数 */
 const filtersSchema = z.object({
   discipline: slugParam.optional().catch(undefined),
@@ -41,18 +36,6 @@ const filtersSchema = z.object({
   mode: z.enum(DELIVERY_MODES).optional().catch(undefined),
   city: slugParam.optional().catch(undefined),
 })
-
-/** Next 页面的 searchParams（await 之后的对象）或 URLSearchParams */
-export type SearchParamsInput =
-  URLSearchParams | Readonly<Record<string, string | readonly string[] | undefined>>
-
-/** 读取一个参数：不存在返回 undefined；重复出现时取第一个 */
-function readParam(input: SearchParamsInput, key: string): string | undefined {
-  if (input instanceof URLSearchParams) return input.has(key) ? (input.get(key) ?? '') : undefined
-  const value = input[key]
-  if (value === undefined) return undefined
-  return typeof value === 'string' ? value : (value[0] ?? '')
-}
 
 /**
  * 解析并校验筛选参数（zod）：非法取值（格式不对、不在枚举内、空字符串）忽略，按“全部”处理。
@@ -67,7 +50,7 @@ export function parseCourseFilters(searchParams: SearchParamsInput): {
 } {
   const raw: Partial<Record<CourseFilterKey, string>> = {}
   for (const key of COURSE_FILTER_KEYS) {
-    const value = readParam(searchParams, key)
+    const value = readSearchParam(searchParams, key)
     if (value !== undefined) raw[key] = value.trim()
   }
   const parsed = filtersSchema.parse(raw)
