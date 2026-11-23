@@ -25,6 +25,9 @@ vi.mock('@/lib/data/courses', () => ({
 vi.mock('@/components/course/detail/course-detail-view', () => ({ CourseDetailView: () => null }))
 vi.mock('@/components/course/major/major-view', () => ({ MajorView: () => null }))
 vi.mock('@/components/lead/page-lead-context', () => ({ PageLeadContext: () => null }))
+vi.mock('@/lib/seo/default-share-image.png', () => ({
+  default: { src: '/_next/static/media/default-share-image.0abc.png', width: 1200, height: 630 },
+}))
 
 const heroImage = {
   src: '/api/media/file/cover-1920x2560.webp',
@@ -86,10 +89,25 @@ describe('课程与专业方向页的分享图', () => {
     expect(metadata.openGraph?.images).toEqual([expectedOgImage])
   })
 
-  it('封面缺失时不输出 og:image（站点也没有默认分享图）', async () => {
+  it('封面缺失、站点也没有默认分享图时用内置兜底图', async () => {
     data.getDisciplineDetail.mockResolvedValue({ ...discipline, heroImage: null, shareImage: null })
     const { generateMetadata } = await import('@/app/(frontend)/majors/[slug]/page')
     const metadata = await generateMetadata(params('3d-animation'))
-    expect(metadata.openGraph?.images).toBeUndefined()
+    expect(metadata.openGraph?.images).toEqual([
+      {
+        url: 'https://www.example.cn/_next/static/media/default-share-image.0abc.png',
+        width: 1200,
+        height: 630,
+        alt: 'EduVerse 数艺学院',
+      },
+    ])
+  })
+
+  it('课程不存在时在元数据阶段就 404（浏览器端标题不会回退成站点默认标题）', async () => {
+    data.getCourseDetail.mockResolvedValue(null)
+    const { generateMetadata } = await import('@/app/(frontend)/courses/[slug]/page')
+    await expect(generateMetadata(params('missing'))).rejects.toThrow(
+      /NEXT_HTTP_ERROR_FALLBACK;404/,
+    )
   })
 })

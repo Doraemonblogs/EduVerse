@@ -12,6 +12,10 @@ vi.mock('server-only', () => ({}))
 vi.mock('@/lib/data/site', () => ({
   getSiteSettings: () => Promise.resolve(settings.current),
 }))
+// 静态导入的图片：Next 构建时是 { src, width, height }（src 为带内容哈希的构建产物地址）
+vi.mock('@/lib/seo/default-share-image.png', () => ({
+  default: { src: '/_next/static/media/default-share-image.0abc.png', width: 1200, height: 630 },
+}))
 
 const shareImage = {
   id: 1,
@@ -93,9 +97,15 @@ describe('buildMetadata 分享图（og:image）', () => {
       basePath: '/EduVerse',
       siteUrl: 'https://user.github.io/EduVerse',
     })
-    const remote = { ...shareImage, sizes: {}, url: 'https://static.example.cn/a.webp' }
+    const remote = {
+      ...shareImage,
+      url: 'https://static.example.cn/a.webp',
+      sizes: { og: { url: 'https://static.example.cn/a-1200x630.webp', width: 1200, height: 630 } },
+    }
     const metadata = await buildMetadata({ image: remote, path: '/' })
-    expect(firstOgImageUrl(metadata.openGraph?.images)).toBe('https://static.example.cn/a.webp')
+    expect(firstOgImageUrl(metadata.openGraph?.images)).toBe(
+      'https://static.example.cn/a-1200x630.webp',
+    )
   })
 
   it('数据层已处理好的分享图（og 裁切）直接使用，子路径只出现一次', async () => {
@@ -155,13 +165,74 @@ describe('buildMetadata 分享图（og:image）', () => {
     )
   })
 
-  it('没有任何分享图时不输出 og:image', async () => {
+  it('内容与站点设置都没有分享图时用内置兜底图（1200×630，子路径只出现一次，alt 为品牌名）', async () => {
+    settings.current = { brandName: '测试学院' }
+    const buildMetadata = await loadBuildMetadata({
+      basePath: '/EduVerse',
+      siteUrl: 'https://user.github.io/EduVerse',
+    })
+    const metadata = await buildMetadata({ title: '联系我们', path: '/contact' })
+    expect(metadata.openGraph?.images).toEqual([
+      {
+        url: 'https://user.github.io/EduVerse/_next/static/media/default-share-image.0abc.png',
+        width: 1200,
+        height: 630,
+        alt: '测试学院',
+      },
+    ])
+  })
+
+  it('不足 1200×630 的图（没有 og 裁切，如 600×600 的头像）不作为分享图，继续往下兜底', async () => {
+    const avatar = {
+      id: 2,
+      alt: '头像',
+      url: '/api/media/file/avatar.jpg',
+      width: 600,
+      height: 600,
+      sizes: {},
+    } as unknown as Media
+    settings.current = { defaultSeo: { image: shareImage } }
     const buildMetadata = await loadBuildMetadata({
       basePath: '',
       siteUrl: 'https://www.example.cn',
     })
-    const metadata = await buildMetadata({ title: '联系我们', path: '/contact' })
-    expect(metadata.openGraph?.images).toBeUndefined()
+    const metadata = await buildMetadata({
+      seo: { image: avatar },
+      shareImage: { src: '/api/media/file/avatar.jpg', alt: '头像', width: 600, height: 600 },
+      image: avatar,
+      path: '/teachers/demo',
+    })
+    expect(firstOgImageUrl(metadata.openGraph?.images)).toBe(
+      'https://www.example.cn/api/media/file/share-1200x630.webp',
+    )
+
+    settings.current = {}
+    const fallback = await buildMetadata({ image: avatar, path: '/teachers/demo' })
+    expect(firstOgImageUrl(fallback.openGraph?.images)).toBe(
+      'https://www.example.cn/_next/static/media/default-share-image.0abc.png',
+    )
+  })
+})
+
+describe('buildMetadata 分页描述', () => {
+  it('第 2 页起描述带页码，避免与第 1 页重复；第 1 页与未分页不变', async () => {
+    const buildMetadata = await loadBuildMetadata({
+      basePath: '',
+      siteUrl: 'https://www.example.cn',
+    })
+    const page2 = await buildMetadata({ description: '学员作品', path: '/works?page=2', page: 2 })
+    expect(page2.description).toBe('学员作品（第 2 页）')
+    expect(page2.openGraph?.description).toBe('学员作品（第 2 页）')
+    const page1 = await buildMetadata({ description: '学员作品', path: '/works', page: 1 })
+    expect(page1.description).toBe('学员作品')
+    // 后台填写的 SEO 描述同样加页码
+    const seo = await buildMetadata({
+      seo: { description: '后台描述' },
+      description: '学员作品',
+      path: '/works?page=3',
+      page: 3,
+    })
+    expect(seo.description).toBe('后台描述（第 3 页）')
   })
 })
 

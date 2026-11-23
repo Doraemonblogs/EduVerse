@@ -39,6 +39,8 @@ yarn-error.log*
 next-env.d.ts
 
 .env
+# 生产配置含密钥（部署流程用 deploy/.env.production，另由 deploy/.gitignore 忽略；放在根目录时同样不提交）
+.env.production
 
 /media
 

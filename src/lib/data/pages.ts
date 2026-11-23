@@ -8,7 +8,10 @@ import { cacheTags } from '@/hooks/revalidate'
 import { guardCourseLinks } from '@/lib/data/courses'
 import { getPayloadClient } from '@/lib/payload'
 import { isReservedSlug } from '@/lib/reserved-slugs'
+import { isValidSlug } from '@/lib/search-params'
 import type { Page } from '@/payload-types'
+
+import { loadIfKnown } from './known-key'
 
 /**
  * 通用页面（关于我们、联系我们、隐私政策、用户协议 …）的数据查询。
@@ -34,15 +37,12 @@ const pageContentTags = [
 /** slug 清单只读 pages 自身的字段 */
 const pageListTags = [cacheTags.collection('pages')]
 
-/** 与后台 slug 字段一致的格式；不符合的路径（如 favicon.ico）直接判定不存在，不查库 */
-const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
-
 /**
- * 该 slug 是否可能是一个通用页面：格式正确，且未被固定路由占用
- * （占用清单见 src/lib/reserved-slugs.ts，后台保存时也会拦截）。
+ * 该 slug 是否可能是一个通用页面：格式与长度符合后台 slug 规则（不符合的路径如 favicon.ico 直接判定不存在，不查库），
+ * 且未被固定路由占用（占用清单见 src/lib/reserved-slugs.ts，后台保存时也会拦截）。
  */
 export function isPageSlug(slug: string): boolean {
-  return SLUG_PATTERN.test(slug) && !isReservedSlug(slug)
+  return isValidSlug(slug) && !isReservedSlug(slug)
 }
 
 /**
@@ -68,10 +68,13 @@ const findPublishedPage = unstable_cache(
   { tags: pageContentTags },
 )
 
-/** 按 slug 读取已发布的页面；不存在、未发布或 slug 不合法时返回 null */
+/**
+ * 按 slug 读取已发布的页面；不存在、未发布或 slug 不合法时返回 null。
+ * 不在已发布清单中的 slug 不进入按 slug 的缓存（见 ./known-key.ts）：/[pageSlug] 接住所有一级路径，随机路径最多。
+ */
 export async function getPageBySlug(slug: string): Promise<Page | null> {
   if (!isPageSlug(slug)) return null
-  return findPublishedPage(slug)
+  return loadIfKnown(slug, getPublishedPageSlugs, findPublishedPage)
 }
 
 /** 所有已发布页面的 slug（用于 generateStaticParams） */

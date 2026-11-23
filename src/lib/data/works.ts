@@ -27,6 +27,8 @@ import type {
   WorkPagesSettings,
 } from '@/lib/works/types'
 
+import { loadIfKnown } from './known-key'
+
 /**
  * 学员作品的数据查询：作品列表（含筛选项来源）、作品详情、作品页面设置。
  *
@@ -278,7 +280,8 @@ const cachedWorkDetail = unstable_cache(
 export async function getWorkDetail(id: string): Promise<WorkDetail | null> {
   const workId = parseWorkId(id)
   if (workId === null) return null
-  return cachedWorkDetail(workId)
+  // 不在前台可见作品清单中的 ID 不进入按 ID 的缓存（见 ./known-key.ts）
+  return loadIfKnown(workId, getPublishedWorkIds, cachedWorkDetail)
 }
 
 /** 前台可见作品的 ID（缓存），用于 /works/[id] 的 generateStaticParams（转成字符串） */

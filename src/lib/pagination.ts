@@ -27,13 +27,13 @@ export type PageSlice<T> = {
   total: number
   /** 总页数；没有条目时为 1（空状态仍是“第 1 页”） */
   totalPages: number
-  /** 页码超出总页数（且总数 > 0）：页面应返回 404（notFound()） */
+  /** 页码超出总页数：页面应返回 404（notFound()）。没有条目时总页数为 1，第 2 页起即超出 */
   outOfRange: boolean
 }
 
 /**
  * 切出第 page 页（page 从 1 开始，perPage ≥ 1）。保持原有顺序，不修改传入的数组。
- * 总数为 0 时第 1 页是空列表（outOfRange = false，页面显示空状态）。
+ * 总数为 0 时第 1 页是空列表（outOfRange = false，页面显示空状态），第 2 页起 outOfRange = true。
  */
 export function paginate<T>(items: readonly T[], page: number, perPage: number): PageSlice<T> {
   const size = Math.max(1, Math.floor(perPage))
@@ -47,7 +47,7 @@ export function paginate<T>(items: readonly T[], page: number, perPage: number):
     perPage: size,
     total,
     totalPages,
-    outOfRange: total > 0 && current > totalPages,
+    outOfRange: current > totalPages,
   }
 }
 

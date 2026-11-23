@@ -27,7 +27,10 @@ export const seoFields: Field[] = [
     type: 'upload',
     relationTo: 'media',
     label: '分享图',
-    admin: { description: '分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。' },
+    admin: {
+      description:
+        '分享到微信等平台时的预览图，不小于 1200×630（更小的图不会用作分享图）。留空则使用封面。',
+    },
   },
   {
     name: 'noindex',

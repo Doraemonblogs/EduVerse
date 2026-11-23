@@ -36,7 +36,9 @@ export async function generateStaticParams(): Promise<{ slug: string }[]> {
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params
   const article = await getArticleDetail(slug)
-  if (!article) return {}
+  // 不存在时在元数据阶段就 404：返回空对象会让浏览器端（水合后）的标题回退成站点默认标题，
+  // 而不是 not-found 的“页面不存在”标题
+  if (!article) notFound()
   const metadata = await buildMetadata({
     seo: article.seo,
     title: article.title,

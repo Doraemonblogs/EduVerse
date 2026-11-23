@@ -32,6 +32,8 @@ import { imageSource } from '@/lib/media'
 import { getPayloadClient } from '@/lib/payload'
 import { isValidSlug } from '@/lib/search-params'
 
+import { loadIfKnown } from './known-key'
+
 /**
  * 资讯的数据查询：资讯列表（含分类导航）、资讯详情、侧栏热门课程、资讯页面设置。
  *
@@ -230,7 +232,8 @@ const cachedArticleDetail = unstable_cache(
 /** 资讯详情（缓存）；slug 不合法、文章不存在或未发布时返回 null → 页面 notFound() */
 export async function getArticleDetail(slug: string): Promise<ArticleDetail | null> {
   if (!isValidSlug(slug)) return null
-  return cachedArticleDetail(slug)
+  // 不在已发布清单中的 slug 不进入按 slug 的缓存（见 ./known-key.ts）
+  return loadIfKnown(slug, getPublishedArticleSlugs, cachedArticleDetail)
 }
 
 /** 资讯详情侧栏的热门课程（缓存，所有文章共用） */
@@ -246,12 +249,6 @@ export const getPublishedArticleSlugs = unstable_cache(
   ['published-article-slugs'],
   { tags: tags('articles') },
 )
-
-/** 有已发布文章的分类 slug（缓存），用于 /articles/category/[slug] 的 generateStaticParams */
-export async function getArticleCategorySlugs(): Promise<string[]> {
-  const { categories } = await getArticleList()
-  return categories.map((category) => category.slug).filter(isValidSlug)
-}
 
 /** 资讯页面设置（缓存）：列表页标题 / 简介 / SEO、详情页侧栏 */
 export const getArticlePagesSettings = unstable_cache(

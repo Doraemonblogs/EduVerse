@@ -100,8 +100,27 @@ describe('详情查询的 slug 校验', () => {
     expect(find).not.toHaveBeenCalled()
   })
 
+  it('超过 80 个字符的 slug 直接返回 null，不查库', async () => {
+    const long = `ui-${'a'.repeat(78)}`
+    expect(long).toHaveLength(81)
+    expect(await getCourseDetail(long)).toBeNull()
+    expect(await getDisciplineDetail(long)).toBeNull()
+    expect(find).not.toHaveBeenCalled()
+  })
+
+  it('不在已发布清单中的 slug 只查清单，不进入按 slug 缓存的详情查询', async () => {
+    find.mockResolvedValue({ docs: [{ slug: 'ui-ux-career' }] })
+    expect(await getCourseDetail('random-course')).toBeNull()
+    expect(await getDisciplineDetail('random-major')).toBeNull()
+    expect(find).toHaveBeenCalledTimes(2)
+    expect(find).not.toHaveBeenCalledWith(expect.objectContaining({ limit: 1 }))
+  })
+
   it('课程详情只查询已发布的课程', async () => {
-    find.mockResolvedValue({ docs: [] })
+    // 已发布清单（不带 limit）里有这门课，详情查询（limit 1）查不到
+    find.mockImplementation(({ limit }: { limit?: number }) =>
+      Promise.resolve({ docs: limit === 1 ? [] : [{ slug: 'ui-ux-career' }] }),
+    )
     expect(await getCourseDetail('ui-ux-career')).toBeNull()
     expect(find).toHaveBeenCalledWith(
       expect.objectContaining({

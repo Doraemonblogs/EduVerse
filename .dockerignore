@@ -1,0 +1,46 @@
+# 构建上下文只需要源码、配置与锁文件；以下内容不进入镜像
+
+# 版本库与 CI
+.git
+.github
+
+# 依赖与构建产物（镜像内重新安装、构建）
+node_modules
+.next
+out
+build
+*.tsbuildinfo
+next-env.d.ts
+
+# 环境变量与密钥：生产配置通过 docker compose 在运行时注入，绝不打进镜像
+.env
+.env.*
+deploy/.env.production
+*.pem
+
+# 上传的媒体文件（运行时挂载卷）与导出目录
+media
+preview-dist
+
+# 测试、文档与本地工具（运行镜像不需要）
+tests
+test-results
+playwright-report
+blob-report
+coverage
+playwright.config.ts
+vitest.config.mts
+vitest.setup.ts
+docs
+*.md
+.vscode
+.idea
+.DS_Store
+
+# 部署文件本身（入口脚本除外，Dockerfile 会复制它）
+Dockerfile
+.dockerignore
+docker-compose*.yml
+docker
+deploy
+!deploy/docker-entrypoint.sh

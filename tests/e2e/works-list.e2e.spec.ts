@@ -301,7 +301,7 @@ test.describe('学员作品列表', () => {
     // 浏览器会把 404 响应本身记录为一条控制台错误，这里放行
     test.use({ allowedConsoleErrors: [/status of 404/] })
 
-    test('页码超出总页数返回 404；没有结果时不算超出', async ({ page }) => {
+    test('页码超出总页数返回 404；没有结果时只有第 1 页（空状态）', async ({ page }) => {
       const beyond = await page.goto('/works?page=4')
       expect(beyond?.status()).toBe(404)
 
@@ -309,12 +309,14 @@ test.describe('学员作品列表', () => {
       const filtered = await page.goto('/works?featured=1&page=2')
       expect(filtered?.status()).toBe(404)
 
-      // 结果为空时第 N 页显示空状态（不是 404）
-      const empty = await page.goto('/works?discipline=unknown&page=5')
+      // 结果为空时第 1 页显示空状态，第 2 页起同样超出（避免任意页码都返回 200 的空页面）
+      const empty = await page.goto('/works?discipline=unknown')
       expect(empty?.status()).toBe(200)
       await expect(
         page.getByRole('heading', { level: 2, name: '没有符合条件的作品' }),
       ).toBeVisible()
+      const emptyBeyond = await page.goto('/works?discipline=unknown&page=5')
+      expect(emptyBeyond?.status()).toBe(404)
     })
   })
 

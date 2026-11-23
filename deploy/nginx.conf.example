@@ -1,0 +1,232 @@
+# EduVerse 反向代理示例（nginx ≥ 1.18）。放在宿主机 nginx 的 http {} 中加载，例如：
+#   sudo cp deploy/nginx.conf.example /etc/nginx/conf.d/eduverse.conf
+#   # 把下面的 www.example.com、证书路径改成实际值
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# 前提：app 容器只监听 127.0.0.1:3000（docker-compose.yml 默认），TRUST_PROXY=true。
+# 本文件就是“唯一一层可信代理”：app 取 X-Forwarded-For 的最后一个地址识别访客（留资 / 阅读量按 IP 限频），
+# 所以必须用 $proxy_add_x_forwarded_for 追加真实对端地址。前面还有 CDN / 负载均衡时，先用下方注释里的
+# real_ip 配置还原访客地址，否则所有访客都会被识别成 CDN 节点的 IP。
+# 说明与排查见 README「生产部署 · 反向代理与 HTTPS」。
+
+# ───────────────────────── 上游与限速（http 级） ─────────────────────────
+
+upstream eduverse_app {
+    server 127.0.0.1:3000;
+    keepalive 32;
+}
+
+# 按访客 IP 限速（超出返回 429）。学校、公司常多人共用一个出口 IP，阈值按“挡脚本、不挡人”设置：
+# - 页面（含客户端导航与预取的 RSC 请求，一次浏览会并发十几个）：每秒 20 个，突发 100
+# - 站内搜索 /search：每次都查库，每秒 3 个，突发 15
+# - 阅读量上报 /api/articles/<id>/view：每秒 2 个，突发 10（应用内另有按 IP 去重）
+# - 后台登录：每分钟 10 次，突发 5（Payload 另有 5 次失败锁定 10 分钟）
+# - 其余 /api/（Payload REST / GraphQL，已发布内容匿名可读、按参数查库）：每秒 20 个，突发 200——后台编辑时并发请求多，
+#   阈值放宽，只挡持续刷接口
+# - /_next/image（nginx 缓存未命中时由 app 压缩图片，作品列表一页几十张）：每秒 20 个，突发 200，单独计数
+limit_req_zone $binary_remote_addr zone=eduverse_pages:10m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=eduverse_search:10m rate=3r/s;
+limit_req_zone $binary_remote_addr zone=eduverse_beacon:10m rate=2r/s;
+limit_req_zone $binary_remote_addr zone=eduverse_login:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=eduverse_api:10m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=eduverse_images:10m rate=20r/s;
+limit_req_status 429;
+limit_req_log_level warn;
+
+# 静态资源缓存：/_next/static（文件名带哈希，可长期缓存）与 /_next/image（按图片地址、宽度、质量与格式缓存）。
+# 上限 1GB，7 天没被访问的条目淘汰。目录需对 nginx 用户可写。
+proxy_cache_path /var/cache/nginx/eduverse levels=1:2 keys_zone=eduverse_static:20m
+                 max_size=1g inactive=7d use_temp_path=off;
+
+# /_next/image 按浏览器 Accept 头返回 AVIF / WebP：缓存键带上格式，避免把 AVIF 发给不支持的浏览器
+map $http_accept $eduverse_image_format {
+    default         "";
+    "~image/avif"   "avif";
+    "~image/webp"   "webp";
+}
+
+# WebSocket 升级（后台开发工具不用；保留以兼容将来的实时功能），普通请求保持 keepalive
+map $http_upgrade $eduverse_connection {
+    default   upgrade;
+    ""        "";
+}
+
+# ───────────────────────── HTTP → HTTPS ─────────────────────────
+
+server {
+    listen 80;
+    # 服务器有 IPv6 时取消注释（内核关闭了 IPv6 的机器上这一行会导致 nginx 无法启动）
+    # listen [::]:80;
+    server_name www.example.com example.com;
+
+    # 证书签发 / 续期（certbot --webroot 或 acme.sh）
+    location /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+    }
+
+    location / {
+        return 301 https://www.example.com$request_uri;
+    }
+}
+
+# 裸域名统一跳转到 www（canonical 与 NEXT_PUBLIC_SITE_URL 保持一致；用裸域名做主域时对调）
+server {
+    listen 443 ssl http2;
+    # listen [::]:443 ssl http2;
+    server_name example.com;
+
+    ssl_certificate     /etc/nginx/ssl/example.com.fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/example.com.key;
+
+    return 301 https://www.example.com$request_uri;
+}
+
+# ───────────────────────── 站点 ─────────────────────────
+
+server {
+    # nginx ≥ 1.25.1 可改写为 `listen 443 ssl;` + `http2 on;`（旧写法只会打印弃用提示）
+    listen 443 ssl http2;
+    # listen [::]:443 ssl http2;
+    server_name www.example.com;
+
+    # HTTPS：证书可用云厂商免费证书或 Let's Encrypt（certbot / acme.sh），注意按期续期
+    ssl_certificate     /etc/nginx/ssl/example.com.fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/example.com.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:eduverse_ssl:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    server_tokens off;
+
+    # 上传上限：后台媒体库单个文件最大 50MB（视频，见 payload.config.ts），另留 1MB 给表单字段与分隔符
+    client_max_body_size 51m;
+    client_body_timeout 120s;
+
+    # gzip：nginx 负责压缩（下面去掉了发给 app 的 Accept-Encoding，Node 进程不再做压缩）
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml application/javascript application/json
+               application/xml application/rss+xml image/svg+xml text/x-component;
+
+    # 安全响应头。注意：location 里出现任意 add_header 时不会继承这里的，需要在那个 location 里重复
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    # 前面还有 CDN / 负载均衡时取消注释，并把网段换成 CDN 回源 IP 段（以 CDN 文档为准）：
+    # set_real_ip_from 203.0.113.0/24;
+    # real_ip_header X-Forwarded-For;
+    # real_ip_recursive on;
+
+    # 公共代理头（各 location 的 proxy_pass 都会带上）
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $eduverse_connection;
+    proxy_set_header Accept-Encoding "";
+    proxy_connect_timeout 5s;
+    proxy_read_timeout 60s;
+    proxy_send_timeout 60s;
+
+    # 容器启动（迁移 + 预渲染）或升级期间 app 暂时不可用（502）。需要维护提示页时，先放一个静态页
+    # （如 /var/www/eduverse-maintenance/50x.html）再取消注释：
+    # error_page 502 503 504 /50x.html;
+    # location = /50x.html {
+    #     root /var/www/eduverse-maintenance;
+    #     internal;
+    # }
+
+    # 构建产物：文件名带哈希，Next.js 已返回 immutable 的 Cache-Control；nginx 再缓存一份，减少回源
+    location /_next/static/ {
+        proxy_pass http://eduverse_app;
+        proxy_cache eduverse_static;
+        proxy_cache_valid 200 30d;
+        proxy_cache_use_stale error timeout updating;
+        access_log off;
+    }
+
+    # 优化后的图片：按地址 + 格式缓存，有效期跟随 app 返回的 Cache-Control（媒体文件 1 天）
+    location = /_next/image {
+        proxy_pass http://eduverse_app;
+        proxy_cache eduverse_static;
+        proxy_cache_key "$scheme$host$request_uri$eduverse_image_format";
+        proxy_cache_valid 200 1d;
+        proxy_cache_use_stale error timeout updating;
+        proxy_cache_lock on;
+        limit_req zone=eduverse_images burst=200 nodelay;
+        access_log off;
+    }
+
+    # 后台上传的媒体文件（含视频，支持 Range）。只在成功响应上设置缓存头：
+    # app 对所有媒体请求都返回 1 天的 Cache-Control，这里去掉后重新添加（add_header 默认不作用于 4xx / 5xx），
+    # 文件暂时缺失时的错误响应不会被浏览器缓存
+    location /api/media/file/ {
+        proxy_pass http://eduverse_app;
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "public, max-age=86400, stale-while-revalidate=604800";
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        limit_req zone=eduverse_pages burst=100 nodelay;
+    }
+
+    # 阅读量上报
+    location ~ ^/api/articles/[0-9]+/view$ {
+        proxy_pass http://eduverse_app;
+        limit_req zone=eduverse_beacon burst=10 nodelay;
+        access_log off;
+    }
+
+    # 后台登录（防撞库，Payload 另有失败次数锁定）
+    location = /api/users/login {
+        proxy_pass http://eduverse_app;
+        limit_req zone=eduverse_login burst=5 nodelay;
+    }
+
+    # 健康检查只给本机（Docker HEALTHCHECK 直接访问容器，不经过 nginx；监控请在服务器本机探测）
+    location = /api/health {
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
+        proxy_pass http://eduverse_app;
+        access_log off;
+    }
+
+    # 后台页面：不限速，靠登录与权限控制。
+    # 只匹配完整的 /admin 路径段，/administration 之类的通用页面仍按前台页面限速
+    location = /admin {
+        proxy_pass http://eduverse_app;
+    }
+
+    location /admin/ {
+        proxy_pass http://eduverse_app;
+    }
+
+    # Payload 接口（REST / GraphQL、线索导出、媒体上传）：已发布内容匿名可读，宽松限速挡住持续刷接口
+    location /api/ {
+        proxy_pass http://eduverse_app;
+        limit_req zone=eduverse_api burst=200 nodelay;
+    }
+
+    # 站内搜索：每次请求都查库
+    location = /search {
+        proxy_pass http://eduverse_app;
+        limit_req zone=eduverse_search burst=15 nodelay;
+    }
+
+    # 其余前台页面（含课程 / 作品 / 讲师 / 资讯 / 校区详情、通用页面 /[slug]、带筛选参数的列表页，
+    # 以及留资表单的 Server Action POST）：按 IP 限速，挡住随机路径刷请求
+    location / {
+        proxy_pass http://eduverse_app;
+        limit_req zone=eduverse_pages burst=100 nodelay;
+    }
+}

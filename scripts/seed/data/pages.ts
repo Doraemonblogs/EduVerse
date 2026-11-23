@@ -111,7 +111,7 @@ export const pages: SeedPage[] = [
       },
     ],
     seo: {
-      title: '关于我们',
+      title: '关于我们｜EduVerse 数艺学院',
       description:
         'EduVerse 数艺学院开设三维动画、游戏美术、UI/UX 设计等八个数字艺术专业方向，在六个城市设有校区，以项目式教学与持续讲评帮助学员建立作品集。',
     },
@@ -156,7 +156,7 @@ export const pages: SeedPage[] = [
       },
     ],
     seo: {
-      title: '联系我们',
+      title: '联系我们｜EduVerse 数艺学院',
       description: `EduVerse 数艺学院全国咨询热线 ${HOTLINE}，服务时间每天 9:00–21:00。可通过在线咨询、电话、表单留言或到校参观等方式联系课程顾问。`,
     },
   },
@@ -294,7 +294,7 @@ export const pages: SeedPage[] = [
       },
     ],
     seo: {
-      title: '隐私政策',
+      title: '隐私政策｜EduVerse 数艺学院',
       description:
         'EduVerse 数艺学院隐私政策：说明我们收集哪些个人信息、使用目的、Cookie 与本地存储、第三方委托处理、存储地点与期限，以及你享有的权利和行使方式。',
     },
@@ -372,7 +372,7 @@ export const pages: SeedPage[] = [
       },
     ],
     seo: {
-      title: '用户协议',
+      title: '用户协议｜EduVerse 数艺学院',
       description:
         'EduVerse 数艺学院网站用户协议：说明网站服务内容、试听预约与留资规则、知识产权与学员作品版权、用户行为规范、免责声明及争议解决方式。',
     },

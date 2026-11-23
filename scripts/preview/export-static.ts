@@ -7,7 +7,8 @@
  * 然后：
  *   pnpm preview:export --origin http://localhost:3000 --base-path /EduVerse --out preview-dist
  *
- * 做的事：从入口页开始抓取站内页面 → 保存 HTML（注入 noindex）→ 下载页面引用的非构建资源
+ * 做的事：导出 robots.txt（必须是预览构建的“全部禁止抓取”版本）与 sitemap.xml →
+ * 从入口页与 sitemap 中的页面开始抓取站内页面 → 保存 HTML（注入 noindex）→ 下载页面引用的非构建资源
  * （属性与 CSS 里的引用，以及只出现在 RSC 数据 / <meta content> / JSON-LD 里的媒体文件）
  * → 复制 .next/static → 生成 404.html 与 .nojekyll → 校验输出中没有断链。任何错误都以非零退出。
  */
@@ -18,9 +19,11 @@ import { parseArgs } from 'node:util'
 import {
   applyNoindex,
   assetOutputFile,
+  disallowsAll,
   extractCssUrls,
   extractMediaRefs,
   extractRefs,
+  extractStaticShareImageRefs,
   hasQuery,
   isMissingBasePath,
   isPagePath,
@@ -28,6 +31,7 @@ import {
   pageOutputFiles,
   pageUrl,
   type SiteConfig,
+  sitemapPaths,
   toSitePath,
 } from './lib'
 
@@ -111,8 +115,50 @@ function collectAssets(html: string, fromUrl: string, into: Set<string>) {
   for (const sitePath of media.paths) into.add(sitePath)
 }
 
-async function crawlPages(assets: Set<string>) {
-  const queue = [...ENTRY_PATHS]
+/**
+ * 导出 robots.txt 与 sitemap.xml（静态文件，原样保存），返回 sitemap 中的页面（站内路径）。
+ * robots.txt 必须对所有爬虫 Disallow: /（src/app/robots.ts 在预览构建时输出），否则说明构建参数不对，导出失败。
+ */
+async function exportCrawlerFiles(): Promise<string[]> {
+  const robotsUrl = pageUrl(config, '/robots.txt')
+  const robots = await fetch(robotsUrl, { redirect: 'manual' })
+  if (robots.status !== 200) {
+    errors.push(`robots.txt 返回 ${robots.status}：${robotsUrl}`)
+  } else {
+    const text = await robots.text()
+    if (!disallowsAll(text)) {
+      errors.push(
+        `预览站 robots.txt 必须禁止全部抓取（User-agent: * / Disallow: /），请确认用 NEXT_PUBLIC_STATIC_PREVIEW=true 构建：${robotsUrl}`,
+      )
+    }
+    await writeOut('robots.txt', text)
+  }
+
+  const sitemapUrl = pageUrl(config, '/sitemap.xml')
+  const sitemap = await fetch(sitemapUrl, { redirect: 'manual' })
+  if (sitemap.status !== 200) {
+    errors.push(`sitemap.xml 返回 ${sitemap.status}：${sitemapUrl}`)
+    return []
+  }
+  const xml = await sitemap.text()
+  const { paths, invalid } = sitemapPaths(xml, config.basePath)
+  if (invalid.length > 0) {
+    // sitemap 与 canonical 都用构建时的 NEXT_PUBLIC_SITE_URL：它必须是预览站地址（含 basePath），
+    // 本地构建沿用 .env 的 http://localhost:3000 时这里会全部报错，只列出前几条并给出修正方法
+    const shown = invalid.slice(0, 5).join('、')
+    const more = invalid.length > 5 ? ` 等 ${invalid.length} 条` : ''
+    errors.push(
+      `sitemap.xml 中的地址无效或缺少 basePath（${config.basePath || '/'}）：${shown}${more}。` +
+        `请以预览站地址构建，如 NEXT_PUBLIC_SITE_URL=${config.origin}${config.basePath} pnpm preview:build（CI 中已设置）`,
+    )
+  }
+  await writeOut('sitemap.xml', xml)
+  return paths
+}
+
+async function crawlPages(assets: Set<string>, sitemapEntries: string[]) {
+  // sitemap 中的页面也作为入口：未被任何页面链接到的可收录页面（如用户协议）同样导出
+  const queue = [...new Set([...ENTRY_PATHS, ...sitemapEntries])]
   const seen = new Set(queue)
 
   while (queue.length > 0) {
@@ -194,6 +240,7 @@ async function verifyOutput(htmlFiles: string[]) {
     const fromUrl = `${config.origin}${config.basePath}/${rel}`
     const { links, assets } = extractRefs(html)
     const media = extractMediaRefs(html, config.basePath)
+    const shareImages = extractStaticShareImageRefs(html, config.basePath)
 
     for (const ref of [...links, ...assets]) {
       if (isMissingBasePath(ref, fromUrl, config)) {
@@ -202,6 +249,9 @@ async function verifyOutput(htmlFiles: string[]) {
     }
     for (const ref of media.missingBasePath) {
       errors.push(`媒体引用缺少 basePath（${config.basePath}）：${rel} 引用了 ${ref}`)
+    }
+    for (const ref of shareImages.missingBasePath) {
+      errors.push(`分享图缺少 basePath（${config.basePath}）：${rel} 引用了 ${ref}`)
     }
     for (const link of links) {
       const target = toSitePath(link, fromUrl, config)
@@ -214,7 +264,7 @@ async function verifyOutput(htmlFiles: string[]) {
         errors.push(`断链：${rel} 链接到未导出的页面 ${target}`)
       }
     }
-    const targets = new Set(media.paths)
+    const targets = new Set([...media.paths, ...shareImages.paths])
     for (const ref of assets) {
       const target = toSitePath(ref, fromUrl, config)
       if (target && !isPagePath(target)) targets.add(target)
@@ -236,7 +286,8 @@ async function main() {
   await mkdir(outDir, { recursive: true })
 
   const assets = new Set<string>(OPTIONAL_ASSETS)
-  await crawlPages(assets)
+  const sitemapEntries = await exportCrawlerFiles()
+  await crawlPages(assets, sitemapEntries)
   await exportNotFound(assets)
   await downloadAssets(assets)
 
@@ -248,6 +299,7 @@ async function main() {
   await verifyOutput(htmlFiles)
 
   console.info(`页面 ${exportedPages.size} 个：${[...exportedPages].join('、')}`)
+  console.info(`已导出 robots.txt 与 sitemap.xml（${sitemapEntries.length} 个页面）`)
   console.info(`资源 ${exportedAssets.size} 个（另含 .next/static 全部构建产物）`)
   if (plannedMissing.size > 0) {
     const byMilestone = [...plannedMissing].map((p) => `${p}（${plannedRoute(p)?.milestone}）`)

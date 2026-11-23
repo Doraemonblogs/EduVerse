@@ -68,6 +68,7 @@ export async function generateMetadata({ searchParams }: WorksPageProps): Promis
     title: pagedTitle(list.title, titlePage),
     description: list.description,
     path,
+    page: titlePage ?? undefined,
   })
   return noindex ? { ...metadata, robots: { index: false, follow: true } } : metadata
 }

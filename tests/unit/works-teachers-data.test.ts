@@ -109,10 +109,23 @@ describe('详情查询的参数校验', () => {
     expect(find).not.toHaveBeenCalled()
   })
 
+  it('不在前台可见清单中的作品 ID / 讲师 slug 不进入按参数缓存的详情查询', async () => {
+    find.mockResolvedValue({ docs: [{ id: 12, slug: 'lin-yu-qing' }] })
+    expect(await getWorkDetail('13')).toBeNull()
+    expect(await getTeacherDetail('random-teacher')).toBeNull()
+    expect(await getTeacherDetail('a'.repeat(81))).toBeNull()
+    expect(find).toHaveBeenCalledTimes(2)
+    expect(find).not.toHaveBeenCalledWith(expect.objectContaining({ limit: 1 }))
+  })
+
   it('作品详情只查询已发布且已授权的作品', async () => {
-    find.mockResolvedValue({ docs: [] })
+    // 可见作品清单（不带 limit）里有 12，详情查询（limit 1）查不到
+    find.mockImplementation(({ limit }: { limit?: number }) =>
+      Promise.resolve({ docs: limit === 1 ? [] : [{ id: 12 }] }),
+    )
     expect(await getWorkDetail('12')).toBeNull()
-    expect(find).toHaveBeenCalledTimes(1)
+    // 清单 + 详情
+    expect(find).toHaveBeenCalledTimes(2)
     expect(find).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'works',
@@ -129,7 +142,9 @@ describe('详情查询的参数校验', () => {
   })
 
   it('讲师详情只查询已发布的讲师', async () => {
-    find.mockResolvedValue({ docs: [] })
+    find.mockImplementation(({ limit }: { limit?: number }) =>
+      Promise.resolve({ docs: limit === 1 ? [] : [{ slug: 'lin-yu-qing' }] }),
+    )
     expect(await getTeacherDetail('lin-yu-qing')).toBeNull()
     expect(find).toHaveBeenCalledWith(
       expect.objectContaining({

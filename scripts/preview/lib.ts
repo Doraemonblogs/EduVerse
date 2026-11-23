@@ -212,3 +212,94 @@ export function applyNoindex(html: string): string {
   }
   return withoutRobots.replace(/<head(\s[^>]*)?>/i, (head) => `${head}${NOINDEX_META}`)
 }
+
+/**
+ * sitemap.xml 中的页面地址 → 站内路径。sitemap 用站点正式地址（如 https://user.github.io/EduVerse/...），
+ * 域名与抓取地址不同，只按路径识别；路径不在 basePath 下、或不是 http(s) 地址的记入 invalid。
+ */
+export function sitemapPaths(
+  xml: string,
+  basePath: string,
+): { paths: string[]; invalid: string[] } {
+  const paths = new Set<string>()
+  const invalid: string[] = []
+  for (const match of xml.matchAll(/<loc>\s*([^<]*?)\s*<\/loc>/gi)) {
+    const loc = decodeHtmlEntities(match[1] ?? '')
+    let url: URL
+    try {
+      url = new URL(loc)
+    } catch {
+      invalid.push(loc)
+      continue
+    }
+    const { pathname } = url
+    if (!/^https?:$/.test(url.protocol) || url.search || url.hash) {
+      invalid.push(loc)
+      continue
+    }
+    let sitePath: string | null
+    if (!basePath) sitePath = pathname
+    else if (pathname === basePath || pathname === `${basePath}/`) sitePath = '/'
+    else if (pathname.startsWith(`${basePath}/`)) sitePath = pathname.slice(basePath.length)
+    else sitePath = null
+    if (!sitePath || !isPagePath(sitePath)) {
+      invalid.push(loc)
+      continue
+    }
+    paths.add(sitePath.length > 1 ? sitePath.replace(/\/+$/, '') : sitePath)
+  }
+  return { paths: [...paths], invalid }
+}
+
+/**
+ * robots.txt 是否对所有爬虫（User-agent: *）禁止全部抓取（Disallow: /）。
+ * 预览站与正式站内容重复，导出时必须确认是预览构建输出的“全部禁止”版本。
+ */
+export function disallowsAll(robotsTxt: string): boolean {
+  let inWildcardGroup = false
+  let lastWasAgent = false
+  for (const raw of robotsTxt.split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, '').trim()
+    if (!line) continue
+    const [key = '', ...rest] = line.split(':')
+    const field = key.trim().toLowerCase()
+    const value = rest.join(':').trim()
+    if (field === 'user-agent') {
+      // 连续的 User-agent 行属于同一组
+      inWildcardGroup = (lastWasAgent && inWildcardGroup) || value === '*'
+      lastWasAgent = true
+      continue
+    }
+    lastWasAgent = false
+    if (inWildcardGroup && field === 'disallow' && value === '/') return true
+  }
+  return false
+}
+
+/**
+ * 分享图（og:image / twitter:image 的 <meta content>）里引用的构建产物，如内置兜底分享图
+ * /_next/static/media/default-share-image.*.png。分享图用站点正式地址，只按路径识别。
+ * 构建产物整体复制，这里只用于校验：路径必须带 basePath（否则记入 missingBasePath），且文件存在。
+ * Payload 媒体文件由 extractMediaRefs 处理；外站图片不处理。
+ */
+export function extractStaticShareImageRefs(html: string, basePath: string): MediaRefs {
+  const paths = new Set<string>()
+  const missingBasePath = new Set<string>()
+  for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
+    if (!/\s(?:property|name)=["'](?:og:image|og:image:url|twitter:image)["']/i.test(tag)) continue
+    const content = /\scontent=(["'])(.*?)\1/i.exec(tag)?.[2]
+    if (!content) continue
+    let pathname: string
+    try {
+      pathname = new URL(decodeHtmlEntities(content), 'http://site.invalid').pathname
+    } catch {
+      continue
+    }
+    if (pathname.startsWith(`${basePath}/_next/static/`)) {
+      paths.add(pathname.slice(basePath.length))
+    } else if (pathname.startsWith('/_next/static/')) {
+      missingBasePath.add(pathname)
+    }
+  }
+  return { paths: [...paths], missingBasePath: [...missingBasePath] }
+}

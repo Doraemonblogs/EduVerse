@@ -47,6 +47,7 @@ export async function generateMetadata({ searchParams }: ArticlesPageProps): Pro
     title: articlesPagedTitle(settings.title, slice.page),
     description: settings.description,
     path: articlesPageHref(slice.page),
+    page: slice.page,
   })
 }
 

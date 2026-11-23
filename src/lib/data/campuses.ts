@@ -19,6 +19,8 @@ import { findTeacherListItems } from '@/lib/data/teachers'
 import { getPayloadClient } from '@/lib/payload'
 import { isValidSlug } from '@/lib/search-params'
 
+import { loadIfKnown } from './known-key'
+
 /**
  * 校区的数据查询：校区列表、校区详情、校区页面设置。
  *
@@ -234,7 +236,8 @@ const cachedCampusDetail = unstable_cache(
 /** 校区详情（缓存）；slug 不合法、校区不存在或未发布时返回 null → 页面 notFound() */
 export async function getCampusDetail(slug: string): Promise<CampusDetail | null> {
   if (!isValidSlug(slug)) return null
-  return cachedCampusDetail(slug)
+  // 不在已发布清单中的 slug 不进入按 slug 的缓存（见 ./known-key.ts）
+  return loadIfKnown(slug, getPublishedCampusSlugs, cachedCampusDetail)
 }
 
 /** 已发布校区的 slug（缓存），用于 /campuses/[slug] 的 generateStaticParams */

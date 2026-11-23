@@ -42,7 +42,9 @@ function metaDescription(work: WorkDetail): string | null {
 export async function generateMetadata({ params }: WorkDetailPageProps): Promise<Metadata> {
   const { id } = await params
   const work = await getWorkDetail(id)
-  if (!work) return {}
+  // 不存在时在元数据阶段就 404：返回空对象会让浏览器端（水合后）的标题回退成站点默认标题，
+  // 而不是 not-found 的“页面不存在”标题
+  if (!work) notFound()
   return buildMetadata({
     seo: work.seo,
     title: work.title,

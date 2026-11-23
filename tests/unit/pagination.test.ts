@@ -47,7 +47,7 @@ describe('paginate', () => {
     expect(slice.items).toEqual([])
   })
 
-  it('没有条目时第 1 页是空列表、不算超出（显示空状态），总页数为 1', () => {
+  it('没有条目时第 1 页是空列表、不算超出（显示空状态），总页数为 1；第 2 页起超出（404）', () => {
     expect(paginate([], 1, 24)).toEqual({
       items: [],
       page: 1,
@@ -56,8 +56,9 @@ describe('paginate', () => {
       totalPages: 1,
       outOfRange: false,
     })
-    // 没有条目时任何页码都不算超出：交给空状态
-    expect(paginate([], 5, 24).outOfRange).toBe(false)
+    // 空列表只有第 1 页（空状态）；更大的页码与有条目时一样按超出处理，避免任意页码都返回 200
+    expect(paginate([], 2, 24).outOfRange).toBe(true)
+    expect(paginate([], 5, 24).outOfRange).toBe(true)
   })
 
   it('非法页码与每页件数按 1 处理，不修改传入的数组', () => {

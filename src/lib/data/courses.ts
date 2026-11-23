@@ -37,6 +37,9 @@ import type {
 } from '@/lib/course/types'
 import { imageSource } from '@/lib/media'
 import { getPayloadClient } from '@/lib/payload'
+import { isValidSlug } from '@/lib/search-params'
+
+import { loadIfKnown } from './known-key'
 
 /**
  * 课程模块的数据查询：课程列表、课程详情、专业方向页、课程页面设置。
@@ -61,9 +64,6 @@ const published = { _status: { equals: 'published' } } as const satisfies Where
 const disciplinePublished = {
   'discipline._status': { equals: 'published' },
 } as const satisfies Where
-
-/** 与后台 slug 字段一致的格式；不符合的路径直接判定不存在，不查库 */
-const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 /** 填充专业方向时只取用到的字段（mappers 读取这些字段，增删时同步） */
 const DISCIPLINE_POPULATE = {
@@ -368,7 +368,7 @@ export async function queryPublishedCourseSlugs(payload: Payload): Promise<strin
     sort: 'order',
     pagination: false,
   })
-  return docs.map((doc) => doc.slug).filter((slug) => SLUG_PATTERN.test(slug))
+  return docs.map((doc) => doc.slug).filter(isValidSlug)
 }
 
 /** 查询：专业方向落地页；不存在或未发布时返回 null */
@@ -421,7 +421,7 @@ export async function queryPublishedDisciplineSlugs(payload: Payload): Promise<s
     sort: 'order',
     pagination: false,
   })
-  return docs.map((doc) => doc.slug).filter((slug) => SLUG_PATTERN.test(slug))
+  return docs.map((doc) => doc.slug).filter(isValidSlug)
 }
 
 /**
@@ -499,10 +499,13 @@ const cachedCourseDetail = unstable_cache(
   { tags: COURSE_DETAIL_TAGS },
 )
 
-/** 课程详情（缓存）；slug 不合法、课程不存在 / 未发布 / 所属专业方向未发布时返回 null → 页面 notFound() */
+/**
+ * 课程详情（缓存）；slug 不合法（格式 / 超过 80 字符）、课程不存在 / 未发布 / 所属专业方向未发布时返回 null → 页面 notFound()。
+ * 不在已发布清单中的 slug 不进入按 slug 的缓存（见 ./known-key.ts）。
+ */
 export async function getCourseDetail(slug: string): Promise<CourseDetail | null> {
-  if (!SLUG_PATTERN.test(slug)) return null
-  return cachedCourseDetail(slug)
+  if (!isValidSlug(slug)) return null
+  return loadIfKnown(slug, getPublishedCourseSlugs, cachedCourseDetail)
 }
 
 /** 可公开访问的课程 slug（缓存），用于 /courses/[slug] 的 generateStaticParams */
@@ -519,10 +522,13 @@ const cachedDisciplineDetail = unstable_cache(
   { tags: DISCIPLINE_DETAIL_TAGS },
 )
 
-/** 专业方向落地页数据（缓存）；slug 不合法、不存在或未发布时返回 null → 页面 notFound() */
+/**
+ * 专业方向落地页数据（缓存）；slug 不合法、不存在或未发布时返回 null → 页面 notFound()。
+ * 不在已发布清单中的 slug 不进入按 slug 的缓存（见 ./known-key.ts）。
+ */
 export async function getDisciplineDetail(slug: string): Promise<DisciplineDetail | null> {
-  if (!SLUG_PATTERN.test(slug)) return null
-  return cachedDisciplineDetail(slug)
+  if (!isValidSlug(slug)) return null
+  return loadIfKnown(slug, getPublishedDisciplineSlugs, cachedDisciplineDetail)
 }
 
 /** 已发布专业方向的 slug（缓存），用于 /majors/[slug] 的 generateStaticParams */

@@ -1,9 +1,9 @@
 import { pinyin } from 'pinyin-pro'
 
-const MAX_SLUG_LENGTH = 80
+import { MAX_SLUG_LENGTH, SLUG_PATTERN } from './slug-rules'
 
-/** slug 规则：小写字母、数字，用连字符分隔，不以连字符开头或结尾 */
-export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+/** slug 规则（小写字母、数字，用连字符分隔）；定义在 src/lib/slug-rules.ts，与路由参数校验共用 */
+export { MAX_SLUG_LENGTH, SLUG_PATTERN }
 
 /**
  * 把标题转换为 URL 友好的 slug：中文转无声调拼音，其余保留字母数字。

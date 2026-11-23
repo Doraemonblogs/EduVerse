@@ -1,0 +1,88 @@
+# EduVerse 生产部署：app（Next.js + Payload，同一进程）+ db（PostgreSQL 16）。单机，无 Redis（PRD Q5）。
+# 本地开发用的数据库在 docker-compose.dev.yml，与本文件无关。
+#
+# 全部配置来自 deploy/.env.production（从 deploy/.env.production.example 复制后填写），通过 --env-file 传入：
+#   docker compose --env-file deploy/.env.production up -d --build
+# 或先 `export COMPOSE_ENV_FILES=deploy/.env.production`，之后的 docker compose 命令不必再写 --env-file。
+# 漏传时 compose 会报“缺少 POSTGRES_PASSWORD”等错误并停止，不会用默认值启动。
+#
+# 前面需要一层 nginx（HTTPS、限速、真实 IP，见 deploy/nginx.conf.example）；app 端口默认只绑定 127.0.0.1。
+# 详细步骤、备份与升级见 README「生产部署」「运维」。
+
+name: eduverse
+
+x-logging: &logging # 日志轮转：每个容器最多 5 × 10MB，避免日志写满磁盘
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+
+services:
+  db:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eduverse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?缺少 POSTGRES_PASSWORD：请用 --env-file deploy/.env.production 运行（见 README 生产部署）}
+      POSTGRES_DB: ${POSTGRES_DB:-eduverse}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # 数据库不映射到宿主机端口，只在 compose 内部网络中供 app 访问；备份用 docker compose exec db pg_dump
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    logging: *logging
+
+  app:
+    image: ${APP_IMAGE:-eduverse-app:latest}
+    build:
+      context: .
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?缺少 NEXT_PUBLIC_SITE_URL：请用 --env-file deploy/.env.production 运行}
+      # 公司网络做 TLS 中间人代理时，下载依赖需要信任的额外根证书（BUILD_EXTRA_CA_FILE 指向证书文件；默认空）
+      secrets:
+        - extra_ca
+    restart: unless-stopped
+    # tini 作为 1 号进程转发信号、回收子进程；docker compose stop 时 Next.js 能处理完进行中的请求
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # 数据库：默认连接本文件中的 db 服务；使用外部数据库时设置 DATABASE_URL（优先）
+      DATABASE_URL: ${DATABASE_URL:-}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: ${POSTGRES_USER:-eduverse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?缺少 POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-eduverse}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?缺少 PAYLOAD_SECRET（至少 32 个字符，生成：openssl rand -hex 32）}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      ENABLE_STYLEGUIDE: ${ENABLE_STYLEGUIDE:-false}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      PRERENDER_ON_START: ${PRERENDER_ON_START:-true}
+      NEXT_TELEMETRY_DISABLED: '1'
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      # 默认只监听本机，由同一台服务器上的 nginx 反向代理；不要直接暴露到公网（TRUST_PROXY=true 时可伪造 IP）
+      - '${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000'
+    volumes:
+      # 后台上传的图片、视频（文件名不含内容哈希，备份时与数据库一起打包，见 deploy/backup.sh）
+      - media:/app/media
+    logging: *logging
+
+volumes:
+  pgdata:
+  media:
+
+secrets:
+  extra_ca:
+    file: ${BUILD_EXTRA_CA_FILE:-/dev/null}

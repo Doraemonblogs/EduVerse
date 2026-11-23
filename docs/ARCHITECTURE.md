@@ -14,7 +14,7 @@
 | 表单 | 原生 form + Server Action + `useActionState` | 字段少，不引入 react-hook-form；无 JS 也能提交 |
 | 测试 | Vitest（unit / int）+ Playwright（desktop 1440 / mobile 390） | int 使用独立测试库 `eduverse_test` |
 | 字体 | 中文系统字体栈；拉丁展示字体 Space Grotesk 自托管（OFL，22KB） | 不依赖 Google Fonts，中文零下载 |
-| 部署 | Next standalone + 多阶段 Dockerfile + docker-compose（app + postgres），媒体存本地卷 | M8 接入 `@payloadcms/storage-s3`（环境变量开关，兼容 OSS / COS） |
+| 部署 | 多阶段 Dockerfile（`next start`）+ docker-compose（app + postgres）+ 宿主机 nginx 反向代理，媒体存本地卷；见 §10 | 不用 standalone：容器启动时要执行 `payload migrate`，需要完整生产依赖；无 Redis（单机，PRD Q5） |
 | 预览站 | GitHub Pages 静态快照（GitHub Actions 构建 → 抓取 → 发布） | 只读预览，便于评审；见 §9 |
 
 ### 依赖清单与理由
@@ -27,8 +27,8 @@
 | radix-ui / class-variance-authority / clsx / tailwind-merge / lucide-react | M0 | shadcn/ui 组件的运行时依赖；lucide 只用于功能性图标 |
 | pinyin-pro | M1（计划） | 文章标题自动生成拼音 slug，仅服务端 |
 | tw-animate-css | M2（计划） | shadcn Dialog / Sheet 的进出场动画 |
-| @axe-core/playwright | M8（计划） | 无障碍自动检查 |
-| @payloadcms/storage-s3 | M8（计划） | 切换对象存储 |
+| axe-core（devDependency，精确版本 4.14.1） | M8 | e2e 无障碍检查：`tests/helpers/axe.ts` 把 axe 注入页面运行 WCAG 2 A / AA 规则；原本只是 eslint-plugin-jsx-a11y 的传递依赖（pnpm 不提升，不能直接引用）；不引入 `@axe-core/playwright`，少一层封装；只用于测试，不进入产品 |
+| @payloadcms/storage-s3 | 未引入（M8 决定） | 媒体先存本地卷（PRD §2）；切换对象存储时再加这个插件，步骤见 §10 |
 
 刻意不引入：轮播库（CSS scroll-snap + 小 hook）、瀑布流库（已知宽高比 + 最短列算法）、灯箱库（Radix Dialog）、react-hook-form、任何统计 / 客服 SDK。
 
@@ -40,6 +40,14 @@
 - Payload 集合 / 全局配置的 `afterChange` / `afterDelete` 钩子调用 `revalidateTag(tag, 'max')`，后台发布即生效。
 - 筛选页（`/courses`、`/works`）按 searchParams 动态渲染，底层查询仍走缓存。
 - 阅读量等高频写入使用原生 SQL 自增，**绕过 Payload 钩子**，避免触发缓存失效与版本记录。
+- **缓存有界**（M8）：访客能控制的缓存键都有上限，随机地址刷请求不会让磁盘无限增长：
+  - slug 最长 80 个字符（`MAX_SLUG_LENGTH`，`src/lib/slug-rules.ts`），不合法直接 404；
+  - 详情查询先查“已发布 slug / ID 清单”缓存，不在清单中的直接返回 null，不进入按 slug 的缓存（`src/lib/data/known-key.ts` 的 `loadIfKnown`）；
+  - 搜索结果不进持久缓存（M7）；
+  - Next 16.4 把渲染好的页面存到 `.next/server/route-cache/`，其中包括每个随机地址的 404 页面（约 25KB / 个，不会删除）。根目录 `cache-handler.mjs` 继承 Next 内置的文件缓存，只改一处：状态码 404 的页面只放内存（`cacheMaxMemorySize` 64MB，LRU）、不写盘；只在生产环境启用。它依赖 Next 内部模块 `next/dist/server/lib/incremental-cache/file-system-cache.js`，**升级 Next 时必须复查**（`tests/unit/cache-handler.test.ts` 用真实实现兜底）；
+  - 图片优化缓存上限 500MB（`images.maximumDiskCacheSize`）。
+- **响应头**（`next.config.ts`）：前台页面统一 `Cache-Control: private, no-cache, no-transform`（覆盖 Next 默认值：发布后立即可见、CDN 不缓存个性化内容；`no-transform` 防止百度转码），另加 `X-Accel-Buffering: no`（nginx 不缓冲流式渲染）；5xx 仍为 `no-store`。媒体文件 `/api/media/file/*` 为 `public, max-age=86400, stale-while-revalidate=604800`：文件名含尺寸但不含内容哈希，后台替换文件后可能沿用同一地址，不能用 immutable 长缓存。
+- **revalidateTag 只在内存中**：Next 的标签失效记录不落盘，重启后磁盘上的旧缓存会被当作有效。生产容器每次启动都从镜像内干净的构建产物重置 `.next`，再连上数据库预渲染（见 §10）。
 
 ### 2.2 留资链路
 1. `SourceTracker`（客户端）首次落地时把 UTM、referrer、落地页写入 sessionStorage（首次触达归因）。
@@ -69,17 +77,20 @@ src/
       courses/ majors/ works/ careers/ teachers/ campuses/
       articles/ tutorials/ quiz/ search/ [pageSlug]/   # about / contact / privacy / terms
       styleguide/          设计规范（开发工具，生产默认 404）
-      sitemap.ts robots.ts
     (payload)/             Payload 生成的 admin 与 /api
+    api/health/route.ts    健康检查（Payload 初始化 + select 1，3 秒超时）
+    sitemap.ts robots.ts   元数据路由放在 src/app 根目录（Next 16 约定）
     global-not-found.tsx
   collections/ globals/ fields/(seo, slug, consent) access/ hooks/
   components/ ui/ common/ layout/ lead/ course/ works/ home/ article/ quiz/ styleguide/
   lib/ data/ validation/ lead/(rate-limit, webhook, csv) seo/ a11y/ utils.ts
   i18n/zh.ts  styles/globals.css  styles/contrast-pairs.ts  fonts/  config/site.ts
   payload.config.ts  payload-types.ts  migrations/
-scripts/seed/ (index.ts, data/*.ts, placeholders.ts)
+scripts/seed/ (index.ts, data/*.ts, placeholders.ts)  scripts/preview/  scripts/seo/（默认分享图生成）
 tests/unit/ tests/int/ tests/e2e/ tests/helpers/
-docs/ docker/ docker-compose.dev.yml
+docs/  docker/（开发库初始化）  docker-compose.dev.yml
+Dockerfile  .dockerignore  docker-compose.yml  cache-handler.mjs
+deploy/（docker-entrypoint.sh、nginx.conf.example、backup.sh、restore.sh、.env.production.example）
 ```
 
 ## 4. 数据模型
@@ -245,6 +256,15 @@ docs/ docker/ docker-compose.dev.yml
 - **通用**：`LeadForm` / `useLeadDialog().open()` 支持 `onSuccess`；`VideoFacade`（`src/components/common/video-facade.tsx`）供作品与教程共用；预览站导出的计划路由已清空。
 - **留资位置**：`quiz_result`、`tutorial_gate`、`tutorials_list_empty`、`search_empty`。
 
+### 4.15 M8 落地说明（SEO、性能、无障碍、部署）
+
+- **sitemap.xml**（`src/app/sitemap.ts` + `src/lib/data/sitemap.ts`）：首页、列表页，以及与详情页同样过滤的已发布内容（课程要求专业方向已发布、作品要求已授权、资讯分类要求有已发布文章、通用页面不得占用保留路径），不含 noindex、筛选、搜索、`?page=N`、`/majors`、`/styleguide`。地址为绝对地址（含子路径），`lastModified` 取文档 `updatedAt`（列表页取设置与内容中最新的时间）。数据走缓存（9 个集合 + 9 个全局配置的标签），路由每小时刷新；超过 5 万条时截断并告警，切换到 `generateSitemaps` 分片的方法写在注释里。
+- **robots.txt**（`src/lib/seo/robots.ts`）：禁止 `/admin`、`/api/`、`/search`、`/styleguide`（各写 `$`、`/`、`?` 三条，不误伤 `/search-guide` 这类路径），放行 `/api/media/file/`（分享图与页面图片在这里），声明绝对地址的 `Sitemap` 与 `Host`。**不写 `Allow: /`**：Next 会把全部 Allow 排在 Disallow 前面，而百度按“第一条匹配”生效，开头的 `Allow: /` 会让所有禁止规则对百度失效；现在百度的首条匹配与 Google / Bing 的最长匹配结论一致（单元测试同时按两种规则判定）。预览站构建只输出 `Disallow: /`。
+- **元数据**：`buildMetadata` 只接受 1200×630 的分享图，没有时用内置默认图（`src/lib/seo/default-share-image.png`，由 `scripts/seo/generate-default-share-image.ts` 按设计令牌生成）；分页第 2 页起描述加“（第 N 页）”；详情不存在时 `generateMetadata` 直接 `notFound()`；404 的 noindex 由 Next 自动添加（不再自己写一份）。客户端导航后 `<head>` 重复 title / canonical 的问题（M4 记录）在 Next 16.4.6 上无法复现，已加回归测试。
+- **元数据审计**（`tests/e2e/seo.e2e.spec.ts`）：以百度爬虫 UA 从首页与 sitemap 出发抓取，逐页检查唯一的 title / description / canonical（绝对地址，与 og:url 一致）、1200×630 的 og:image（下载后量尺寸）、noindex 集合、JSON-LD（可解析、必需字段齐全、绝对地址），并要求 sitemap 与可收录页面集合双向一致。
+- **无障碍**（`tests/e2e/a11y.e2e.spec.ts` + `tests/helpers/axe.ts`）：25 种页面状态 × 2 个视口用 axe（wcag2a / wcag2aa）检查 0 个 serious / critical；每页只有一个 h1 且为第一个标题、标题不跳级、跳过链接可用；键盘流程抽查头部大菜单、移动菜单、留资弹窗、灯箱、首页轮播、职业测试、教程弹窗。唯一的发现是 Radix 导航菜单插入的隐藏焦点辅助元素（`aria-hidden-focus`），焦点不会停留在它上面，只把这一个元素排除在 axe 之外（理由写在 helper 中，由 e2e 与单元测试兜底，库升级后形态变化会让测试失败）。axe 无法自动判定的对比度（深色遮罩上的首屏文字、透明整卡按钮、移动端底部操作条后面的内容）需人工复核。
+- **性能**：见 PROGRESS M8（移动端 Lighthouse 测量与优化结论）。
+
 ## 5. 路由清单
 
 | 路由 | 说明 | 里程碑 |
@@ -263,12 +283,13 @@ docs/ docker/ docker-compose.dev.yml
 | `/search?q=` | 站内搜索（有 q 时 noindex） | M7 |
 | `/about` `/contact` | `pages` 集合（通用页面路由 `/[pageSlug]`） | M2 |
 | `/privacy` `/terms` | `pages` 集合（通用页面路由 `/[pageSlug]`） | M2 |
-| `/sitemap.xml` `/robots.txt` | | M8 |
+| `/sitemap.xml` `/robots.txt` | 站点地图：首页、列表页与全部可收录的已发布详情（不含 noindex、筛选、搜索、`?page=N`）；robots 见 §4.15 | M8 |
 | `/styleguide` | 设计规范（开发工具） | M0 |
 | `/admin` | Payload 后台 | M0 |
 | `/api/*` | Payload REST | M0 |
 | `/api/leads/export` | 线索 CSV 导出（按权限过滤，UTF-8 BOM，防公式注入，导出留痕） | M2 |
 | `/api/articles/:id/view` | 阅读量上报 | M6 |
+| `/api/health` | 健康检查：200 `{"status":"ok"}` / 503 `{"status":"unavailable"}`，`no-store`（不得新建同名 Payload 集合或端点） | M8 |
 
 ## 6. 核心组件
 
@@ -308,12 +329,29 @@ docs/ docker/ docker-compose.dev.yml
 7. **性能**：第三方客服 / 统计脚本延迟到空闲或首次交互加载；首屏轮播第一张图优先加载。
 8. **遥测与境外请求**：Next.js 构建遥测通过 `NEXT_TELEMETRY_DISABLED=1` 关闭；Payload 运行时遥测通过 `telemetry: false` 关闭；后台头像使用内置图标（`admin.avatar: 'default'`），不请求 gravatar.com。
 9. **global-not-found** 仍是 Next 实验特性（`experimental.globalNotFound`）；升级 Next 时需回归 404 用例。
+10. **依赖 Next 内部实现的部分**（M8）：`cache-handler.mjs` 继承内部模块 `file-system-cache.js`；生产镜像使用实验性的 `--experimental-build-mode=compile / generate`。升级 Next 时先跑 `tests/unit/cache-handler.test.ts`，再按 README 在 Docker 中验证一次（空库启动、随机地址 404 不写盘）。
+11. **缓存键无限增长**（M7 / M8）：访客可控的值不得直接作为持久缓存键；新增按参数缓存的查询时，先用已发布清单判断（`loadIfKnown`），或只在请求内去重。
 
 ## 9. 在线预览站（GitHub Pages）
 
 - 地址：https://doraemonblogs.github.io/EduVerse/ ；工作流 `.github/workflows/preview-pages.yml`，推送默认分支自动发布。
 - 构建参数：`NEXT_BASE_PATH=/<仓库名>`（Next basePath，Payload 同步使用）、`NEXT_PUBLIC_STATIC_PREVIEW=true`（页顶提示条、图片不走 `/_next/image` 实时优化）、`ENABLE_STYLEGUIDE=true`。
-- 导出：`scripts/preview/export-static.ts` 从 `ENTRY_PATHS` 出发顺着站内链接抓取页面，每页写 `x.html` 与 `x/index.html`，注入 `noindex, nofollow`；下载页面引用的非构建资源（M1 起包括 `/api/media/file/*` 媒体文件）；整体复制 `.next/static`；生成 `404.html`；最后校验所有站内链接与资源都在输出目录中，否则失败。
+- 导出：`scripts/preview/export-static.ts` 从 `ENTRY_PATHS` 与 sitemap.xml 中的地址出发顺着站内链接抓取页面（M8 起同时导出 `robots.txt`（预览站为 `Disallow: /`）与 `sitemap.xml`，并校验地址带子路径），每页写 `x.html` 与 `x/index.html`，注入 `noindex, nofollow`；下载页面引用的非构建资源（M1 起包括 `/api/media/file/*` 媒体文件）；整体复制 `.next/static`；生成 `404.html`；最后校验所有站内链接与资源都在输出目录中，否则失败。
 - 限制：静态托管无法执行服务端逻辑，表单提交（Server Action）、后台、按查询串筛选（`/courses?discipline=…` 只能导出无参数版本）不可用；客户端导航取不到 RSC 数据时自动回退为整页跳转。
 - 数据（M1 起）：工作流中用 PostgreSQL 服务容器 + 种子数据渲染页面，数据库随任务销毁，密钥每次随机生成。
 - 约束：站内链接用 `next/link`（自动带 basePath）；`next/image` 的字符串 `src`（媒体 URL）不会自动带 basePath，需经工具函数处理。导出脚本会把缺少 basePath 的引用、依赖查询串的资源（`/_next/image`、`/api/*`）报为错误。
+
+## 10. 生产部署
+
+```
+访客 ─HTTPS─▶ nginx（宿主机：证书、gzip、限速、静态长缓存、真实 IP）─▶ app 127.0.0.1:3000（Next + Payload，同一进程）─▶ postgres（只在 compose 内网）
+                                                                         └─ media 卷（上传文件）
+```
+
+- **镜像**（`Dockerfile`）：base（corepack 安装 pnpm）→ deps → prod-deps → builder → runner；Node 22（`node:22-bookworm-slim`，sharp 预编译包可用），非 root 用户运行，`HEALTHCHECK` 访问 `/api/health`，`/app/media` 为卷。构建参数 `NODE_IMAGE`、`NPM_REGISTRY`（国内可换镜像源，默认官方）、`NEXT_PUBLIC_SITE_URL`（必填，构建时写入产物，换域名需重新构建）。可选构建密钥 `extra_ca` 只在下载依赖时挂载，不进入镜像。
+- **构建不连数据库**：`next build --experimental-build-mode=compile` 只编译，镜像与数据库内容无关。容器启动时（`deploy/docker-entrypoint.sh`）依次：用 `POSTGRES_*` 拼出（URL 编码的）`DATABASE_URL` → 校验 `PAYLOAD_SECRET` 至少 32 位 → `payload migrate`（失败则退出，不启动服务）→ 从镜像内干净的构建产物重置 `.next` → `--experimental-build-mode=generate` 连上数据库预渲染（与 `pnpm build` 的静态页 / ISR 行为一致；失败时告警并退回按请求渲染，`PRERENDER_ON_START=false` 可跳过）→ `exec next start`。compile / generate 是 Next 的实验性构建模式，升级 Next 时需复查。
+- **compose**（`docker-compose.yml`）：`app` + `postgres:16`（镜像可用 `POSTGRES_IMAGE` 替换），健康检查、`pgdata` 与 `media` 数据卷、tini、日志轮转（5 × 10MB）；数据库不映射到宿主，app 只绑定 127.0.0.1；`TRUST_PROXY=true`（前面必须有 nginx）。配置来自 `deploy/.env.production`（git 与 docker 构建上下文均忽略；含 `$`、` #`、空格的值必须用单引号，否则 compose 会静默截断）。
+- **nginx**（`deploy/nginx.conf.example`）：HTTP 跳转 HTTPS、HTTP/2、HSTS、安全响应头；`X-Forwarded-For $proxy_add_x_forwarded_for` 与 `X-Real-IP`（限频依赖真实 IP）；`client_max_body_size` 适配 50MB 视频；`/_next/static` 由 nginx 再缓存 30 天（`proxy_cache`）；app 返回 `X-Accel-Buffering: no`，流式渲染不被缓冲；压缩由 nginx 统一做（转发时去掉 `Accept-Encoding`）。限速分区（按 IP）：页面 20 r/s（burst 100）、搜索 3 r/s、阅读量上报 2 r/s、登录 10 r/min、其余 `/api/` 与 `/_next/image` 各 20 r/s（burst 200）；`/admin` 不限速。
+- **备份 / 恢复**：`deploy/backup.sh`（pg_dump + media 打包，保留 7 天）、`deploy/restore.sh`（需 `--yes`；最后一步会启动 app，app 启动会执行迁移，所以回滚时先 `export APP_IMAGE=<旧镜像>`）。M2 迁移的 down 无法执行，**生产回滚一律用“备份 + 上一版镜像”**（README「回滚」）。
+- **已知限制**：镜像约 1.8GB（不使用 standalone，见 §1）；没有配置邮件适配器，找回密码邮件只写入日志；Server Action 的 ID 每次构建都会变，升级前打开的页面需刷新后才能提交表单；限流、阅读量去重、同手机号串行控制都在进程内，只适用于单实例。
+- **切换对象存储**（未实施，PRD §2 保留能力）：加入 `@payloadcms/storage-s3`，在 `payload.config.ts` 中按环境变量（桶、地域、endpoint、密钥）为 `media` 集合启用（阿里云 OSS / 腾讯云 COS 均兼容 S3 协议）；迁移已有文件后，媒体地址变为对象存储地址，nginx 的 `/api/media/file/` 配置与备份脚本中的 media 部分随之调整。

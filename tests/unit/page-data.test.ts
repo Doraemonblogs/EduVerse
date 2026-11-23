@@ -69,7 +69,10 @@ describe('isPageSlug / getPageBySlug', () => {
   })
 
   it('普通 slug 只查询已发布的页面', async () => {
-    find.mockResolvedValue({ docs: [] })
+    // 已发布清单（不带 limit）里有 about，详情查询（limit 1）查不到
+    find.mockImplementation(({ limit }: { limit?: number }) =>
+      Promise.resolve({ docs: limit === 1 ? [] : [{ slug: 'about' }] }),
+    )
     expect(isPageSlug('about')).toBe(true)
     expect(await getPageBySlug('about')).toBeNull()
     expect(find).toHaveBeenCalledWith(
@@ -78,6 +81,24 @@ describe('isPageSlug / getPageBySlug', () => {
         where: { and: [{ _status: { equals: 'published' } }, { slug: { equals: 'about' } }] },
       }),
     )
+  })
+
+  it('超过 80 个字符的 slug 判定不存在，不查库', async () => {
+    const long = 'a'.repeat(81)
+    expect(isPageSlug(long)).toBe(false)
+    expect(isPageSlug('a'.repeat(80))).toBe(true)
+    expect(await getPageBySlug(long)).toBeNull()
+    expect(find).not.toHaveBeenCalled()
+  })
+
+  it('不在已发布清单中的 slug 只查清单，不进入按 slug 缓存的详情查询', async () => {
+    find.mockResolvedValue({ docs: [{ slug: 'about' }] })
+    expect(await getPageBySlug('random-path-123')).toBeNull()
+    expect(find).toHaveBeenCalledTimes(1)
+    expect(find).toHaveBeenCalledWith(
+      expect.objectContaining({ collection: 'pages', select: { slug: true } }),
+    )
+    expect(find).not.toHaveBeenCalledWith(expect.objectContaining({ limit: 1 }))
   })
 
   it('静态生成的 slug 清单剔除被固定路由占用的页面', async () => {
@@ -143,7 +164,8 @@ describe('页面区块富文本的课程链接', () => {
     )
 
     const result = await getPageBySlug('about')
-    expect(find).toHaveBeenCalledTimes(2)
+    // 已发布清单 → 页面 → 链接到的课程
+    expect(find).toHaveBeenCalledTimes(3)
     expect(find).toHaveBeenLastCalledWith(
       expect.objectContaining({
         collection: 'courses',
@@ -163,13 +185,13 @@ describe('页面区块富文本的课程链接', () => {
     expect(result?.title).toBe('关于我们')
   })
 
-  it('区块里没有课程链接时只查询页面本身', async () => {
+  it('区块里没有课程链接时只查询页面本身（另加一次已发布清单）', async () => {
     find.mockResolvedValue({
       docs: [
         { id: 2, title: '用户协议', slug: 'terms', layout: [{ blockType: 'stats', items: [] }] },
       ],
     })
     expect((await getPageBySlug('terms'))?.slug).toBe('terms')
-    expect(find).toHaveBeenCalledTimes(1)
+    expect(find).toHaveBeenCalledTimes(2)
   })
 })

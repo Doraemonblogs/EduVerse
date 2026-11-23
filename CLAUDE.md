@@ -35,14 +35,26 @@ pnpm generate:importmap  # 新增后台自定义组件后重新生成 importMap
 pnpm migrate:create      # 数据模型变更后创建迁移（每个改动 schema 的里程碑结束时必须做）
 pnpm migrate             # 执行迁移
 pnpm seed:reset          # 一键重置种子数据（清空内容 / 线索 / 种子账号，重新生成占位图与演示内容，约 45 秒；会清除 Next 数据缓存，运行中的服务需重启）
-pnpm preview:build       # 以 /EduVerse 子路径构建静态预览站（会覆盖 .next）
+pnpm preview:build       # 以 /EduVerse 子路径构建静态预览站（会覆盖 .next；本地需 NEXT_PUBLIC_SITE_URL=http://localhost:3000/EduVerse，见 README）
 pnpm preview:export      # 抓取运行中的预览服务，导出到 preview-dist/
 pnpm preview:serve       # 本地模拟 GitHub Pages 查看 preview-dist/
 ```
 
+生产部署（详见 README「生产部署」「运维」）：
+
+```bash
+docker compose --env-file deploy/.env.production up -d --build   # 构建并启动 app + postgres（启动时自动迁移、预渲染）
+deploy/backup.sh                                                   # 备份数据库与媒体（保留 7 天）
+deploy/restore.sh                                                  # 恢复（需 --yes；回滚前先 export APP_IMAGE=<旧镜像>）
+```
+
 在线预览站：https://doraemonblogs.github.io/EduVerse/（推送默认分支后由 `.github/workflows/preview-pages.yml` 自动发布，详见 README）。
-新增页面若不能从首页顺着链接到达，需登记到 `scripts/preview/export-static.ts` 的 `ENTRY_PATHS`。
-新增顶层前台路由（`/courses`、`/works` …）时，同步登记到 `src/lib/reserved-slugs.ts`（通用页面 `/[pageSlug]` 不得占用）；导航已链接、尚未实现的路由登记在导出脚本的 `PLANNED_ROUTES`，实现后删除。
+新增页面若既不能从首页顺着链接到达、也不在 sitemap 中，需登记到 `scripts/preview/export-static.ts` 的 `ENTRY_PATHS`。
+新增可收录的页面类型时，同步加入 `src/lib/data/sitemap.ts`（过滤条件与详情页一致），并加入 `tests/e2e/a11y.e2e.spec.ts` 的页面清单；SEO 审计（`tests/e2e/seo.e2e.spec.ts`）会要求 sitemap 与可收录页面双向一致。
+新增顶层前台路由（`/courses`、`/works` …）时，同步登记到 `src/lib/reserved-slugs.ts`（通用页面 `/[pageSlug]` 不得占用）；导航已链接、尚未实现的路由登记在导出脚本的 `PLANNED_ROUTES`，实现后删除。`/api/health` 是健康检查路由，不得新建同名 Payload 集合或端点。
+按访客可控的参数（slug、ID、查询词）缓存的查询：slug 不超过 80 个字符（`src/lib/slug-rules.ts`），详情先经 `loadIfKnown()`（`src/lib/data/known-key.ts`）按已发布清单判断，不存在的值不进持久缓存；查询词类不进持久缓存。
+根目录 `cache-handler.mjs` 是生产运行时文件（404 页面只放内存），继承 Next 内部模块：升级 Next 时先跑 `tests/unit/cache-handler.test.ts`，Dockerfile 会复制它，移动或删除时同步改 `next.config.ts`。
+站点地图与 robots 在 `src/app/sitemap.ts`、`src/app/robots.ts`（Next 约定放在 `src/app` 根目录，不在 `(frontend)` 下）；内置默认分享图由 `pnpm exec tsx scripts/seo/generate-default-share-image.ts` 按设计令牌生成。
 新增有前台详情页的集合时，在 `src/components/common/rich-text.tsx` 登记其路径前缀（富文本链接与页面缓存标签依赖它）。
 数据层返回给前台的富文本（专业介绍、页面区块，及以后的讲师简介、文章正文等）先经 `guardCourseLinks()`（`src/lib/data/courses.ts`）处理，指向已下线课程的链接只保留文字。
 会提交线索的 e2e 测试文件登记到 `tests/helpers/lead-identity.ts` 的 `LEAD_SPECS`，用其中的函数生成模拟 IP 与手机号（单元测试兜底）。
@@ -58,6 +70,7 @@ src/
   app/(frontend)/   前台路由（独立根布局，引入 globals.css）
   app/(payload)/    Payload 生成的后台与 REST/GraphQL 路由，不要手改
   app/global-not-found.tsx  未匹配任何路由时的 404
+  app/sitemap.ts app/robots.ts app/api/health/   站点地图、robots、健康检查
   collections/ globals/ fields/ access/ hooks/   Payload 配置（按领域拆文件）
   components/ui/       shadcn 原子组件（已按设计令牌改造）
   components/common/   版式组件：Container、Section、SectionHeading、StatusPage …
@@ -70,6 +83,7 @@ src/
 tests/unit/  tests/int/  tests/e2e/（fixtures.ts 自动断言控制台无报错）
 scripts/seed/  种子数据：registry（slug 骨架）、data/（内容）、placeholders（占位图）、index（runSeed）
 scripts/preview/  静态预览站导出
+Dockerfile docker-compose.yml deploy/  生产镜像、编排、nginx 示例、备份 / 恢复脚本、生产配置示例
 docs/        PRD、架构、进度
 ```
 

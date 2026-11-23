@@ -1,17 +1,16 @@
 import { z } from 'zod'
 
+import { MAX_SLUG_LENGTH, SLUG_PATTERN } from '@/lib/slug-rules'
+
 /**
  * 读取页面查询参数的公共工具（纯函数，列表页的筛选 / 分页解析共用）。
  */
 
 /**
- * slug 类参数（专业方向、软件、城市标识）的校验：与后台 slug 字段格式一致。
- * 不引入 src/lib/slugify.ts（它依赖服务端的拼音库）。
+ * slug 类参数（专业方向、软件、城市标识，以及详情页路由参数）的校验：与后台 slug 字段格式、长度上限一致
+ * （src/lib/slug-rules.ts）。不引入 src/lib/slugify.ts（它依赖服务端的拼音库）。
  */
-export const slugParam = z
-  .string()
-  .max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+export const slugParam = z.string().max(MAX_SLUG_LENGTH).regex(SLUG_PATTERN)
 
 /** Next 页面的 searchParams（await 之后的对象）或 URLSearchParams */
 export type SearchParamsInput =

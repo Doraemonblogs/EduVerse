@@ -1,0 +1,2 @@
+# 生产环境配置（含数据库密码与密钥），从 .env.production.example 复制，绝不提交
+.env.production

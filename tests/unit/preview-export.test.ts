@@ -3,15 +3,18 @@ import { describe, expect, it } from 'vitest'
 import {
   applyNoindex,
   assetOutputFile,
+  disallowsAll,
   extractCssUrls,
   extractMediaRefs,
   extractRefs,
+  extractStaticShareImageRefs,
   hasQuery,
   isMissingBasePath,
   isPagePath,
   isQueryDependentPath,
   pageOutputFiles,
   pageUrl,
+  sitemapPaths,
   toSitePath,
 } from '../../scripts/preview/lib'
 
@@ -305,5 +308,88 @@ describe('extractMediaRefs', () => {
         '/EduVerse',
       ),
     ).toEqual({ paths: [], missingBasePath: [] })
+  })
+})
+
+describe('sitemapPaths', () => {
+  const SITE = 'https://user.github.io/EduVerse'
+  const xml = (locs: string[]) =>
+    `<urlset>${locs.map((loc) => `<url><loc>${loc}</loc><lastmod>2026-11-23</lastmod></url>`).join('')}</urlset>`
+
+  it('站点正式地址（域名与抓取地址不同）按路径转为站内路径，首页为 /，去重', () => {
+    const result = sitemapPaths(
+      xml([SITE, `${SITE}/`, `${SITE}/courses/3d`, `${SITE}/works/1`, `${SITE}/courses/3d`]),
+      '/EduVerse',
+    )
+    expect(result).toEqual({ paths: ['/', '/courses/3d', '/works/1'], invalid: [] })
+  })
+
+  it('解码实体；缺少 basePath、带查询串、非 http(s)、不是页面的地址记为无效', () => {
+    const result = sitemapPaths(
+      xml([
+        `${SITE}/a?x=1&amp;y=2`,
+        'https://user.github.io/courses',
+        'ftp://user.github.io/EduVerse/x',
+        `${SITE}/api/media/file/a.webp`,
+        'not a url',
+      ]),
+      '/EduVerse',
+    )
+    expect(result.paths).toEqual([])
+    expect(result.invalid).toEqual([
+      `${SITE}/a?x=1&y=2`,
+      'https://user.github.io/courses',
+      'ftp://user.github.io/EduVerse/x',
+      `${SITE}/api/media/file/a.webp`,
+      'not a url',
+    ])
+  })
+
+  it('根路径部署时直接取路径', () => {
+    expect(
+      sitemapPaths(xml(['https://www.example.cn', 'https://www.example.cn/about']), ''),
+    ).toEqual({
+      paths: ['/', '/about'],
+      invalid: [],
+    })
+  })
+})
+
+describe('disallowsAll', () => {
+  it('User-agent: * 组里有 Disallow: / 才算禁止全部抓取', () => {
+    expect(disallowsAll('User-Agent: *\nDisallow: /\n')).toBe(true)
+    expect(disallowsAll('user-agent: Baiduspider\nuser-agent: *\ndisallow: /  # 全部禁止\n')).toBe(
+      true,
+    )
+    expect(disallowsAll('User-Agent: *\nAllow: /\nDisallow: /admin/\n')).toBe(false)
+    expect(disallowsAll('User-Agent: Baiduspider\nDisallow: /\n\nUser-Agent: *\nAllow: /\n')).toBe(
+      false,
+    )
+    expect(disallowsAll('')).toBe(false)
+  })
+})
+
+describe('extractStaticShareImageRefs', () => {
+  it('分享图里的构建产物：带 basePath 的转为站内路径，缺少的单独列出；媒体文件与外站图片不处理', () => {
+    const html = [
+      '<meta property="og:image" content="https://user.github.io/EduVerse/_next/static/media/share.png"/>',
+      '<meta name="twitter:image" content="https://user.github.io/_next/static/media/other.png"/>',
+      '<meta property="og:image" content="https://user.github.io/EduVerse/api/media/file/a-1200x630.webp"/>',
+      '<meta property="og:image" content="https://cdn.example.cn/a.png"/>',
+      '<meta property="og:title" content="https://user.github.io/_next/static/media/x.png"/>',
+    ].join('')
+    expect(extractStaticShareImageRefs(html, '/EduVerse')).toEqual({
+      paths: ['/_next/static/media/share.png'],
+      missingBasePath: ['/_next/static/media/other.png'],
+    })
+  })
+
+  it('根路径部署时不检查 basePath', () => {
+    const html =
+      '<meta property="og:image" content="https://www.example.cn/_next/static/media/s.png"/>'
+    expect(extractStaticShareImageRefs(html, '')).toEqual({
+      paths: ['/_next/static/media/s.png'],
+      missingBasePath: [],
+    })
   })
 })

@@ -131,8 +131,26 @@ describe('详情查询的参数校验', () => {
     expect(find).not.toHaveBeenCalled()
   })
 
+  it('超过 80 个字符或不在已发布清单中的 slug 不进入按 slug 缓存的详情查询', async () => {
+    const long = 'a'.repeat(81)
+    expect(await getArticleDetail(long)).toBeNull()
+    expect(await getCampusDetail(long)).toBeNull()
+    expect(find).not.toHaveBeenCalled()
+
+    find.mockResolvedValue({ docs: [{ slug: 'learn-maya' }, { slug: 'beijing-haidian' }] })
+    expect(await getArticleDetail('random-article')).toBeNull()
+    expect(await getCampusDetail('random-campus')).toBeNull()
+    expect(find).toHaveBeenCalledTimes(2)
+    expect(find).not.toHaveBeenCalledWith(expect.objectContaining({ limit: 1 }))
+  })
+
   it('文章详情与校区详情只查询已发布的文档', async () => {
-    find.mockResolvedValue({ docs: [] })
+    // 已发布清单（不带 limit）里有这两个 slug，详情查询（limit 1）查不到
+    find.mockImplementation(({ limit }: { limit?: number }) =>
+      Promise.resolve({
+        docs: limit === 1 ? [] : [{ slug: 'learn-maya' }, { slug: 'beijing-haidian' }],
+      }),
+    )
     expect(await getArticleDetail('learn-maya')).toBeNull()
     expect(await getCampusDetail('beijing-haidian')).toBeNull()
     expect(find).toHaveBeenCalledWith(

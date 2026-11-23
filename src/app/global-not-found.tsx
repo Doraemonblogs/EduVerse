@@ -15,7 +15,7 @@ import '@/styles/globals.css'
  */
 export const metadata: Metadata = {
   title: `${zh.notFound.title} - ${siteFallback.name}`,
-  robots: { index: false, follow: true },
+  // 不声明 robots：Next 给 404 响应自动输出 noindex，再声明一次会出现两个 robots 标签
 }
 
 export default function GlobalNotFound() {

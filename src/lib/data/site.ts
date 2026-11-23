@@ -2,6 +2,7 @@ import 'server-only'
 
 import { unstable_cache } from 'next/cache'
 
+import { siteFallback } from '@/config/site'
 import { cacheTags } from '@/hooks/revalidate'
 import { getPayloadClient } from '@/lib/payload'
 
@@ -24,7 +25,8 @@ export const getSiteSettings = unstable_cache(
       baiduSiteVerification: _bv,
       ...rest
     } = settings
-    return rest
+    // 全新的空库里站点设置从未保存过，必填的品牌名也是空的：兜底为默认品牌名（头部 / 页脚 Logo 依赖它）
+    return { ...rest, brandName: rest.brandName?.trim() || siteFallback.name }
   },
   ['site-settings'],
   { tags: [cacheTags.global('site-settings'), cacheTags.collection('media')] },

@@ -126,6 +126,11 @@ export const zh = {
     description: '你访问的链接可能已失效。可以回到首页，或通过导航查找专业与课程。',
     backHome: '返回首页',
   },
+  /** SEO（src/lib/seo）：元数据中的系统文案 */
+  seo: {
+    /** 可收录的分页列表第 2 页起的描述（{description} 为列表描述），避免各页描述重复 */
+    pagedDescription: '{description}（第 {page} 页）',
+  },
   error: {
     eyebrow: '出错了',
     title: '页面加载失败',

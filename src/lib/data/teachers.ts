@@ -31,6 +31,8 @@ import type {
   TeacherPagesSettings,
 } from '@/lib/teachers/types'
 
+import { loadIfKnown } from './known-key'
+
 /**
  * 师资的数据查询：讲师列表（含筛选项来源）、讲师详情、师资页面设置。
  *
@@ -230,7 +232,8 @@ const cachedTeacherDetail = unstable_cache(
 /** 讲师详情（缓存）；slug 不合法、讲师不存在或未发布时返回 null → 页面 notFound() */
 export async function getTeacherDetail(slug: string): Promise<TeacherDetail | null> {
   if (!isValidSlug(slug)) return null
-  return cachedTeacherDetail(slug)
+  // 不在已发布清单中的 slug 不进入按 slug 的缓存（见 ./known-key.ts）
+  return loadIfKnown(slug, getPublishedTeacherSlugs, cachedTeacherDetail)
 }
 
 /** 已发布讲师的 slug（缓存），用于 /teachers/[slug] 的 generateStaticParams */

@@ -32,7 +32,9 @@ export async function generateStaticParams(): Promise<{ pageSlug: string }[]> {
 export async function generateMetadata({ params }: CmsPageProps): Promise<Metadata> {
   const { pageSlug } = await params
   const page = await getPageBySlug(pageSlug)
-  if (!page) return {}
+  // 不存在时在元数据阶段就 404：返回空对象会让浏览器端（水合后）的标题回退成站点默认标题，
+  // 而不是 not-found 的“页面不存在”标题
+  if (!page) notFound()
   return buildMetadata({ seo: page.seo, title: page.title, path: `/${page.slug}` })
 }
 
