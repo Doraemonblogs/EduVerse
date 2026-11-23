@@ -4,6 +4,7 @@
 界面语言：简体中文。面向中国大陆用户。
 
 - 需求：`docs/PRD.md`（含已确认决策 Q1–Q6）
+- 参考站版式分析：`docs/REFERENCE-LAYOUT.md`（M2 全站框架、M5 首页依据）
 - 架构与数据模型：`docs/ARCHITECTURE.md`
 - 进度与关键决策：`docs/PROGRESS.md`（每个里程碑结束时更新）
 
@@ -92,7 +93,7 @@ docs/        PRD、架构、进度
 
 ## 禁止事项
 
-- **不得访问、抓取 hxsd.com 与 itheima.com**，不得复制其品牌、配色、文案、图片、课程、作品；hxsd 只借鉴信息架构，itheima 只借鉴版式与交互；参考只用产品方提供的截图。
+- **不得访问 hxsd.com；不得抓取、复制 hxsd.com 与 itheima.com 的品牌、配色、文案、图片、课程、作品与数据**。hxsd 只借鉴信息架构；itheima 只借鉴版式与交互，结论见 `docs/REFERENCE-LAYOUT.md`（该站只对手机浏览器提供页面，产品方要求时可用手机浏览器配置查看，只看不存）。
 - 不得引入 Google Fonts / Google Analytics / reCAPTCHA / 任何境外 CDN 等大陆无法稳定访问的服务；不外链第三方图片。
 - 不得在组件中硬编码营销文案、导航、图片（来自 CMS；系统提示语进 `i18n/zh.ts`）。
 - 不得随意新增依赖；确需新增时在 `docs/PROGRESS.md` 记录理由。

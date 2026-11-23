@@ -1,6 +1,6 @@
 # 架构设计
 
-> 与 `docs/PRD.md` 配套。数据模型在 M1 落地时如有调整，同步更新本文件并在 `docs/PROGRESS.md` 记录原因。
+> 与 `docs/PRD.md` 配套；版式参考见 `docs/REFERENCE-LAYOUT.md`。数据模型在 M1 落地时如有调整，同步更新本文件并在 `docs/PROGRESS.md` 记录原因。
 
 ## 1. 技术选型
 
