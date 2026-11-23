@@ -35,6 +35,26 @@ const ENTRY_PATHS = ['/', '/styleguide']
 const OPTIONAL_ASSETS = ['/favicon.ico', '/icon.png', '/apple-icon.png']
 const NOT_FOUND_PROBE = '/__static-preview-not-found__'
 
+/**
+ * 导航 / 页脚已链接、但在后续里程碑才实现的路由。这些页面暂时 404 不算断链，只在导出日志中列出；
+ * 对应里程碑完成后从这里删除，之后再出现 404 就会让导出失败。
+ */
+const PLANNED_ROUTES: { prefix: string; milestone: string }[] = [
+  { prefix: '/courses', milestone: 'M3' },
+  { prefix: '/majors', milestone: 'M3' },
+  { prefix: '/works', milestone: 'M4' },
+  { prefix: '/teachers', milestone: 'M4' },
+  { prefix: '/careers', milestone: 'M6' },
+  { prefix: '/campuses', milestone: 'M6' },
+  { prefix: '/articles', milestone: 'M6' },
+  { prefix: '/tutorials', milestone: 'M7' },
+  { prefix: '/quiz', milestone: 'M7' },
+  { prefix: '/search', milestone: 'M7' },
+]
+
+const plannedRoute = (sitePath: string) =>
+  PLANNED_ROUTES.find((r) => sitePath === r.prefix || sitePath.startsWith(`${r.prefix}/`))
+
 const { values } = parseArgs({
   options: {
     origin: { type: 'string', default: 'http://localhost:3000' },
@@ -53,6 +73,7 @@ const nextStaticDir = path.resolve(values['next-dir']!, 'static')
 
 const errors: string[] = []
 const exportedPages = new Set<string>()
+const plannedMissing = new Set<string>()
 const exportedAssets = new Set<string>()
 
 async function writeOut(rel: string, data: string | Uint8Array) {
@@ -100,6 +121,10 @@ async function crawlPages(assets: Set<string>) {
     const url = pageUrl(config, sitePath)
     const res = await fetch(url, { redirect: 'manual' })
     if (res.status !== 200) {
+      if (res.status === 404 && plannedRoute(sitePath)) {
+        plannedMissing.add(sitePath)
+        continue
+      }
       errors.push(`页面返回 ${res.status}：${url}`)
       continue
     }
@@ -174,7 +199,12 @@ async function verifyOutput(htmlFiles: string[]) {
     }
     for (const link of links) {
       const target = toSitePath(link, fromUrl, config)
-      if (target && isPagePath(target) && !exportedPages.has(target)) {
+      if (
+        target &&
+        isPagePath(target) &&
+        !exportedPages.has(target) &&
+        !plannedMissing.has(target)
+      ) {
         errors.push(`断链：${rel} 链接到未导出的页面 ${target}`)
       }
     }
@@ -210,6 +240,10 @@ async function main() {
 
   console.info(`页面 ${exportedPages.size} 个：${[...exportedPages].join('、')}`)
   console.info(`资源 ${exportedAssets.size} 个（另含 .next/static 全部构建产物）`)
+  if (plannedMissing.size > 0) {
+    const byMilestone = [...plannedMissing].map((p) => `${p}（${plannedRoute(p)?.milestone}）`)
+    console.info(`尚未实现的计划路由 ${plannedMissing.size} 个：${byMilestone.join('、')}`)
+  }
   if (errors.length > 0) {
     console.error(`\n导出失败，共 ${errors.length} 个问题：`)
     for (const e of errors) console.error(`  - ${e}`)

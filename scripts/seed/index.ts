@@ -12,7 +12,7 @@ import 'dotenv/config'
 
 import { readdir, rm } from 'node:fs/promises'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { getPayload, type CollectionSlug, type GlobalSlug, type Payload } from 'payload'
 
 import config from '../../src/payload.config'
@@ -836,10 +836,25 @@ export async function runSeed(payload: Payload): Promise<SeedSummary> {
   return { counts, seconds }
 }
 
+/**
+ * 清除 Next 的数据缓存（unstable_cache 持久化在 .next/…/fetch-cache，跨构建保留）。
+ * 种子脚本在 Next 运行时之外执行，内容钩子不会触发 revalidateTag；重置后 ID 全部变化，
+ * 不清除的话，重新构建或重启后的前台仍会读到旧数据（如留资表单里已不存在的专业 ID）。
+ */
+async function clearNextDataCache(): Promise<void> {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+  const dirs = ['.next/cache/fetch-cache', '.next/dev/cache/fetch-cache'].map((dir) =>
+    path.join(root, dir),
+  )
+  await Promise.all(dirs.map((dir) => rm(dir, { recursive: true, force: true })))
+  console.log('[seed] 已清除 Next 数据缓存；正在运行的前台服务需重启后才会显示新数据')
+}
+
 // 作为脚本直接运行时（pnpm seed:reset）
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   getPayload({ config })
     .then(runSeed)
+    .then(clearNextDataCache)
     .then(() => process.exit(0))
     .catch((err: unknown) => {
       console.error(err)

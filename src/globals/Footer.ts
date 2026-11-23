@@ -31,6 +31,20 @@ export const Footer: GlobalConfig = {
   hooks: { afterChange: revalidateGlobal('footer') },
   fields: [
     {
+      name: 'cta',
+      type: 'group',
+      label: '页脚转化区',
+      admin: {
+        description: '页脚顶部的深色转化区：标题 + 预约按钮 + 说明。不要写价格促销或效果承诺。',
+      },
+      fields: [
+        { name: 'enabled', type: 'checkbox', label: '显示', defaultValue: true },
+        { name: 'title', type: 'text', label: '标题', defaultValue: '预约一节免费试听课' },
+        { name: 'description', type: 'textarea', label: '说明' },
+        { name: 'buttonLabel', type: 'text', label: '按钮文字', defaultValue: '免费预约试听' },
+      ],
+    },
+    {
       name: 'columns',
       type: 'array',
       label: '链接分栏',

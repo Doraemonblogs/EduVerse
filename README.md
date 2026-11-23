@@ -48,16 +48,17 @@ pnpm seed:reset
 
 ## 环境变量
 
-| 变量                      | 说明                                                         |
-| ------------------------- | ------------------------------------------------------------ |
-| `DATABASE_URL`            | PostgreSQL 连接串                                            |
-| `TEST_DATABASE_URL`       | 集成测试库（可选，默认在 `DATABASE_URL` 的库名后加 `_test`） |
-| `PAYLOAD_SECRET`          | Payload 加密密钥，至少 32 位随机字符串                       |
-| `NEXT_PUBLIC_SITE_URL`    | 站点对外地址，用于 canonical / sitemap / OG                  |
-| `ENABLE_STYLEGUIDE`       | 生产环境是否开放 `/styleguide`，默认 `false`                 |
-| `MEDIA_DIR`               | 媒体文件目录，默认 `<项目根>/media`                          |
-| `SEED_ADMIN_PASSWORD`     | 种子管理员密码（可选）                                       |
-| `NEXT_TELEMETRY_DISABLED` | 设为 `1` 关闭 Next.js 遥测                                   |
+| 变量                      | 说明                                                                                                                                                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`            | PostgreSQL 连接串                                                                                                                                                                                              |
+| `TEST_DATABASE_URL`       | 集成测试库（可选，默认在 `DATABASE_URL` 的库名后加 `_test`）                                                                                                                                                   |
+| `PAYLOAD_SECRET`          | Payload 加密密钥，至少 32 位随机字符串                                                                                                                                                                         |
+| `NEXT_PUBLIC_SITE_URL`    | 站点对外地址，用于 canonical / sitemap / OG                                                                                                                                                                    |
+| `TRUST_PROXY`             | 在单层可信反向代理（nginx）之后设为 `true`，按 `X-Forwarded-For` 最后一个地址限频；nginx 需设置 `X-Forwarded-For $proxy_add_x_forwarded_for` 与 `X-Real-IP $remote_addr`（见 ARCHITECTURE §4.9）。默认 `false` |
+| `ENABLE_STYLEGUIDE`       | 生产环境是否开放 `/styleguide`，默认 `false`                                                                                                                                                                   |
+| `MEDIA_DIR`               | 媒体文件目录，默认 `<项目根>/media`                                                                                                                                                                            |
+| `SEED_ADMIN_PASSWORD`     | 种子管理员密码（可选）                                                                                                                                                                                         |
+| `NEXT_TELEMETRY_DISABLED` | 设为 `1` 关闭 Next.js 遥测                                                                                                                                                                                     |
 
 ## 在线预览站（GitHub Pages）
 

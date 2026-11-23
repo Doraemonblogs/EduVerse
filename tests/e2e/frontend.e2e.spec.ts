@@ -32,7 +32,7 @@ test.describe('前台基础', () => {
       const response = await page.goto('/this-page-does-not-exist')
       expect(response?.status()).toBe(404)
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('页面不存在或已下线')
-      await expect(page.getByRole('link', { name: '返回首页' })).toBeVisible()
+      await expect(page.getByRole('link', { name: '返回首页', exact: true })).toBeVisible()
     })
 
     test('生产环境默认不开放设计规范页', async ({ page }) => {

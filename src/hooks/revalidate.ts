@@ -23,7 +23,8 @@ function safeRevalidate(req: PayloadRequest, tags: string[]) {
   if (req.context?.disableRevalidate || !process.env.NEXT_RUNTIME) return
   for (const tag of tags) {
     try {
-      revalidateTag(tag, 'max')
+      // 后台发布后立即失效（不返回过期内容）：调用来自 Payload 的 API 路由，不能用 updateTag
+      revalidateTag(tag, { expire: 0 })
     } catch (err) {
       req.payload.logger.warn({ err, tag }, '缓存失效失败（可能不在 Next 运行时中）')
     }

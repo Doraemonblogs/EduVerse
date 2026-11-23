@@ -44,8 +44,8 @@
 ### 2.2 留资链路
 1. `SourceTracker`（客户端）首次落地时把 UTM、referrer、落地页写入 sessionStorage（首次触达归因）。
 2. 任意 CTA 调用 `openLead({ position, intent, disciplineId, courseId })` 打开弹窗，或页内 / 侧栏表单直接提交。
-3. Server Action `submitLead` 依次：zod 校验 → honeypot（命中则伪装成功）→ 最短填写时间（< 2s 视为机器）→ 进程内突发限流 → 数据库限频（同 IP 10 分钟 / 同手机号 24 小时，阈值后台可配）→ 重复判定（30 天内同手机号：标记重复、关联原线索、分配给原顾问）→ `payload.create({ overrideAccess: true })`。
-4. 写入后把 webhook 推送放入 Payload 任务队列（重试 3 次，结果记在线索上）。
+3. Server Action `submitLead` 依次：zod 校验 → honeypot（命中则伪装成功）→ 最短填写时间（客户端测得的停留时长 < 2s 视为机器）→ 进程内突发限流 → 数据库限频（同 IP 10 分钟 / 24 小时、同手机号 24 小时，阈值后台可配）→ 重复判定（30 天内同手机号：标记重复、关联原线索；原顾问仍在职才沿用分配）→ `payload.create({ overrideAccess: true })`。详见 §4.9。
+4. 写入后把 webhook 推送放入 Payload 任务队列（最多重试 5 次，指数退避约 1 / 2 / 4 / 8 / 16 分钟；结果记在线索上）。
 5. 返回成功状态：展示微信二维码与引导语；前端 `_hmt.push(['_trackEvent', ...])` 记录百度统计转化。
 6. `leads` 集合的公开 REST create 关闭（`access.create` 仅管理员）。
 
@@ -158,6 +158,32 @@ docs/ docker/ docker-compose.dev.yml
 - `tests/unit/seed-data.test.ts` 校验数量、引用完整性与广告法禁用词。
 - 演示账号（仅本地开发）：`admin@ / editor@ / consultant.bj@ / consultant.sh@seed.eduverse.test`，密码见种子脚本输出。
 
+### 4.9 M2 落地说明（全站框架与留资）
+
+- **框架** `src/components/layout/site-chrome.tsx`：头部（桌面横向导航 + Radix NavigationMenu 大菜单；移动端 Logo + 搜索 + 抽屉菜单，抽屉按专业方向分组列课程、城市校区、其它栏目、热线与预约）、页脚（深色转化区 + 品牌联系方式 + 链接栏 + 二维码 + 备案号）、桌面右侧悬浮栏（在线咨询 / 电话 / 微信 / 预约试听 / 返回顶部）、**移动端底部操作条**（电话 / 微信 / 在线咨询 / 预约试听，产品方 2026-11-23 确认）。前台布局与全局 404 共用。导航类链接 `prefetch={false}`。
+- **数据层** `src/lib/data/site.ts`：`unstable_cache` + 与 Payload 钩子一致的标签；钩子用 `revalidateTag(tag, { expire: 0 })` 立即失效。`getLeadFormOptions` 只读取可公开字段，群机器人配置绝不下发前台；`getSiteSettings` 剔除第三方脚本字段。
+- **留资**：`LeadForm`（dialog / inline / sidebar）+ `LeadDialogProvider`（全站唯一弹窗，`useLeadDialog().open({ position, intent, ... })`）+ `LeadCTA`。客户端与服务端共用 `src/lib/validation/lead.ts` 的 zod 规则；提交走 Server Action `submitLeadAction` → `submitLead`（`src/lib/lead/submit.ts`，可在集成测试中直接调用）：校验 → 蜜罐 → 最短填写时间 → 进程内突发限流 → 数据库限频（同 IP 10 分钟 / 24 小时、同手机号 24 小时，阈值后台可配）→ 重复判定（30 天内同手机号：标记重复、关联原线索；原顾问仍是在职顾问才沿用分配）→ 只接受已发布内容的关联 ID → 写入（记录同意时的隐私政策版本）→ 有启用的群机器人时排队任务。`submitLeadAction` 把任何异常（含读取请求头、初始化 Payload）都转成错误状态返回，不会 reject。
+  - **手机号**：校验前去掉空格、连字符与 `+86` / `86` 前缀（`normalizePhone`），“138 0013 8000”“+86 13800138000”都按 `13800138000` 校验、入库；后台录入同样处理。
+  - **自动采集字段**（来源页、落地页、referrer、UTM、按钮位置、测试结果）超长时截断，不拒绝提交；关联 ID 非法时视为未选择。访客填写的姓名、城市、留言仍按长度上限提示。
+  - **最短填写时间**：客户端用 `performance.now()` 测得在表单上停留的毫秒数，放在隐藏字段 `fillMs`；服务端只在 `0 < fillMs < minFillSeconds × 1000` 时拒绝，`fillMs` 缺失或非法记为 0（未知）不拒绝。只比较一端的单调时钟，访客电脑时间不准不受影响。
+  - **突发限流**：能识别 IP 时同一 IP 60 秒最多 3 次；识别不了（未设置 `TRUST_PROXY=true`）时改用全站共用的兜底计数，60 秒最多 20 次（正常流量碰不到，只挡脚本批量灌入），并在生产环境首次提交时打一条警告日志。手机号限频始终生效；同一手机号的“限频 / 查重 → 写入”在进程内串行执行（单实例部署，PRD Q5），并发提交不能同时绕过。
+  - **重复线索的负责人**：只有原负责人仍是启用的课程顾问时才沿用；角色已变更或账号已停用时留空，交给管理员分配（仍标记重复、关联原线索）。
+  - **客户端 IP**（`src/lib/lead/client-info.ts`）：只在 `TRUST_PROXY=true` 时读取转发头，且假定前面**只有一层**可信反向代理：取 `X-Forwarded-For` 的**最后一个**地址（代理追加的真实对端，前面的值客户端可以伪造），没有时退回 `X-Real-IP`；不是合法 IPv4 / IPv6 时记为 `unknown`。nginx 必须同时配置下面两行（只设 `X-Real-IP` 不够：Next.js 会在缺少 `X-Forwarded-For` 时用代理自己的地址补上，所有访客会变成同一个 IP）：
+
+    ```nginx
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+    ```
+
+    前面还有 CDN 或多层代理时，要先在 nginx 用 `real_ip` 模块（`set_real_ip_from` + `real_ip_header`）还原真实访客地址，否则取到的是上一层代理的地址。
+- **群机器人推送**：Payload 任务 `notifyLead`（`src/jobs/notify-lead.ts`，`src/lib/lead/webhook.ts`）。提交成功后用 `after()` 立即执行；失败按任务配置重试，每分钟的定时任务兜底；已推送成功的目标不重复推送；推送内容默认手机号脱敏，不含 IP / UA；发送前再次校验域名白名单。推送记录 `webhookDeliveries` 只能由任务（overrideAccess）写入，字段级 create / update 对所有人关闭，管理员在后台保存不会覆盖推送结果。群机器人最多 10 个（服务端同样校验）。
+- **状态流转**：`src/lib/lead/status.ts`，课程顾问只能向前推进或标为无效，回退与重新激活只能由管理员操作（服务端钩子强制）。
+- **导出**：`GET /api/leads/export`（`src/endpoints/export-leads.ts`）按后台列表当前筛选条件导出，访问控制保证顾问只导出自己的线索；UTF-8 BOM、防公式注入、不含 IP / UA；`where` 结构不合法返回 400；跨站顶层导航（`Sec-Fetch-Site: cross-site`）返回 403；单次最多 10000 条，超出时响应头 `X-Export-Truncated / X-Export-Count / X-Export-Total` 标明。每次导出写入 `audit-logs`（管理员只读），同时记录操作人关联与快照（邮箱、姓名、角色），删除账号后仍可追溯。入口在线索列表右上角菜单：按钮用 fetch 下载（进行中禁用、失败与截断用后台提示条告知），文件名取服务端 `Content-Disposition`。
+- **任务队列**：REST 的 `/api/payload-jobs/run` 等只允许管理员；每分钟的定时运行顺带把卡在 `processing` 超过 10 分钟的任务放回队列（进程重启时被中断的推送不会永远卡住）。
+- **通用页面** `/[pageSlug]`：渲染 `pages` 集合（关于、联系、隐私政策、用户协议）的内容区块；富文本组件处理站内链接与图片的 basePath；面包屑带 BreadcrumbList 结构化数据。原计划 M6 的“关于 / 联系”随通用页面路由在 M2 一并上线。
+- **第三方脚本**：百度统计与在线客服只在后台配置后加载，`lazyOnload`；静态预览站不加载。
+- **预览站**：导航已链接但尚未实现的路由登记在导出脚本的 `PLANNED_ROUTES`（标注里程碑），暂不算断链；实现后删除对应条目。
+
 ## 5. 路由清单
 
 | 路由 | 说明 | 里程碑 |
@@ -174,8 +200,8 @@ docs/ docker/ docker-compose.dev.yml
 | `/tutorials` | 免费教程 | M7 |
 | `/quiz` | 职业测试 | M7 |
 | `/search?q=` | 站内搜索 | M7 |
-| `/about` `/contact` | `pages` 集合 | M6 |
-| `/privacy` `/terms` | `pages` 集合 | M2 |
+| `/about` `/contact` | `pages` 集合（通用页面路由 `/[pageSlug]`） | M2 |
+| `/privacy` `/terms` | `pages` 集合（通用页面路由 `/[pageSlug]`） | M2 |
 | `/sitemap.xml` `/robots.txt` | | M8 |
 | `/styleguide` | 设计规范（开发工具） | M0 |
 | `/admin` | Payload 后台 | M0 |

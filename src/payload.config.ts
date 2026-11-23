@@ -7,6 +7,7 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { ArticleCategories } from './collections/ArticleCategories'
+import { AuditLogs } from './collections/AuditLogs'
 import { Articles } from './collections/Articles'
 import { Banners } from './collections/Banners'
 import { Campuses } from './collections/Campuses'
@@ -33,6 +34,7 @@ import { LeadSettings } from './globals/LeadSettings'
 import { Navigation } from './globals/Navigation'
 import { QuizSettings } from './globals/QuizSettings'
 import { SiteSettings } from './globals/SiteSettings'
+import { jobsConfig } from './jobs/config'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -76,8 +78,11 @@ export default buildConfig({
     Leads,
     Users,
     Media,
+    AuditLogs,
   ],
   globals: [SiteSettings, Navigation, Footer, HomePage, CareersPage, QuizSettings, LeadSettings],
+  // 任务队列（线索推送）：接口权限、定时执行、退避重试与中断回收见 src/jobs/config.ts
+  jobs: jobsConfig,
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   // 关闭 Payload 匿名遥测（数据发往境外 telemetry.payloadcms.com）

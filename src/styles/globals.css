@@ -110,10 +110,52 @@
   --shadow-sm: 0 2px 8px -2px rgb(11 12 15 / 0.1);
   --shadow-md: 0 12px 32px -12px rgb(11 12 15 / 0.22);
   --shadow-lg: 0 24px 64px -16px rgb(11 12 15 / 0.32);
+  /* 底部操作条：向上的投影 */
+  --shadow-bar: 0 -4px 16px -8px rgb(11 12 15 / 0.18);
 
   /* ---------- 动效 ---------- */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --animate-fade-in: fade-in 200ms var(--ease-standard);
+  --animate-fade-out: fade-out 150ms var(--ease-standard);
+  --animate-pop-in: pop-in 240ms var(--ease-out-expo);
+  --animate-sheet-up: sheet-up 280ms var(--ease-out-expo);
+  --animate-drawer-in: drawer-in 300ms var(--ease-out-expo);
+  --animate-drawer-out: drawer-out 200ms var(--ease-standard);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  /* 只描述相对位移：居中用的 -50% 由 translate 属性（-translate-x/y-1/2）负责，
+     与 transform 叠加生效，这里再写 -50% 会让弹窗从左上方飞入 */
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+  }
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes drawer-out {
+    to {
+      transform: translateX(100%);
+    }
+  }
 }
 
 /*
@@ -302,25 +344,30 @@
 }
 
 /* ---------- 版式工具类 ---------- */
+/* 页面开启了 viewport-fit=cover（铺满刘海屏）：版心左右留白至少为安全区，
+   横屏时内容不会落到刘海 / 灵动岛与圆角下面；竖屏与桌面端安全区为 0，仍是常规留白。 */
 @utility container-site {
   margin-inline: auto;
   width: 100%;
   max-width: calc(var(--container-site) + var(--spacing-gutter) * 2);
-  padding-inline: var(--spacing-gutter);
+  padding-left: max(var(--spacing-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--spacing-gutter), env(safe-area-inset-right, 0px));
 }
 
 @utility container-wide {
   margin-inline: auto;
   width: 100%;
   max-width: calc(var(--container-wide) + var(--spacing-gutter) * 2);
-  padding-inline: var(--spacing-gutter);
+  padding-left: max(var(--spacing-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--spacing-gutter), env(safe-area-inset-right, 0px));
 }
 
 @utility container-prose {
   margin-inline: auto;
   width: 100%;
   max-width: calc(var(--container-prose) + var(--spacing-gutter) * 2);
-  padding-inline: var(--spacing-gutter);
+  padding-left: max(var(--spacing-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--spacing-gutter), env(safe-area-inset-right, 0px));
 }
 
 /* 英文眉标：小号大写 + 字距，用于区块标题上方 */
@@ -337,4 +384,164 @@
 @utility numeric {
   font-family: var(--font-space-grotesk), var(--font-sans);
   font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+ *  正文排版 prose-zh（M2 · 通用页面 / 富文本）
+ *  用于 CMS 富文本输出（src/components/common/rich-text.tsx）。
+ *  只引用语义变量，深色区块内自动切换配色；子选择器用 :where() 保持低优先级，
+ *  便于在具体元素上用工具类覆盖。中文正文 16px / 1.7。
+ * ===================================================================== */
+@utility prose-zh {
+  color: var(--foreground);
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  overflow-wrap: break-word;
+
+  & > :first-child {
+    margin-top: 0;
+  }
+  & > :last-child {
+    margin-bottom: 0;
+  }
+
+  & :where(p) {
+    margin-block: 1em;
+  }
+
+  & :where(h2, h3, h4, h5, h6) {
+    font-family: var(--font-space-grotesk), var(--font-sans);
+    color: var(--foreground);
+    text-wrap: balance;
+  }
+  & :where(h2) {
+    margin-top: 2.25em;
+    margin-bottom: 0.75em;
+    font-size: var(--text-h3);
+    line-height: var(--text-h3--line-height);
+    font-weight: 700;
+  }
+  & :where(h3) {
+    margin-top: 2em;
+    margin-bottom: 0.5em;
+    font-size: var(--text-h4);
+    line-height: var(--text-h4--line-height);
+    font-weight: 600;
+  }
+  & :where(h4, h5, h6) {
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    font-weight: 600;
+  }
+  & :where(h2 + h3) {
+    margin-top: 1em;
+  }
+
+  & :where(a) {
+    color: var(--emphasis);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: text-decoration-thickness 150ms var(--ease-standard);
+  }
+  & :where(a:hover) {
+    text-decoration-thickness: 2px;
+  }
+
+  & :where(strong, b) {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  & :where(ul, ol) {
+    margin-block: 1em;
+    padding-inline-start: 1.5em;
+  }
+  & :where(ul) {
+    list-style-type: disc;
+  }
+  & :where(ol) {
+    list-style-type: decimal;
+  }
+  & :where(ul ul) {
+    list-style-type: circle;
+  }
+  & :where(li) {
+    margin-block: 0.375em;
+    padding-inline-start: 0.25em;
+  }
+  & :where(li)::marker {
+    color: var(--muted-foreground);
+  }
+  & :where(li > ul, li > ol) {
+    margin-block: 0.375em;
+  }
+
+  & :where(blockquote) {
+    margin-block: 1.5em;
+    border-inline-start: 3px solid var(--emphasis);
+    border-radius: var(--radius-xs);
+    background-color: var(--muted);
+    padding: 0.75em 1em;
+    color: var(--muted-foreground);
+  }
+  & :where(blockquote > p) {
+    margin-block: 0.5em;
+  }
+
+  & :where(hr) {
+    margin-block: 2.5em;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  & :where(figure) {
+    margin-block: 2em;
+  }
+  & :where(img) {
+    height: auto;
+    max-width: 100%;
+    border-radius: var(--radius-md);
+  }
+  & :where(figcaption) {
+    margin-top: 0.75em;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    color: var(--muted-foreground);
+  }
+
+  & :where(code) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+  }
+
+  /* 表格：窄屏横向滚动，不撑破页面 */
+  & :where(.lexical-table-container) {
+    margin-block: 1.5em;
+    overflow-x: auto;
+  }
+  & :where(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+  & :where(th, td) {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: start;
+    vertical-align: top;
+  }
+  & :where(th) {
+    font-weight: 600;
+  }
+}
+/* ===================== prose-zh 结束 ===================== */
+
+/* 页面已经以行动号召区块（含留资表单）收尾时，不再重复页脚的行动号召横幅。
+   不支持 :has() 的浏览器两者都显示，不影响使用。 */
+body:has([data-page-end-cta]) [data-footer-cta] {
+  display: none;
 }

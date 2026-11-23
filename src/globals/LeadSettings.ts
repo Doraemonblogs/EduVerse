@@ -1,4 +1,10 @@
-import type { FieldHook, GlobalConfig, TextFieldSingleValidation } from 'payload'
+import {
+  validations,
+  type ArrayFieldValidation,
+  type FieldHook,
+  type GlobalConfig,
+  type TextFieldSingleValidation,
+} from 'payload'
 
 import { hiddenFromNonAdmin, isAdmin } from '@/access/roles'
 import { ADMIN_GROUPS } from '@/collections/groups'
@@ -60,6 +66,22 @@ export function validateWebhookUrl(platform: unknown, url: unknown): true | stri
 const validateUrlField: TextFieldSingleValidation = (value, { siblingData }) =>
   validateWebhookUrl((siblingData as { platform?: unknown } | undefined)?.platform, value)
 
+/** 群机器人最多 10 个：每条新线索都会向每个目标发一次请求 */
+export const MAX_WEBHOOKS = 10
+
+/**
+ * 群机器人列表：先执行内置的数组校验（maxRows 等；自定义 validate 会替换掉内置校验，必须显式调用），
+ * 再检查名称不重复——推送记录按“名称 + 域名”区分目标，同名会导致重试时互相跳过。
+ */
+const validateWebhookRows: ArrayFieldValidation = (rows, options) => {
+  const base = validations.array(rows, options)
+  if (base !== true) return base
+  const names = Array.isArray(rows)
+    ? rows.map((row) => String((row as { name?: unknown }).name ?? '').trim()).filter(Boolean)
+    : []
+  return new Set(names).size === names.length ? true : '群机器人名称不能重复'
+}
+
 /** 去掉粘贴时带入的首尾空白 */
 const trimValue: FieldHook = ({ value }) => (typeof value === 'string' ? value.trim() : value)
 
@@ -86,7 +108,8 @@ export const LeadSettings: GlobalConfig = {
               type: 'array',
               label: '群机器人',
               labels: { singular: '机器人', plural: '群机器人' },
-              maxRows: 10,
+              maxRows: MAX_WEBHOOKS,
+              validate: validateWebhookRows,
               fields: [
                 {
                   type: 'row',

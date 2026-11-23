@@ -1,0 +1,289 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { hydrateRoot } from 'react-dom/client'
+import { renderToString } from 'react-dom/server'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { LeadFormConfig } from '@/components/lead/types'
+import { zh } from '@/i18n/zh'
+import type { LeadActionState } from '@/lib/lead/actions'
+import { leadSubmissionSchema } from '@/lib/validation/lead'
+
+/**
+ * 留资表单的客户端行为（jsdom）：Server Action 用 mock 代替，不连数据库。
+ * 覆盖：Action 失败不崩溃、服务端报错不清空已填内容、焦点落在可见控件上、提交附带的防刷 / 来源字段。
+ */
+const submitLeadAction = vi.hoisted(() =>
+  vi.fn<(previous: LeadActionState, formData: FormData) => Promise<LeadActionState>>(),
+)
+
+vi.mock('@/lib/lead/actions', () => ({ submitLeadAction }))
+vi.mock('next/link', () => ({
+  default: ({
+    href,
+    children,
+    prefetch: _prefetch,
+    ...rest
+  }: React.ComponentProps<'a'> & { href: string; prefetch?: boolean }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}))
+
+const { LeadForm } = await import('@/components/lead/lead-form')
+
+const t = zh.lead
+
+const config: LeadFormConfig = {
+  disciplines: [{ id: 1, name: '三维动画' }],
+  cities: ['北京', '上海'],
+  successTitle: '提交成功',
+  successMessage: '课程顾问会尽快联系你',
+  wechatId: null,
+  wechatQr: null,
+  hotline: '400-000-0000',
+}
+
+class NoopResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+beforeEach(() => {
+  submitLeadAction.mockReset()
+  // Radix 复选框用 ResizeObserver 测量隐藏的辅助 input，jsdom 没有实现
+  vi.stubGlobal('ResizeObserver', NoopResizeObserver)
+  window.sessionStorage.clear()
+})
+
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
+
+function renderForm(props: Partial<React.ComponentProps<typeof LeadForm>> = {}) {
+  render(<LeadForm config={config} variant="dialog" position="test_form" {...props} />)
+}
+
+function fillValidForm() {
+  fireEvent.change(field(t.labels.name), { target: { value: '张同学' } })
+  fireEvent.change(field(t.labels.phone), {
+    target: { value: '138 0013 8000' },
+  })
+  fireEvent.change(field(t.labels.city), { target: { value: '北京' } })
+  fireEvent.change(field(t.labels.message), { target: { value: '想了解周末班' } })
+  fireEvent.click(screen.getByRole('checkbox'))
+}
+
+/** 必填字段的标签带有 * 标记，按包含文字匹配 */
+function field<T extends HTMLElement = HTMLElement>(label: string): T {
+  return screen.getByLabelText<T>(label, { exact: false })
+}
+
+async function submit() {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: t.submit }))
+  })
+}
+
+/** 最近一次调用 Server Action 时提交的字段 */
+function lastSubmitted(): Record<string, FormDataEntryValue> {
+  const formData = submitLeadAction.mock.lastCall?.[1]
+  if (!formData) throw new Error('Server Action 未被调用')
+  return Object.fromEntries(formData.entries())
+}
+
+describe('留资表单', () => {
+  it('Server Action 请求失败（reject）时显示通用错误提示，不抛到错误边界，已填写内容保留', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    submitLeadAction.mockRejectedValue(new TypeError('Failed to fetch'))
+    renderForm()
+    fillValidForm()
+    await submit()
+
+    expect(await screen.findByText(t.errors.generic)).toBeTruthy()
+    expect(field<HTMLInputElement>(t.labels.name).value).toBe('张同学')
+    expect(screen.getByRole('button', { name: t.submit })).toBeTruthy()
+  })
+
+  it('服务端返回错误时，已填写的姓名、手机号、城市、留言与同意勾选都保留', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'error', message: t.errors.tooFast })
+    renderForm()
+    fillValidForm()
+    await submit()
+
+    expect(await screen.findByText(t.errors.tooFast)).toBeTruthy()
+    expect(field<HTMLInputElement>(t.labels.name).value).toBe('张同学')
+    expect(field<HTMLInputElement>(t.labels.phone).value).toBe('138 0013 8000')
+    expect(field<HTMLSelectElement>(t.labels.city).value).toBe('北京')
+    expect(field<HTMLTextAreaElement>(t.labels.message).value).toBe('想了解周末班')
+    expect(screen.getByRole('checkbox').getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('服务端返回字段错误时，焦点移到对应字段', async () => {
+    submitLeadAction.mockResolvedValue({
+      status: 'error',
+      message: t.errors.formInvalid,
+      fieldErrors: { phone: t.errors.phoneInvalid },
+    })
+    renderForm()
+    fillValidForm()
+    await submit()
+
+    expect(await screen.findByText(t.errors.phoneInvalid)).toBeTruthy()
+    expect(document.activeElement).toBe(field(t.labels.phone))
+  })
+
+  it('只有未勾选同意时，焦点移到可见的同意复选框（而不是隐藏的辅助 input），且不提交', async () => {
+    renderForm()
+    fireEvent.change(field(t.labels.name), { target: { value: '张同学' } })
+    fireEvent.change(field(t.labels.phone), { target: { value: '13800138000' } })
+    await submit()
+
+    expect(screen.getByText(t.errors.consentRequired)).toBeTruthy()
+    const checkbox = screen.getByRole('checkbox')
+    expect(document.activeElement).toBe(checkbox)
+    expect(checkbox.getAttribute('aria-describedby')).toBeTruthy()
+    expect(submitLeadAction).not.toHaveBeenCalled()
+  })
+
+  it('同样的错误再次提交时，焦点重新回到第一个错误字段', async () => {
+    renderForm()
+    await submit()
+    const name = field(t.labels.name)
+    expect(document.activeElement).toBe(name)
+
+    field(t.labels.phone).focus()
+    await submit()
+    expect(document.activeElement).toBe(name)
+  })
+
+  it('提交时附带以毫秒计的填写用时 fillMs，不再提交 startedAt', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'success', submittedAt: Date.now() })
+    let now = 1_000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    renderForm()
+    fillValidForm()
+    now = 4_321.4
+    await submit()
+
+    const fields = lastSubmitted()
+    expect(fields.fillMs).toBe('3321')
+    expect(fields).not.toHaveProperty('startedAt')
+    expect(fields.position).toBe('test_form')
+    expect(fields.consent).toBe('on')
+    expect(await screen.findByRole('heading', { name: config.successTitle })).toBeTruthy()
+  })
+
+  it('页面地址与落地页地址在客户端截断到 500 个字符', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'success', submittedAt: Date.now() })
+    window.history.replaceState(null, '', `/courses?q=${'a'.repeat(800)}`)
+    renderForm()
+    fillValidForm()
+    await submit()
+
+    const fields = lastSubmitted()
+    expect(String(fields.pageUrl)).toHaveLength(500)
+    expect(String(fields.landingUrl)).toHaveLength(500)
+    expect(String(fields.pageUrl).startsWith('http://localhost')).toBe(true)
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('会话里记录的来源信息被改写成非字符串时按未填写处理（落地页退回当前页），超长的来源与 UTM 截断', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'success', submittedAt: Date.now() })
+    window.sessionStorage.setItem(
+      'eduverse:landing',
+      JSON.stringify({
+        landingUrl: 12345,
+        referrer: `https://ref.example/${'r'.repeat(800)}`,
+        utmSource: 's'.repeat(300),
+        utmMedium: { nested: true },
+      }),
+    )
+    renderForm()
+    fillValidForm()
+    await submit()
+
+    const fields = lastSubmitted()
+    expect(fields.landingUrl).toBe(fields.pageUrl)
+    expect(String(fields.referrer)).toHaveLength(500)
+    expect(fields.utmSource).toBe('s'.repeat(100))
+    expect(fields.utmMedium).toBe('')
+  })
+
+  it('手机号输入框允许粘贴带空格、连字符、+86 的号码（不被 11 位上限截断）', async () => {
+    submitLeadAction.mockResolvedValue({ status: 'success', submittedAt: Date.now() })
+    renderForm()
+    const phone = field<HTMLInputElement>(t.labels.phone)
+    expect(phone.maxLength).toBe(20)
+    expect(phone.type).toBe('tel')
+    expect(phone.inputMode).toBe('tel')
+    expect(phone.autocomplete).toBe('tel')
+
+    fillValidForm()
+    fireEvent.change(phone, { target: { value: '+86 138-0013-8000' } })
+    await submit()
+    expect(submitLeadAction).toHaveBeenCalledTimes(1)
+    expect(lastSubmitted().phone).toBe('+86 138-0013-8000')
+  })
+
+  it('客户端校验失败但没有可标出的字段时，显示通用错误提示而不是毫无反应', async () => {
+    const original = leadSubmissionSchema.safeParse.bind(leadSubmissionSchema)
+    // 模拟隐藏字段异常：网站蜜罐字段不是字符串，校验失败但不对应任何可见控件
+    vi.spyOn(leadSubmissionSchema, 'safeParse').mockImplementation((input) =>
+      original({ ...(input as Record<string, unknown>), website: 0 }),
+    )
+    renderForm()
+    fillValidForm()
+    await submit()
+
+    const status = screen.getByRole('status')
+    expect(within(status).getByText(t.errors.generic)).toBeTruthy()
+    expect(submitLeadAction).not.toHaveBeenCalled()
+  })
+
+  it('服务端渲染（水合前）的提交按钮不可用，水合后可用：未水合时的提交不会被 React 排队、绕过校验直接调用 Action', async () => {
+    // 页内表单（行动号召区块）由服务端渲染。水合前提交会被 React 的表单重放脚本记下，
+    // 水合后直接调用 action（不经过 onSubmit 的校验、来源字段与 fillMs，并在结束后重置表单），
+    // 因此水合前按钮必须禁用：点击与回车隐式提交都不会发生
+    const element = <LeadForm config={config} variant="inline" position="test_form" />
+    const container = document.createElement('div')
+    container.innerHTML = renderToString(element)
+    document.body.appendChild(container)
+    let root: ReturnType<typeof hydrateRoot> | undefined
+    try {
+      const button = () =>
+        within(container).getByRole<HTMLButtonElement>('button', { name: t.submit })
+      expect(button().disabled).toBe(true)
+
+      const consoleError = vi.spyOn(console, 'error')
+      root = await act(async () => hydrateRoot(container, element))
+      expect(button().disabled).toBe(false)
+      // 服务端与客户端首帧一致，没有水合不匹配告警
+      expect(consoleError).not.toHaveBeenCalled()
+    } finally {
+      const mounted = root
+      if (mounted) act(() => mounted.unmount())
+      container.remove()
+    }
+  })
+
+  it('客户端挂载的表单（弹窗里）提交按钮一开始就可用', () => {
+    renderForm()
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: t.submit }).disabled).toBe(false)
+  })
+
+  it('侧栏形态点击“留言”展开后，焦点移到留言输入框', async () => {
+    renderForm({ variant: 'sidebar' })
+    expect(screen.queryByLabelText(t.labels.message, { exact: false })).toBeNull()
+    const reveal = screen.getByRole('button', { name: `+ ${t.labels.message}` })
+    reveal.focus()
+    await act(async () => {
+      fireEvent.click(reveal)
+    })
+    expect(document.activeElement).toBe(field(t.labels.message))
+  })
+})

@@ -9,6 +9,7 @@ import { TimelineBlock } from '@/blocks/TimelineBlock'
 import { seoTab } from '@/fields/seo'
 import { slug } from '@/fields/slug'
 import { revalidateCollection } from '@/hooks/revalidate'
+import { validateReservedSlug } from '@/lib/reserved-slugs'
 
 import { ADMIN_GROUPS } from './groups'
 
@@ -20,20 +21,16 @@ export const RESERVED_PAGE_SLUGS = {
   terms: 'terms',
 } as const
 
+// 说明文字会写进 payload-types.ts 的注释，修改后需重新生成类型
 const SLUG_DESCRIPTION =
   '关于我们 about / 联系我们 contact / 隐私政策 privacy / 用户协议 terms 使用固定 slug'
 
-/** 复用通用 slug 字段，只替换说明文字 */
+/**
+ * 复用通用 slug 字段：替换说明文字，并拒绝被前台固定路由占用的 slug
+ * （页面挂在 /[pageSlug] 下，同名页面保存后也永远无法访问）。
+ */
 function pageSlugField(): RowField {
-  const row = slug('title')
-  return {
-    ...row,
-    fields: row.fields.map((field) =>
-      'name' in field && field.name === 'slug' && field.type === 'text'
-        ? { ...field, admin: { ...field.admin, description: SLUG_DESCRIPTION } }
-        : field,
-    ),
-  }
+  return slug('title', { description: SLUG_DESCRIPTION, validate: validateReservedSlug })
 }
 
 export const Pages: CollectionConfig = {

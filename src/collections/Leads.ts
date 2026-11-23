@@ -1,12 +1,18 @@
 import {
+  ValidationError,
   validations,
   type CollectionConfig,
   type Field,
+  type FieldAccess,
+  type FieldHook,
   type TextFieldSingleValidation,
 } from 'payload'
 
 import { leadAdminField, readLeads, updateLeads } from '@/access/leads'
 import { adminFieldOnly, hasRole, isAdmin } from '@/access/roles'
+import { exportLeadsEndpoint } from '@/endpoints/export-leads'
+import { canTransition, STATUS_LABELS, type LeadStatus } from '@/lib/lead/status'
+import { MAINLAND_PHONE_PATTERN, normalizePhone } from '@/lib/validation/lead'
 
 import { ADMIN_GROUPS } from './groups'
 
@@ -27,15 +33,22 @@ export const LEAD_INTENT_OPTIONS = [
   { label: '在线咨询', value: 'consult' },
 ]
 
-/** 中国大陆手机号：1 开头，第二位 3–9，共 11 位（不维护精确号段表，避免误拒新号段） */
-export const MAINLAND_PHONE_PATTERN = /^1[3-9]\d{9}$/
-
-/** 手机号：先执行内置校验（required），再校验大陆号段格式 */
+/**
+ * 手机号：先执行内置校验（required），再校验大陆号段格式
+ * （与前台表单共用 `src/lib/validation/lead.ts` 的 MAINLAND_PHONE_PATTERN，不维护精确号段表，避免误拒新号段）
+ */
 const validatePhone: TextFieldSingleValidation = (value, options) => {
   const base = validations.text(value, options)
   if (base !== true) return base
   return !value || MAINLAND_PHONE_PATTERN.test(value) ? true : '请输入 11 位中国大陆手机号'
 }
+
+/** 后台录入的手机号与前台一致：去掉空格、连字符与 +86 前缀后再校验、入库 */
+const normalizePhoneValue: FieldHook = ({ value }) =>
+  typeof value === 'string' ? normalizePhone(value) : value
+
+/** 系统写入的字段：任何人（包括管理员）都不能通过后台或 API 修改，只有 overrideAccess 的服务端代码能写 */
+const systemOnly: FieldAccess = () => false
 
 /** 系统写入、后台只读的字段（来源、同意记录等） */
 const readOnly = (field: Field): Field =>
@@ -55,7 +68,12 @@ export const Leads: CollectionConfig = {
     group: ADMIN_GROUPS.leads,
     hidden: ({ user }) => !hasRole(user, 'admin', 'consultant'),
     description: '访客在前台提交的留资。课程顾问只能看到分配给自己的线索。',
+    components: {
+      // 列表页右上角菜单：按当前筛选条件导出 CSV
+      listMenuItems: ['@/components/admin/export-leads-button#ExportLeadsButton'],
+    },
   },
+  endpoints: [exportLeadsEndpoint],
   defaultSort: '-createdAt',
   access: {
     // 前台留资只能通过服务端 Action（overrideAccess）写入，不开放公开的 REST create
@@ -72,8 +90,10 @@ export const Leads: CollectionConfig = {
         const userId = req.user?.id
         const original = operation === 'update' ? originalDoc : undefined
 
-        // 跟进记录：作者与时间始终由服务端写入；非管理员只能追加，已有记录不可修改或删除
-        if (Array.isArray(data.followUps)) {
+        // 跟进记录：作者与时间始终由服务端写入；非管理员只能追加，已有记录不可修改或删除。
+        // 只要提交里带了 followUps（包括 null、数字等非数组值）就执行：非数组按“没有新增”处理，
+        // 否则 Payload 会把这类值当作空数组，直接清空已有记录。
+        if ('followUps' in data) {
           type FollowUp = {
             id?: string | null
             content?: string
@@ -82,7 +102,7 @@ export const Leads: CollectionConfig = {
           }
           const stored: FollowUp[] = original?.followUps ?? []
           const storedById = new Map(stored.map((row) => [String(row.id), row]))
-          const submitted = data.followUps as FollowUp[]
+          const submitted: FollowUp[] = Array.isArray(data.followUps) ? data.followUps : []
           const isNew = (row: FollowUp) => !row.id || !storedById.has(String(row.id))
           const stamp = (row: FollowUp) => ({ ...row, author: userId, createdAt: now })
 
@@ -94,6 +114,23 @@ export const Leads: CollectionConfig = {
                   : stamp(row)
               })
             : [...stored, ...submitted.filter(isNew).map(stamp)]
+        }
+
+        // 状态流转：课程顾问只能向前推进（或标为无效），回退与重新激活只能由管理员操作
+        if (original && data.status && data.status !== original.status) {
+          const from = original.status as LeadStatus
+          const to = data.status as LeadStatus
+          if (!canTransition(from, to, hasRole(req.user, 'admin'))) {
+            throw new ValidationError({
+              collection: 'leads',
+              errors: [
+                {
+                  path: 'status',
+                  message: `不能从“${STATUS_LABELS[from]}”改为“${STATUS_LABELS[to]}”，如需回退请联系管理员`,
+                },
+              ],
+            })
+          }
         }
 
         // 状态变更历史：始终以数据库中的记录为准，忽略提交的值，状态变化时追加一条
@@ -124,6 +161,7 @@ export const Leads: CollectionConfig = {
                   required: true,
                   index: true,
                   validate: validatePhone,
+                  hooks: { beforeValidate: [normalizePhoneValue] },
                 },
               ],
             },
@@ -308,11 +346,21 @@ export const Leads: CollectionConfig = {
       name: 'webhookDeliveries',
       type: 'array',
       label: '群机器人推送记录',
-      access: { read: adminFieldOnly, create: leadAdminField, update: leadAdminField },
+      // 只由推送任务（overrideAccess）写入：后台保存时表单会带上打开页面时的旧记录，
+      // 若允许写入会覆盖任务刚记下的结果，导致重试时重复推送
+      access: { read: adminFieldOnly, create: systemOnly, update: systemOnly },
       admin: { readOnly: true, position: 'sidebar' },
       fields: [
         { name: 'target', type: 'text', label: '目标' },
-        { name: 'status', type: 'text', label: '结果' },
+        {
+          name: 'status',
+          type: 'select',
+          label: '结果',
+          options: [
+            { label: '推送成功', value: 'success' },
+            { label: '推送失败', value: 'failed' },
+          ],
+        },
         { name: 'attempts', type: 'number', label: '尝试次数' },
         { name: 'lastError', type: 'text', label: '错误信息' },
         { name: 'at', type: 'date', label: '时间' },

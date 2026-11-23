@@ -34,7 +34,7 @@ pnpm generate:types      # 改了集合 / 全局配置后重新生成 src/payloa
 pnpm generate:importmap  # 新增后台自定义组件后重新生成 importMap
 pnpm migrate:create      # 数据模型变更后创建迁移（每个改动 schema 的里程碑结束时必须做）
 pnpm migrate             # 执行迁移
-pnpm seed:reset          # 一键重置种子数据（清空内容 / 线索 / 种子账号，重新生成占位图与演示内容，约 45 秒）
+pnpm seed:reset          # 一键重置种子数据（清空内容 / 线索 / 种子账号，重新生成占位图与演示内容，约 45 秒；会清除 Next 数据缓存，运行中的服务需重启）
 pnpm preview:build       # 以 /EduVerse 子路径构建静态预览站（会覆盖 .next）
 pnpm preview:export      # 抓取运行中的预览服务，导出到 preview-dist/
 pnpm preview:serve       # 本地模拟 GitHub Pages 查看 preview-dist/
@@ -42,6 +42,8 @@ pnpm preview:serve       # 本地模拟 GitHub Pages 查看 preview-dist/
 
 在线预览站：https://doraemonblogs.github.io/EduVerse/（推送默认分支后由 `.github/workflows/preview-pages.yml` 自动发布，详见 README）。
 新增页面若不能从首页顺着链接到达，需登记到 `scripts/preview/export-static.ts` 的 `ENTRY_PATHS`。
+新增顶层前台路由（`/courses`、`/works` …）时，同步登记到 `src/lib/reserved-slugs.ts`（通用页面 `/[pageSlug]` 不得占用）；导航已链接、尚未实现的路由登记在导出脚本的 `PLANNED_ROUTES`，实现后删除。
+新增有前台详情页的集合时，在 `src/components/common/rich-text.tsx` 登记其路径前缀（富文本链接与页面缓存标签依赖它）。
 
 本地数据库：`docker compose -f docker-compose.dev.yml up -d`（会同时创建 `eduverse_test`）。
 无 Docker 时自行安装 PostgreSQL 16，创建 `eduverse` 与 `eduverse_test` 两个库。
@@ -70,6 +72,8 @@ docs/        PRD、架构、进度
 ```
 
 ## 编码规范
+
+- Next.js 16 与训练数据中的旧版本差异很大：写 Next 相关代码前先查 `node_modules/next/dist/docs/` 中对应版本的文档，留意弃用提示；Payload 以 `node_modules/payload/dist` 的类型定义为准。
 
 - TypeScript strict，禁止 `any`、`@ts-ignore`；类型导入用 `import { type X }`。
 - 默认写服务端组件；只有需要交互时才加 `'use client'`，并尽量把客户端边界压到最小。

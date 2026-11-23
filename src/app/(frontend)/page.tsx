@@ -21,7 +21,7 @@ export default function HomePage() {
   const showStyleguide = isDev || process.env.ENABLE_STYLEGUIDE === 'true'
 
   return (
-    <Section tone="dark" className="flex flex-1 items-center">
+    <Section tone="dark" className="flex min-h-[70dvh] flex-1 items-center">
       <Container className="flex flex-col gap-6">
         <p className="eyebrow text-muted-foreground">{siteFallback.shortName}</p>
         <h1 className="text-display">{siteFallback.name}</h1>

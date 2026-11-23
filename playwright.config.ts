@@ -32,6 +32,8 @@ export default defineConfig({
   ],
   webServer: {
     command: `pnpm start --port ${PORT}`,
+    // 测试会用 X-Forwarded-For 模拟不同访客 IP（避免触发按 IP 限频），需要服务信任代理头
+    env: { TRUST_PROXY: 'true' },
     url: baseURL,
     reuseExistingServer: true,
     timeout: 120_000,

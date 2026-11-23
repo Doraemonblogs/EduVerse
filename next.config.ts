@@ -20,6 +20,8 @@ const isStaticPreview = process.env.NEXT_PUBLIC_STATIC_PREVIEW === 'true'
 
 const nextConfig: NextConfig = {
   basePath,
+  // 不自动生成 AGENTS.md：同样的约定（以 node_modules/next/dist/docs 为准）已写在 CLAUDE.md
+  agentRules: false,
   poweredByHeader: false,
   reactStrictMode: true,
   images: {

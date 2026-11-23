@@ -66,6 +66,12 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
       showSearch: true,
     },
     footer: {
+      cta: {
+        enabled: true,
+        title: '先来听一节课，再决定学什么',
+        description: '课程顾问会根据你的基础和时间，安排就近校区或线上试听，并提供学习路线建议。',
+        buttonLabel: '免费预约试听',
+      },
       columns: [
         { title: '专业课程', links: [...majorLinks, { label: '全部课程', href: '/courses' }] },
         {

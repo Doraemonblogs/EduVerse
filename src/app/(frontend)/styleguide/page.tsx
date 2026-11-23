@@ -6,6 +6,8 @@ import { notFound } from 'next/navigation'
 import { Container } from '@/components/common/container'
 import { Section, type SectionTone } from '@/components/common/section'
 import { SectionHeading } from '@/components/common/section-heading'
+import { LeadCTA } from '@/components/lead/lead-cta'
+import { LeadForm } from '@/components/lead/lead-form'
 import { ContrastTable } from '@/components/styleguide/contrast-table'
 import { TokenSwatches } from '@/components/styleguide/token-swatches'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +19,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { zh } from '@/i18n/zh'
+import { getLeadFormConfig } from '@/lib/data/lead-form'
 
 /**
  * 设计规范页（开发工具）：展示设计令牌与基础组件，供评审视觉方向。
@@ -227,8 +230,9 @@ function ComponentShowcase({ tone }: { tone: SectionTone }) {
   )
 }
 
-export default function StyleguidePage() {
+export default async function StyleguidePage() {
   if (!isEnabled()) notFound()
+  const leadConfig = await getLeadFormConfig()
 
   return (
     <>
@@ -444,6 +448,31 @@ export default function StyleguidePage() {
             <Button size="lg">
               免费预约试听 <ArrowRight aria-hidden />
             </Button>
+          </div>
+        </Container>
+      </Section>
+
+      <Section tone="paper">
+        <Container className="flex flex-col gap-10">
+          <SectionHeading
+            eyebrow="Lead Forms"
+            title="留资表单"
+            description="同一个组件的三种形态：页内（页面底部、关于我们等）、侧栏（课程详情、文章）、弹窗（导航、悬浮栏、移动端操作条）。"
+            actions={
+              <LeadCTA position="styleguide_demo" intent="trial">
+                打开弹窗形态
+              </LeadCTA>
+            }
+          />
+          <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
+            <div className="rounded-md border border-border bg-card p-6">
+              <p className="eyebrow mb-4 text-muted-foreground">Inline · 页内</p>
+              <LeadForm config={leadConfig} variant="inline" position="styleguide_inline" />
+            </div>
+            <div className="rounded-md border border-border bg-card p-5">
+              <p className="eyebrow mb-4 text-muted-foreground">Sidebar · 侧栏</p>
+              <LeadForm config={leadConfig} variant="sidebar" position="styleguide_sidebar" />
+            </div>
           </div>
         </Container>
       </Section>
