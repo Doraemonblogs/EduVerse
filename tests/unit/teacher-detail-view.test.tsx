@@ -84,7 +84,7 @@ function teacher(overrides: Partial<TeacherDetail> = {}): TeacherDetail {
     avatar: { src: '/api/media/file/t-600x600.webp', alt: '林老师头像', width: 600, height: 600 },
     shareImage: null,
     yearsOfExperience: 12,
-    campus: { name: '中关村校区', city: '北京' },
+    campus: { name: '中关村校区', slug: 'beijing-zgc', city: '北京' },
     disciplines: [ANIMATION, GAME],
     specialties: ['角色表演动画', '镜头语言与分镜'],
     bio,
@@ -139,16 +139,17 @@ describe('TeacherDetailView', () => {
     expect(within(breadcrumbs).getByText('林雨晴').getAttribute('aria-current')).toBe('page')
   })
 
-  it('首屏概况：从业年限、校区（不链接）、专业方向（链接到专业页）与擅长领域标签', () => {
+  it('首屏概况：从业年限、校区（链接到校区详情）、专业方向（链接到专业页）与擅长领域标签', () => {
     renderView(teacher())
     const facts = hero().querySelector('dl')!
     const value = (label: string) =>
       within(facts).getByText(label, { selector: 'dt' }).nextElementSibling as HTMLElement
 
     expect(value('从业年限').textContent).toBe('12 年')
-    // 校区名不以城市开头时补上城市；校区详情 M6 才上线，不链接
+    // 校区名不以城市开头时补上城市；链接到校区详情
     expect(value('所在校区').textContent).toBe('北京·中关村校区')
-    expect(within(value('所在校区')).queryByRole('link')).toBeNull()
+    const campusLink = within(value('所在校区')).getByRole('link', { name: '北京·中关村校区' })
+    expect(campusLink.getAttribute('href')).toBe('/campuses/beijing-zgc')
 
     const links = within(value('专业方向')).getAllByRole('link')
     expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([

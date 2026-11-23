@@ -30,6 +30,7 @@ import { stories } from './data/stories'
 import { teachers } from './data/teachers'
 import { tutorials } from './data/tutorials'
 import { bilibiliPlayerUrl, galleryCaptions, works } from './data/works'
+import { beijingDateTime } from './dates'
 import { toLexical } from './lexical'
 import { generatePlaceholder, type Aspect, type PlaceholderKind } from './placeholders'
 import {
@@ -177,6 +178,14 @@ async function reset(payload: Payload) {
 export type SeedSummary = { counts: Record<string, number>; seconds: number }
 
 /** 重置并写入全部种子数据（CLI 与集成测试共用） */
+/**
+ * 演示文章的阅读量：发布越早越多，再按 slug 做固定扰动，避免整齐的数字；同一种子结果一致。
+ */
+function seedArticleViews(publishedDaysAgo: number, slug: string): number {
+  const jitter = [...slug].reduce((sum, ch) => (sum * 31 + ch.charCodeAt(0)) % 997, 7)
+  return 80 + Math.max(0, publishedDaysAgo) * 23 + jitter
+}
+
 export async function runSeed(payload: Payload): Promise<SeedSummary> {
   if (process.env.NODE_ENV === 'production' && process.env.SEED_ALLOW_PRODUCTION !== 'true') {
     throw new Error('生产环境禁止运行种子脚本（如确需运行，设置 SEED_ALLOW_PRODUCTION=true）')
@@ -565,7 +574,7 @@ export async function runSeed(payload: Payload): Promise<SeedSummary> {
   for (const [i, c] of ARTICLE_CATEGORIES.entries()) {
     const doc = await payload.create({
       collection: 'article-categories',
-      data: { name: c.name, slug: c.slug, order: i },
+      data: { name: c.name, slug: c.slug, description: c.description, order: i },
       context,
     })
     categoryIds.set(c.slug, doc.id)
@@ -610,6 +619,8 @@ export async function runSeed(payload: Payload): Promise<SeedSummary> {
         relatedCourses: a.relatedCourses.map(courseId),
         authorName: a.authorName,
         publishedAt: days(-a.publishedDaysAgo),
+        // 演示用阅读量：按发布时间由远到近递减，结果固定（种子可重复执行）
+        views: seedArticleViews(a.publishedDaysAgo, a.slug),
       },
       context,
     })
@@ -713,7 +724,7 @@ export async function runSeed(payload: Payload): Promise<SeedSummary> {
       collection: 'career-events',
       data: {
         title: e.title,
-        date: days(e.daysFromNow),
+        date: beijingDateTime(e.daysFromNow, e.time),
         location: e.location,
         campus: e.campus ? campusId(e.campus) : undefined,
         image,

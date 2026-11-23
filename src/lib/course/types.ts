@@ -45,6 +45,9 @@ export type CampusRef = {
   order: number
 }
 
+/** 开班校区：一定是已发布的校区（未发布校区的开班已剔除），可以链接到 /campuses/[slug] */
+export type CohortCampus = { name: string; slug: string; city: string; address: string }
+
 export type CohortItem = {
   id: number
   /** 开班日期（ISO 时间戳）。展示用 formatCohortDate()，按北京时间取日期 */
@@ -53,8 +56,20 @@ export type CohortItem = {
   mode: DeliveryMode
   status: CohortStatus
   /** 开班校区；null 表示线上开班（没有校区） */
-  campus: { name: string; city: string; address: string } | null
+  campus: CohortCampus | null
   note: string | null
+}
+
+/**
+ * 开班计划所属的课程（跨课程的开班列表用，如校区详情的“近期开班”）：
+ * 只有可公开访问的课程（已发布、所属专业方向已发布）才会出现。
+ */
+export type CohortCourseRef = {
+  id: number
+  slug: string
+  title: string
+  /** 所属专业方向 ID（每行“预约试听”的线索 context.discipline） */
+  disciplineId: number
 }
 
 export type CourseDuration = { value: number; unit: DurationUnit }

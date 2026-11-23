@@ -1,21 +1,15 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
+import { ArticleCard } from '@/components/articles/article-card'
 import { zh } from '@/i18n/zh'
-import { articlePath } from '@/lib/articles/paths'
-import { formatCohortDate, toBeijingIsoDate } from '@/lib/course/format'
 import type { HomeArticle, HomeArticleCategory } from '@/lib/home/types'
 import { cn } from '@/lib/utils'
 
 import { articlesForTab, buildArticleTabs, nextTabIndex } from './article-tabs-model'
 
 const t = zh.home.bottom.articles
-
-/** 缩略图宽度：移动端 96px，≥ sm 160px */
-const THUMB_SIZES = '(min-width: 640px) 160px, 96px'
 
 export type ArticleTabsProps = {
   articles: HomeArticle[]
@@ -108,7 +102,8 @@ export function ArticleTabs({ articles, categories }: ArticleTabsProps) {
 }
 
 /**
- * 资讯列表：每行一个链接（缩略图、分类 · 日期、标题、≥ sm 摘要）；≥ lg 两列，行与行之间细线分隔。
+ * 资讯列表：每行一个链接（ArticleCard 的 row 变体：缩略图、分类 · 日期、标题、≥ sm 摘要）；
+ * ≥ lg 两列，行与行之间细线分隔。
  * 移动端也写明 grid-cols-1（minmax(0, 1fr)）：隐式列宽按内容撑开，标题 break-keep 后整段不可断的长词
  * 会把列撑得比版心宽（360px 宽时页面横向滚动）。
  */
@@ -117,68 +112,9 @@ function ArticleList({ articles }: { articles: HomeArticle[] }) {
     <ul role="list" className="grid grid-cols-1 border-t border-border lg:grid-cols-2 lg:gap-x-12">
       {articles.map((article) => (
         <li key={article.id} className="border-b border-border">
-          <ArticleRow article={article} />
+          <ArticleCard article={article} variant="row" />
         </li>
       ))}
     </ul>
-  )
-}
-
-function ArticleRow({ article }: { article: HomeArticle }) {
-  const id = useId()
-  const titleId = `${id}-title`
-  const metaId = `${id}-meta`
-  const date = formatCohortDate(article.publishedAt)
-
-  return (
-    <Link
-      href={articlePath(article.slug)}
-      prefetch={false}
-      aria-labelledby={titleId}
-      aria-describedby={metaId}
-      className="group flex gap-4 rounded-sm py-5 sm:gap-5"
-    >
-      <div className="aspect-[4/3] w-24 shrink-0 overflow-hidden rounded-sm bg-muted sm:aspect-[16/10] sm:w-40">
-        {article.cover ? (
-          <Image
-            src={article.cover.src}
-            alt={article.cover.alt || article.title}
-            width={article.cover.width}
-            height={article.cover.height}
-            sizes={THUMB_SIZES}
-            loading="lazy"
-            className="size-full object-cover transition-transform duration-300 ease-standard group-hover:scale-[1.03]"
-          />
-        ) : null}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <p
-          id={metaId}
-          className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground"
-        >
-          {article.category ? (
-            <>
-              <span className="font-medium text-foreground">{article.category.name}</span>
-              <span aria-hidden className="h-3 w-px bg-border" />
-            </>
-          ) : null}
-          {date ? (
-            <time dateTime={toBeijingIsoDate(article.publishedAt)} className="numeric">
-              <span className="sr-only">{t.publishedAt}</span>
-              {date}
-            </time>
-          ) : null}
-        </p>
-        <h3
-          id={titleId}
-          className="line-clamp-2 text-base leading-snug font-semibold break-keep text-foreground underline-offset-4 wrap-break-word group-hover:underline md:text-lg"
-        >
-          {article.title}
-        </h3>
-        <p className="line-clamp-2 text-sm text-muted-foreground max-sm:hidden">
-          {article.excerpt}
-        </p>
-      </div>
-    </Link>
   )
 }

@@ -250,6 +250,66 @@ describe('CohortList', () => {
   })
 })
 
+describe('CohortList：校区链接与跨课程的开班', () => {
+  it('开班校区链接到校区详情；线上开班没有链接；linkCampus=false 时只显示文字', () => {
+    const cohorts = [
+      cohortItem({ id: 1 }),
+      cohortItem({ id: 2, mode: 'online', campus: null, startDate: '2027-01-05T02:00:00.000Z' }),
+    ]
+    const { unmount } = withProvider(<CohortList cohorts={cohorts} courseId={1} disciplineId={1} />)
+    const rows = screen.getAllByRole('listitem')
+    expect(within(rows[0]!).getByRole('link', { name: '北京海淀校区' }).getAttribute('href')).toBe(
+      '/campuses/beijing-haidian',
+    )
+    expect(within(rows[1]!).queryByRole('link')).toBeNull()
+    unmount()
+
+    withProvider(
+      <CohortList cohorts={cohorts.slice(0, 1)} courseId={1} disciplineId={1} linkCampus={false} />,
+    )
+    expect(screen.getByText('北京海淀校区').closest('a')).toBeNull()
+  })
+
+  it('每行带课程时：显示课程名（链接到课程），预约试听带上该行的课程、专业方向与指定的位置', async () => {
+    withProvider(
+      <CohortList
+        cohorts={[
+          {
+            ...cohortItem({ id: 1 }),
+            course: {
+              id: 41,
+              slug: 'game-art-career',
+              title: '游戏美术长期班',
+              disciplineId: DEFAULT_DISCIPLINE_ID,
+            },
+          },
+        ]}
+        position="campus_cohort"
+        linkCampus={false}
+      />,
+    )
+    const row = screen.getByRole('listitem')
+    expect(within(row).getByRole('link', { name: '游戏美术长期班' }).getAttribute('href')).toBe(
+      '/courses/game-art-career',
+    )
+    await act(async () => {
+      fireEvent.click(
+        within(row).getByRole('button', {
+          name: '预约试听：游戏美术长期班，2026年12月14日开班（北京海淀校区）',
+        }),
+      )
+    })
+    const form = screen.getByRole('dialog').querySelector('form')!
+    expect(form.querySelector<HTMLInputElement>('input[name="position"]')?.value).toBe(
+      'campus_cohort',
+    )
+    expect(form.querySelector<HTMLInputElement>('input[name="course"]')?.value).toBe('41')
+    expect(form.querySelector<HTMLSelectElement>('select[name="discipline"]')?.value).toBe(
+      String(DEFAULT_DISCIPLINE_ID),
+    )
+  })
+})
+
 describe('SalaryReferenceCard', () => {
   it('显示区间、来源、统计时间、补充说明与免责声明', () => {
     render(

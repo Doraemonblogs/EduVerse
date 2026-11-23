@@ -42,9 +42,6 @@ const NOT_FOUND_PROBE = '/__static-preview-not-found__'
  * 对应里程碑完成后从这里删除，之后再出现 404 就会让导出失败。
  */
 const PLANNED_ROUTES: { prefix: string; milestone: string }[] = [
-  { prefix: '/careers', milestone: 'M6' },
-  { prefix: '/campuses', milestone: 'M6' },
-  { prefix: '/articles', milestone: 'M6' },
   { prefix: '/tutorials', milestone: 'M7' },
   { prefix: '/quiz', milestone: 'M7' },
   { prefix: '/search', milestone: 'M7' },

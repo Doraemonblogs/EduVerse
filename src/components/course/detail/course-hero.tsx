@@ -1,5 +1,6 @@
 import Image from 'next/image'
 
+import { CampusLink } from '@/components/campuses/campus-link'
 import { Breadcrumbs } from '@/components/common/breadcrumbs'
 import { Container } from '@/components/common/container'
 import { Section } from '@/components/common/section'
@@ -131,7 +132,8 @@ export function CourseHero({ course, coursesLabel, nextCohort }: CourseHeroProps
 /**
  * 关键信息：短项（时长、班型、授课方式、上课时间）在前，
  * 长项（近期开班、开设校区）在后并跨列，保证 2 / 3 / 4 列时都能排整齐。
- * 没有数据的项不显示；没有已发布校区时，开设校区按授课方式显示“线上”（纯线上）或“待定”。
+ * 没有数据的项不显示；开设校区链接到校区详情（只含已发布的校区），
+ * 没有已发布校区时按授课方式显示“线上”（纯线上）或“待定”。
  */
 function keyFacts(course: CourseDetail, next: CohortItem | null): Fact[] {
   const facts: Fact[] = []
@@ -155,7 +157,9 @@ function keyFacts(course: CourseDetail, next: CohortItem | null): Fact[] {
       course.campuses.length > 0 ? (
         <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1">
           {course.campuses.map((campus) => (
-            <li key={campus.id}>{campusLabel(campus)}</li>
+            <li key={campus.id}>
+              <CampusLink campus={campus}>{campusLabel(campus)}</CampusLink>
+            </li>
           ))}
         </ul>
       ) : (

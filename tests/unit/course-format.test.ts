@@ -134,7 +134,9 @@ describe('授课方式、城市与校区的展示文字', () => {
   it('开班地点：有校区时为校区展示名，没有校区的线上开班显示“线上”', () => {
     expect(cohortPlaceLabel(cohortItem())).toBe('北京海淀校区')
     expect(
-      cohortPlaceLabel(cohortItem({ campus: { name: '中关村校区', city: '北京', address: '' } })),
+      cohortPlaceLabel(
+        cohortItem({ campus: { name: '中关村校区', slug: 'zgc', city: '北京', address: '' } }),
+      ),
     ).toBe('北京·中关村校区')
     expect(cohortPlaceLabel(cohortItem({ campus: null, mode: 'online' }))).toBe('线上')
   })

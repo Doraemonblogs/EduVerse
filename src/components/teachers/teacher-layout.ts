@@ -2,6 +2,7 @@ import type { SectionTone } from '@/components/common/section'
 import { zh } from '@/i18n/zh'
 import { formatMessage } from '@/lib/course/format'
 import { lexicalToPlainText, truncateText } from '@/lib/lexical-text'
+import { isRichTextFilled } from '@/lib/rich-text-filled'
 import type { TeacherDetail } from '@/lib/teachers/types'
 
 /**
@@ -19,16 +20,11 @@ export const TEACHER_WORKS_LIMIT = 8
 /** 页面描述兜底的最大字数（搜索结果摘要一般显示 80–120 个汉字） */
 const META_DESCRIPTION_MAX = 120
 
-/** 富文本是否有内容：空编辑器（只有一个空段落）也视为没有 */
-export function isRichTextFilled(
-  data: TeacherDetail['bio'],
-): data is NonNullable<TeacherDetail['bio']> {
-  if (!data) return false
-  return data.root.children.some((node) => {
-    const children: unknown = node.children
-    return node.type !== 'paragraph' || (Array.isArray(children) && children.length > 0)
-  })
-}
+/**
+ * 富文本是否有内容（空编辑器只有一个空段落，也视为没有）：实现在 src/lib/rich-text-filled.ts，
+ * 这里转出供讲师详情页使用
+ */
+export { isRichTextFilled }
 
 /** 实际渲染的内容区块（个人简介与从业经历合为一个区块 profile，任一有内容即渲染） */
 export function teacherSectionKeys(teacher: TeacherDetail): TeacherSectionKey[] {

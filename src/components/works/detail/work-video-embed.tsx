@@ -4,13 +4,12 @@ import { PlayIcon } from 'lucide-react'
 import Image from 'next/image'
 import * as React from 'react'
 
+import { useHydrated } from '@/components/common/use-hydrated'
 import { zh } from '@/i18n/zh'
 import { formatMessage } from '@/lib/course/format'
 import type { ImageSource } from '@/lib/media'
 import { cn } from '@/lib/utils'
 import { isAllowedVideoEmbedUrl } from '@/lib/works/video'
-
-import { useHydrated } from './use-hydrated'
 
 const t = zh.works.detail
 

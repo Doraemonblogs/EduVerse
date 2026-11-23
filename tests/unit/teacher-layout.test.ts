@@ -8,6 +8,7 @@ import {
   teacherMetaTitle,
   teacherSectionKeys,
 } from '@/components/teachers/teacher-layout'
+import { isRichTextFilled as sharedIsRichTextFilled } from '@/lib/rich-text-filled'
 import type { TeacherDetail } from '@/lib/teachers/types'
 
 import { courseCard } from '../helpers/course-fixtures'
@@ -56,7 +57,7 @@ function teacher(overrides: Partial<TeacherDetail> = {}): TeacherDetail {
     avatar: { src: '/api/media/file/t-600x600.webp', alt: '', width: 600, height: 600 },
     shareImage: null,
     yearsOfExperience: 12,
-    campus: { name: '北京海淀校区', city: '北京' },
+    campus: { name: '北京海淀校区', slug: 'beijing-haidian', city: '北京' },
     disciplines: [ANIMATION],
     specialties: ['角色表演动画'],
     bio: bioOf('林雨晴从事三维动画工作十余年。', '她的课堂以观察为起点。'),
@@ -74,6 +75,10 @@ describe('isRichTextFilled', () => {
     expect(isRichTextFilled(EMPTY_BIO)).toBe(false)
     expect(isRichTextFilled(null)).toBe(false)
     expect(isRichTextFilled(undefined)).toBe(false)
+  })
+
+  it('与专业介绍、学员故事正文共用同一个判断（src/lib/rich-text-filled.ts）', () => {
+    expect(isRichTextFilled).toBe(sharedIsRichTextFilled)
   })
 })
 

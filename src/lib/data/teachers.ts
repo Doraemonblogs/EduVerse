@@ -69,11 +69,17 @@ const CAMPUS_POPULATE = { name: true, slug: true, city: true, _status: true } as
 /** 讲师详情页的作品数量上限 */
 const TEACHER_WORKS_LIMIT = 8
 
-/** 查询：全部已发布的讲师卡片（后台排序 → ID） */
-export async function queryTeacherCards(payload: Payload): Promise<TeacherListItem[]> {
+/**
+ * 已发布讲师的列表卡片（where 为附加条件，null 表示全部），后台排序 → ID。
+ * 校区详情（src/lib/data/campuses.ts）也用它查询“本校区讲师”。
+ */
+export async function findTeacherListItems(
+  payload: Payload,
+  where: Where | null,
+): Promise<TeacherListItem[]> {
   const { docs } = await payload.find({
     collection: 'teachers',
-    where: published,
+    where: where ? { and: [published, where] } : published,
     select: TEACHER_LIST_SELECT,
     populate: { disciplines: DISCIPLINE_REF_SELECT },
     depth: 1,
@@ -81,6 +87,11 @@ export async function queryTeacherCards(payload: Payload): Promise<TeacherListIt
     pagination: false,
   })
   return docs.map(toTeacherListItem)
+}
+
+/** 查询：全部已发布的讲师卡片（后台排序 → ID） */
+export function queryTeacherCards(payload: Payload): Promise<TeacherListItem[]> {
+  return findTeacherListItems(payload, null)
 }
 
 /**

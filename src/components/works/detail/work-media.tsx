@@ -1,6 +1,7 @@
 import { Maximize2Icon } from 'lucide-react'
 import Image from 'next/image'
 
+import { Lightbox, LightboxTrigger } from '@/components/common/lightbox'
 import { zh } from '@/i18n/zh'
 import { formatMessage } from '@/lib/course/format'
 import { cn } from '@/lib/utils'
@@ -8,10 +9,17 @@ import { workImageAlt, workLightboxItems } from '@/lib/works/format'
 import type { WorkDetail, WorkGalleryItem, WorkVideo } from '@/lib/works/types'
 import { isAllowedVideoEmbedUrl } from '@/lib/works/video'
 
-import { LIGHTBOX_THUMB_SIZES, WorkLightbox, WorkLightboxTrigger } from './work-lightbox'
 import { WorkVideoEmbed } from './work-video-embed'
 
 const t = zh.works.detail
+
+/**
+ * 缩略图的显示宽度（与下方 ThumbList 的 w-20 md:w-28 lg:w-20 xl:w-28 一致：
+ * 移动端 80px、平板 112px；桌面端主媒体栏在 lg 较窄，缩回 80px，xl 起 112px）。
+ * 页面缩略图与灯箱占位图用同一个 sizes，浏览器从 srcset 中选中同一个地址，占位图直接命中缓存。
+ */
+export const WORK_THUMB_SIZES =
+  '(min-width: 1280px) 112px, (min-width: 1024px) 80px, (min-width: 768px) 112px, 80px'
 
 /**
  * 主媒体区宽度：桌面端为版心减去右侧信息栏（22–24rem）与栏间距，约 850px；移动端通栏。
@@ -39,7 +47,7 @@ type WorkMediaProps = {
  * - 有视频时显示视频：外部播放器为“点击后加载”的封面 + 播放按钮（首屏不请求第三方），
  *   上传的视频文件用原生 <video controls preload="none">，封面作 poster；
  * - 没有视频时显示作品大图（按原图比例、限制最大高度，竖幅作品两侧留底色），是首屏唯一预加载的图片；
- * - 大图与下方的缩略图都能打开灯箱（WorkLightbox），序列为封面 + 作品图集。
+ * - 大图与下方的缩略图都能打开灯箱（通用 Lightbox），序列为封面 + 作品图集。
  *   没有视频且只有一张图时不显示缩略图。
  */
 export function WorkMedia({ work, className }: WorkMediaProps) {
@@ -48,7 +56,7 @@ export function WorkMedia({ work, className }: WorkMediaProps) {
   const showThumbs = video ? items.length > 0 : items.length > 1
 
   return (
-    <WorkLightbox items={items} title={work.title}>
+    <Lightbox items={items} title={work.title} thumbSizes={WORK_THUMB_SIZES}>
       <div className={cn('flex min-w-0 flex-col gap-3 md:gap-4', className)}>
         {video ? (
           <VideoStage video={video} work={work} />
@@ -57,7 +65,7 @@ export function WorkMedia({ work, className }: WorkMediaProps) {
         )}
         {showThumbs ? <ThumbList items={items} title={work.title} /> : null}
       </div>
-    </WorkLightbox>
+    </Lightbox>
   )
 }
 
@@ -102,7 +110,7 @@ function ImageStage({
   if (!item) return <div className="aspect-video rounded-md bg-muted" />
   const alt = workImageAlt(item.image, title)
   return (
-    <WorkLightboxTrigger
+    <LightboxTrigger
       index={0}
       label={formatMessage(t.openImage, { alt })}
       className="group relative block w-full overflow-hidden rounded-md bg-muted"
@@ -128,7 +136,7 @@ function ImageStage({
           </span>
         ) : null}
       </span>
-    </WorkLightboxTrigger>
+    </LightboxTrigger>
   )
 }
 
@@ -142,7 +150,7 @@ function ThumbList({ items, title }: { items: WorkGalleryItem[]; title: string }
     >
       {items.map((item, index) => (
         <li key={`${index}-${item.image.src}`} className="shrink-0">
-          <WorkLightboxTrigger
+          <LightboxTrigger
             index={index}
             label={formatMessage(t.openThumb, {
               index: index + 1,
@@ -155,10 +163,10 @@ function ThumbList({ items, title }: { items: WorkGalleryItem[]; title: string }
               alt=""
               width={item.thumb.width}
               height={item.thumb.height}
-              sizes={LIGHTBOX_THUMB_SIZES}
+              sizes={WORK_THUMB_SIZES}
               className="size-full object-cover"
             />
-          </WorkLightboxTrigger>
+          </LightboxTrigger>
         </li>
       ))}
     </ul>

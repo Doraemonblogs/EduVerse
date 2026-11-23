@@ -27,6 +27,8 @@ import { Teachers } from './collections/Teachers'
 import { Tutorials } from './collections/Tutorials'
 import { Users } from './collections/Users'
 import { Works } from './collections/Works'
+import { ArticlePages } from './globals/ArticlePages'
+import { CampusPages } from './globals/CampusPages'
 import { CareersPage } from './globals/CareersPage'
 import { CoursePages } from './globals/CoursePages'
 import { Footer } from './globals/Footer'
@@ -91,6 +93,8 @@ export default buildConfig({
     CoursePages,
     WorkPages,
     TeacherPages,
+    ArticlePages,
+    CampusPages,
     CareersPage,
     QuizSettings,
     LeadSettings,

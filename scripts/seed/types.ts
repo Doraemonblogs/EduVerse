@@ -118,8 +118,10 @@ export type SeedPartner = { name: string; industry: string }
 
 export type SeedCareerEvent = {
   title: string
-  /** 相对今天的天数（正数为未来），保证种子数据中的活动日期始终合理 */
+  /** 相对今天（北京时间）的天数（正数为未来），保证种子数据中的活动日期始终合理 */
   daysFromNow: number
+  /** 活动开始的北京时间（HH:mm，如 '14:00'），页面上会显示钟点 */
+  time: string
   location: string
   campus?: CampusSlug
   description: string

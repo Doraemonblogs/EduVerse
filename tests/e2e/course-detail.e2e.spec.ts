@@ -133,6 +133,10 @@ test.describe('课程详情', () => {
     // 校区名已含城市时只显示校区名，不再重复城市（“北京·北京海淀校区”）
     await expect(fact('开设校区').locator('dd')).toContainText('北京海淀校区')
     await expect(fact('开设校区').locator('dd')).not.toContainText('北京·')
+    // 开设校区链接到校区详情（只含已发布的校区）
+    await expect(
+      fact('开设校区').locator('dd').getByRole('link', { name: '北京海淀校区' }),
+    ).toHaveAttribute('href', /\/campuses\/beijing-haidian$/)
     await expect(fact('近期开班').locator('dd')).toContainText(/\d{4}年\d{1,2}月\d{1,2}日/)
 
     await expect(hero.getByRole('button', { name: '预约试听' })).toBeVisible()
@@ -208,6 +212,12 @@ test.describe('课程详情', () => {
     }
     // 每行都有预约试听（读屏名称包含开班日期与地点）
     await expect(rows.first().getByRole('button', { name: /^预约试听：/ })).toBeVisible()
+    // 线下开班的校区链接到校区详情
+    const campusHrefs = await rows
+      .getByRole('link')
+      .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''))
+    expect(campusHrefs.length, '种子数据应有线下校区的开班').toBeGreaterThan(0)
+    for (const href of campusHrefs) expect(href).toMatch(/\/campuses\/[a-z0-9-]+$/)
   })
 
   test('长期班：薪资卡显示课程自己的区间、来源、统计时间与免责声明', async ({ page }) => {

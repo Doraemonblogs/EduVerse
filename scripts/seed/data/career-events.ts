@@ -2,12 +2,14 @@ import type { SeedCareerEvent } from '../types'
 
 /**
  * 就业服务活动（企业与活动均为虚构，仅用于演示）。
- * daysFromNow 相对种子执行当天计算，负数表示已举办。
+ * daysFromNow 相对种子执行当天（北京时间）计算，负数表示已举办；time 为北京时间的开始时刻
+ * （种子脚本用 beijingDateTime() 换算，页面显示的钟点不随种子执行的时刻变化）。
  */
 export const careerEvents: SeedCareerEvent[] = [
   {
     title: '校园双选会',
     daysFromNow: -30,
+    time: '14:00',
     location: '广州天河校区 1 层多功能厅',
     campus: 'guangzhou-tianhe',
     description:
@@ -17,6 +19,7 @@ export const careerEvents: SeedCareerEvent[] = [
   {
     title: '线上招聘宣讲：游戏与互联网专场',
     daysFromNow: 7,
+    time: '19:00',
     location: '线上直播',
     description:
       '多家游戏与互联网合作企业的招聘负责人在线介绍团队与在招岗位，并解读美术、设计类岗位的作品集要求，直播后设有问答环节。',
@@ -25,6 +28,7 @@ export const careerEvents: SeedCareerEvent[] = [
   {
     title: '作品集评审日',
     daysFromNow: 21,
+    time: '10:00',
     location: '上海徐汇校区 5 层评图室',
     campus: 'shanghai-xuhui',
     description:
@@ -34,6 +38,7 @@ export const careerEvents: SeedCareerEvent[] = [
   {
     title: '企业开放日：走进后期与动态设计团队',
     daysFromNow: 45,
+    time: '14:00',
     location: '深圳南山校区集合，统一前往合作企业',
     campus: 'shenzhen-nanshan',
     description:

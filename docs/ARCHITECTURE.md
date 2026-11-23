@@ -133,6 +133,7 @@ docs/ docker/ docker-compose.dev.yml
 - **footer**：columns[] { title, links[] }、qrcodes[] { label, image }、copyright。
 - **home-page**：各区块 { enabled, eyebrow, title, description, 手选 / 自动内容 }。
 - **course-pages**（课程页面设置，M3）：list { title, description, seo }、detail { sidebarTitle, sidebarDescription }、major { ctaTitle, ctaDescription }；默认文案在 `src/globals/course-pages-defaults.ts`，后台未保存过时前台用同一份默认值。
+- **article-pages**（资讯页面设置，M6）：list { title, description, seo }、detail { sidebarTitle, sidebarDescription }；**campus-pages**（校区页面设置，M6）：list { title, description, seo }、detail { ctaTitle, ctaDescription }；**careers-page** 增加 cta { title, description }。
 - **work-pages**（作品页面设置，M4）、**teacher-pages**（师资页面设置，M4）：list { title, description, seo }、detail { ctaTitle, ctaDescription }；默认文案分别在 `src/globals/{work,teacher}-pages-defaults.ts`。
 - **careers-page**、**quiz-settings**。
 - **lead-settings**：webhooks[] { name, platform: wecom / feishu / dingtalk, url（仅允许三家官方域名）, secret, enabled, maskPhone }、rateLimits、cityOptions[]、successMessage。
@@ -223,6 +224,16 @@ docs/ docker/ docker-compose.dev.yml
 - **结构化数据**：Organization（上传了 Logo 才输出 logo）+ WebSite（SearchAction 指向 `/search?q=`，M7 实现）。
 - **留资位置**：`home_hero`、`home_quick`、`home_course`、`home_form`。
 - **首页全局**新增“精选课程”区块；默认文案在 `src/globals/home-page-defaults.ts`。
+
+### 4.13 M6 落地说明（资讯、校区、就业服务）
+
+- **数据层**：`src/lib/data/{articles,campuses,careers}.ts`（query* / get* 分离），纯函数在 `src/lib/{articles,campuses,careers}/*`。文章正文与学员故事正文经 `guardCourseLinks()`；相关课程只取可访问的课程；开班计划与招聘活动缓存全量、渲染时按北京时间过滤；资讯与就业服务缓存 1 小时。
+- **阅读量**：`POST /api/articles/:id/view`（`src/endpoints/article-view.ts`）执行参数化的原生 SQL 自增（只对已发布文章），不触发钩子、不写版本、不改 updatedAt、不让缓存失效；同一 IP 同一文章 30 分钟只计一次（进程内），IP 未知时每篇每分钟最多计 60 次；页面显示的阅读量最迟 1 小时更新。详情页在客户端加载后上报一次（同一会话同一文章只报一次），静态预览站不上报。
+- **路由**：`/articles`（分页可收录）、`/articles/category/[slug]`（分类落地页，可收录）、`/articles/[slug]`；`/campuses`、`/campuses/[slug]`；`/careers`。
+- **通用组件**：灯箱提升为 `src/components/common/lightbox.tsx`（作品详情与校区照片共用）；`ArticleCard`、`CampusCard`、`StoryCard`、`PartnerWall` 从首页提取为通用组件。
+- **校区链接**：课程详情首屏与侧栏、开班计划、讲师详情中的校区链接到校区详情（仅已发布校区）。
+- **就业服务页**：不出现就业率、薪资承诺等字样（种子数据与 e2e 双重检查）；学员故事化名、无薪资，受总开关控制。
+- **留资位置**：`article_sidebar`、`campus_hero`、`campus_cohort`（校区页开班计划行）、`campus_cta`、`careers_hero`、`careers_cta`。
 
 ## 5. 路由清单
 

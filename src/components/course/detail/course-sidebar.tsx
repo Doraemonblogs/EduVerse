@@ -1,3 +1,4 @@
+import { CampusLink } from '@/components/campuses/campus-link'
 import { LeadForm } from '@/components/lead/lead-form'
 import type { LeadFormConfig } from '@/components/lead/types'
 import { zh } from '@/i18n/zh'
@@ -33,7 +34,7 @@ type CourseSidebarProps = {
 }
 
 /**
- * 课程详情侧栏：标题与说明来自后台，课程摘要（意向课程、近期开班），侧栏形态的留资表单。
+ * 课程详情侧栏：标题与说明来自后台，课程摘要（意向课程、近期开班；开班校区链接到校区详情），侧栏形态的留资表单。
  * 页面上只渲染这一份表单：桌面端在右栏吸顶，移动端随网格排到主内容之后（同一个 DOM 实例）。
  * 表单不读取页面级留资上下文，课程与专业在这里显式传入（线索 context.course / discipline）。
  */
@@ -70,7 +71,12 @@ export function CourseSidebar({
             <div className="flex gap-3">
               <dt className="shrink-0 text-muted-foreground">{t.meta.nextCohort}</dt>
               <dd className={cn('numeric', SUMMARY_VALUE)}>
-                {formatCohortDate(nextCohort.startDate)} · {cohortPlaceLabel(nextCohort)}
+                {formatCohortDate(nextCohort.startDate)} ·{' '}
+                {nextCohort.campus ? (
+                  <CampusLink campus={nextCohort.campus}>{cohortPlaceLabel(nextCohort)}</CampusLink>
+                ) : (
+                  cohortPlaceLabel(nextCohort)
+                )}
               </dd>
             </div>
           ) : null}

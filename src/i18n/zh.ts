@@ -159,6 +159,17 @@ export const zh = {
     previous: '{label}：上一组',
     next: '{label}：下一组',
   },
+  /** 通用灯箱（src/components/common/lightbox.tsx：作品图集、校区环境照片） */
+  lightbox: {
+    /** 读屏：对话框说明（对话框标题由使用方传入，如作品名、校区名） */
+    hint: '按左右方向键切换图片，按 Esc 关闭。',
+    previous: '上一张',
+    next: '下一张',
+    close: '关闭大图',
+    counter: '{index} / {total}',
+    /** 读屏：序号变化时播报 */
+    counterLabel: '第 {index} 张，共 {total} 张',
+  },
   /**
    * 课程模块（课程列表 / 课程详情 / 专业方向页）的系统文案。
    * 带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
@@ -226,6 +237,8 @@ export const zh = {
       trial: '预约试听',
       /** 读屏：区分每一行的“预约试听”按钮 */
       trialLabel: '预约试听：{date}开班（{place}）',
+      /** 跨课程的开班列表（校区详情）：读屏名称带上课程名 */
+      trialCourseLabel: '预约试听：{course}，{date}开班（{place}）',
       empty: '暂无近期开班计划。可以先预约试听，课程顾问会告知最新的开班安排。',
     },
     teacher: {
@@ -403,17 +416,6 @@ export const zh = {
       allWorks: '查看全部作品',
       /** 作品没有说明时的页面描述（meta description），{byline} 为“化名 · 届别” */
       metaDescription: '{title}，{byline}的学员作品。',
-      /** 灯箱 */
-      lightbox: {
-        /** 读屏：对话框说明（对话框标题是作品名） */
-        hint: '按左右方向键切换图片，按 Esc 关闭。',
-        previous: '上一张',
-        next: '下一张',
-        close: '关闭大图',
-        counter: '{index} / {total}',
-        /** 读屏：序号变化时播报 */
-        counterLabel: '第 {index} 张，共 {total} 张',
-      },
     },
   },
   /**
@@ -476,6 +478,191 @@ export const zh = {
     },
   },
   /**
+   * 资讯模块（资讯列表 /articles、分类页 /articles/category/[slug]、资讯详情 /articles/[slug]）的系统文案。
+   * 带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
+   * 页面专属文案只追加在 list / detail 子对象里（Articles Agent）。
+   */
+  articles: {
+    /** 文章卡片 / 列表行（src/components/articles/article-card.tsx） */
+    card: {
+      /** 读屏：发布时间前缀（可见文字只显示日期） */
+      publishedAt: '发布于',
+      /** 阅读量，{count} 用 formatArticleViews() 格式化（“1.2万”） */
+      views: '{count} 次阅读',
+      author: '作者',
+      /** 分类与日期之间的分隔 */
+      metaSeparator: ' · ',
+    },
+    /** 资讯列表 /articles 与分类页 /articles/category/[slug] 专属文案（Articles Agent） */
+    list: {
+      /** 分类导航 <nav> 的无障碍名称 */
+      navLabel: '资讯分类',
+      /** 分类导航第一项（全部资讯） */
+      all: '全部',
+      /** 分类导航各项文章数的读屏补充（可见文字只显示数字） */
+      categoryCount: '（{count} 篇）',
+      /** 第 2 页起的页面标题（{title} 为列表页标题或分类名），避免各页标题重复 */
+      pagedTitle: '{title}（第 {page} 页）',
+      /**
+       * 分类没有填写描述时，分类页 h1 下的简介与 meta description（{name} 为分类名，{count} 为文章数）：
+       * 各分类页的描述互不相同，不会都退回资讯列表的简介
+       */
+      categoryDescription: '「{name}」分类下的全部资讯，共 {count} 篇，按发布时间从新到旧排列。',
+      /** 头条卡片的标记（与分类、日期一起作为卡片说明） */
+      headline: '头条',
+      /** 头条卡片右下角的提示（整张卡片已是链接，提示只做视觉引导） */
+      readMore: '阅读全文',
+      /** 还没有任何已发布的资讯 */
+      emptyTitle: '资讯正在整理中',
+      emptyDescription:
+        '学院新闻、行业观察与学习干货更新后会在这里展示。可以先了解各专业的课程安排与授课方式。',
+      /** 空状态里链接到课程列表 */
+      viewCourses: '查看专业课程',
+      previewNotice: '静态预览站不支持翻页，只展示第 1 页的资讯；正式站点可正常翻页。',
+    },
+    /** 资讯详情 /articles/[slug] 专属文案（Articles Agent） */
+    detail: {
+      /** 首屏信息行的读屏前缀（可见文字只显示取值） */
+      author: '作者',
+      publishedAt: '发布于',
+      category: '分类',
+      /** 正文之后的区块 */
+      relatedCourses: '相关课程',
+      relatedArticles: '相关文章',
+      /** 相关文章区块右侧链接到分类页，{name} 为分类名 */
+      moreInCategory: '更多{name}',
+      /** 正文末尾链接回资讯列表 */
+      backToList: '返回资讯列表',
+      /** 侧栏（桌面端在右栏，移动端在正文之后）的无障碍名称 */
+      sidebarLabel: '推荐课程与咨询',
+      hotCourses: '热门课程',
+      /** 热门课程列表末尾链接到课程列表 */
+      allCourses: '查看全部课程',
+      /** 热门课程条目上专业方向与班型之间的分隔 */
+      courseMetaSeparator: ' · ',
+    },
+  },
+  /**
+   * 校区模块（校区列表 /campuses、校区详情 /campuses/[slug]）的系统文案；首页“校区分布”的卡片也用 card。
+   * 页面专属文案只追加在 list / detail 子对象里（Campuses Agent）。
+   */
+  campuses: {
+    /** 校区卡片（src/components/campuses/campus-card.tsx，首页与校区列表共用） */
+    card: {
+      address: '地址',
+      phone: '电话',
+      openingHours: '开放时间',
+      /** 外链到高德地图（新窗口） */
+      openMap: '在地图中打开',
+      /** 无障碍名称以可见文字开头（语音控制按可见文字即可点到，WCAG 2.5.3） */
+      openMapLabel: '在地图中打开：{name}（高德地图，在新窗口打开）',
+      detail: '查看校区',
+      detailLabel: '查看校区：{name}',
+    },
+    /** 地图外链（新窗口、rel="noopener noreferrer"，页面不加载地图脚本） */
+    map: {
+      amap: '在高德地图中打开',
+      baidu: '在百度地图中打开',
+      /** 读屏：{label} 为可见文字，{name} 为校区名 */
+      linkLabel: '{label}：{name}（在新窗口打开）',
+    },
+    /** 校区列表页 /campuses 专属文案（Campuses Agent） */
+    list: {
+      /** 卡片网格上方的概要，{count} 为校区数、{cities} 为城市数 */
+      summary: '共 {count} 个校区，分布在 {cities} 个城市',
+      /** 还没有任何已发布的校区 */
+      emptyTitle: '校区信息正在整理中',
+      emptyDescription:
+        '校区地址与开放时间更新后会在这里展示。可以先了解各专业的课程安排，线上直播课程不受校区限制。',
+      viewCourses: '查看专业课程',
+    },
+    /** 校区详情页 /campuses/[slug] 专属文案（Campuses Agent） */
+    detail: {
+      /** 页面标题（SEO 标题未填写时），{name} 为校区名 */
+      metaTitle: '{name} · 地址与交通',
+      /** 页面描述（SEO 描述未填写时），{name} 为校区名、{address} 为地址 */
+      metaDescription:
+        '{name}位于{address}。查看交通指引、开放时间、开设课程与近期开班，预约到校参观。',
+      /** 首屏概况 <dl> 的各项 */
+      facts: {
+        address: '地址',
+        phone: '电话',
+        openingHours: '开放时间',
+        transit: '交通指引',
+      },
+      /** 首屏按钮（打开留资弹窗；弹窗标题与说明来自后台「校区页面设置 · 校区详情页」） */
+      visit: '预约到校参观',
+      /** 地图外链列表的无障碍名称 */
+      mapLinksLabel: '地图导航',
+      /** 各区块标题 */
+      sections: {
+        photos: '校区环境',
+        courses: '开设课程',
+        cohorts: '近期开班',
+        teachers: '本校区讲师',
+      },
+      /** 环境照片：打开大图按钮的读屏名称，{caption} 为照片说明（未填写时为校区名） */
+      openPhoto: '查看大图：{caption}',
+      photosSummary: '共 {count} 张照片，点击可查看大图',
+      /** 开设课程区块标题下的概要，{count} 为课程数 */
+      coursesSummary: '共 {count} 门课程在本校区开课',
+      cohortsSummary: '本校区尚未开班的计划，开班日期按北京时间计。',
+      cohortsEmpty: '本校区近期暂无开班安排。可以先预约到校参观，课程顾问会告知后续的开班时间。',
+      /** 本校区讲师区块标题下的概要，{count} 为讲师数 */
+      teachersSummary: '共 {count} 位讲师',
+      allCourses: '查看全部课程',
+      allTeachers: '查看全部讲师',
+    },
+  },
+  /**
+   * 就业服务页（/careers）的系统文案。区块标题、流程、行动号召等运营文案来自后台「就业服务页」。
+   * 广告法：不写就业率、薪资承诺、“保证 / 包就业”等结果性表述。页面专属文案只追加在 page 子对象里（Careers Agent）。
+   */
+  careers: {
+    /** 学员故事卡片（src/components/careers/story-card.tsx，首页与就业服务页共用） */
+    stories: {
+      /** 学员故事区块末尾的化名说明（与首页一致） */
+      pseudonymNote: '学员姓名为化名，经历均已取得本人授权后展示。',
+      /** 现任岗位与公司之间的分隔（“UI 设计师 · 星槎网络科技”） */
+      roleSeparator: ' · ',
+      /** 卡片底部的事实标签（学习前背景、所学课程）；currentRole 只作读屏前缀（可见文字只显示取值） */
+      background: '学习前',
+      currentRole: '现任',
+      course: '所学课程',
+      /** 展开 / 收起故事正文（按钮的读屏名称带化名：{name}） */
+      readStory: '阅读完整故事',
+      readStoryLabel: '阅读完整故事：{name}',
+      collapse: '收起',
+    },
+    /** 合作企业 Logo 墙（src/components/careers/partner-wall.tsx，首页与就业服务页共用） */
+    partners: {
+      /** Logo 墙列表的无障碍名称：企业名称即 Logo 的 alt */
+      listLabel: '合作企业名单',
+    },
+    events: {
+      date: '活动时间',
+      location: '地点',
+      campus: '举办校区',
+      registration: '报名方式',
+      empty: '近期暂无招聘活动安排。可以先预约就业咨询，课程顾问会告知后续的活动时间。',
+    },
+    /** 就业服务页 /careers 专属文案（Careers Agent） */
+    page: {
+      /** 首屏按钮：打开留资弹窗（意向“就业咨询”；弹窗标题与说明用后台「就业服务页 · 行动号召」） */
+      consult: '预约就业咨询',
+      /** 首屏右侧（≥ lg）最近一场招聘活动的提示卡片 */
+      nextEvent: '最近一场活动',
+      /** 提示卡片底部链接到页内的招聘活动区块 */
+      allEvents: '查看全部活动',
+      /** 学员故事展开按钮的读屏补充（接在可见文字“阅读完整故事 / 收起”之后），{name} 为化名 */
+      storyToggleSuffix: '：{name}',
+      /** 招聘活动区块：后台没有填写区块描述时显示在标题下 */
+      eventsNote: '活动时间按北京时间计，已结束的活动不再显示。',
+      /** 招聘活动空状态里链接到页尾的预约表单 */
+      emptyAction: '预约就业咨询',
+    },
+  },
+  /**
    * 首页（/）的系统文案。区块标题 / 眉标 / 描述、轮播图文字、入口卡片、表单按钮文字等运营文案一律来自后台「首页」配置，
    * 不写在这里。带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
    * 区块 1–4（src/components/home/top）只追加在 top 里，区块 5–11（src/components/home/bottom）只追加在 bottom 里，
@@ -524,36 +711,18 @@ export const zh = {
         /** 作品署名说明（与作品列表一致） */
         pseudonymNote: '作品均已获得学员授权，署名为学员化名。',
       },
-      /** 学员故事（StoriesSection）：不展示个人薪资，必须注明化名 */
+      /** 学员故事（StoriesSection）：不展示个人薪资，必须注明化名；卡片文案见 careers.stories */
       stories: {
         pseudonymNote: '学员姓名为化名，经历均已取得本人授权后展示。',
-        /** 现任岗位与公司之间的分隔（“UI 设计师 · 星槎网络科技”） */
-        roleSeparator: ' · ',
-        /** 卡片底部的事实标签（学习前背景、所学课程）；currentRole 只作读屏前缀（可见文字只显示取值） */
-        background: '学习前',
-        currentRole: '现任',
-        course: '所学课程',
       },
-      /** 合作企业（PartnersSection） */
-      partners: {
-        /** Logo 墙列表的无障碍名称补充：企业名称即 Logo 的 alt */
-        listLabel: '合作企业名单',
-      },
+      /** 合作企业（PartnersSection）：Logo 墙文案见 careers.partners */
       /** 师资团队（TeachersSection） */
       teachers: {
         all: '查看全部讲师',
       },
       /** 校区分布（CampusesSection） */
       campuses: {
-        address: '地址',
-        phone: '电话',
-        openingHours: '开放时间',
-        /** 外链到高德地图（新窗口） */
-        openMap: '在地图中打开',
-        /** 无障碍名称以可见文字开头（语音控制按可见文字即可点到，WCAG 2.5.3） */
-        openMapLabel: '在地图中打开：{name}（高德地图，在新窗口打开）',
-        detail: '查看校区',
-        detailLabel: '查看校区：{name}',
+        all: '查看全部校区',
       },
       /** 最新资讯（ArticlesSection） */
       articles: {
@@ -561,7 +730,6 @@ export const zh = {
         /** 分类 Tab：第一项（全部分类） */
         allTab: '全部',
         tabsLabel: '资讯分类',
-        publishedAt: '发布于',
       },
     },
     /** 页面组装（src/app/(frontend)/page.tsx）：SEO 与结构化数据 */

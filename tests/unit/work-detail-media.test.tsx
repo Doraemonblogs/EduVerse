@@ -2,8 +2,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { wrapIndex } from '@/components/common/lightbox'
 import { playableVideo, WorkMedia } from '@/components/works/detail/work-media'
-import { wrapIndex } from '@/components/works/detail/work-lightbox'
 import type { WorkGalleryItem } from '@/lib/works/types'
 
 import { workDetail } from '../helpers/work-fixtures'

@@ -150,6 +150,8 @@ export interface Config {
     'course-pages': CoursePage;
     'work-pages': WorkPage;
     'teacher-pages': TeacherPage;
+    'article-pages': ArticlePage;
+    'campus-pages': CampusPage;
     'careers-page': CareersPage;
     'quiz-settings': QuizSetting;
     'lead-settings': LeadSetting;
@@ -162,6 +164,8 @@ export interface Config {
     'course-pages': CoursePagesSelect<false> | CoursePagesSelect<true>;
     'work-pages': WorkPagesSelect<false> | WorkPagesSelect<true>;
     'teacher-pages': TeacherPagesSelect<false> | TeacherPagesSelect<true>;
+    'article-pages': ArticlePagesSelect<false> | ArticlePagesSelect<true>;
+    'campus-pages': CampusPagesSelect<false> | CampusPagesSelect<true>;
     'careers-page': CareersPageSelect<false> | CareersPageSelect<true>;
     'quiz-settings': QuizSettingsSelect<false> | QuizSettingsSelect<true>;
     'lead-settings': LeadSettingsSelect<false> | LeadSettingsSelect<true>;
@@ -2961,6 +2965,93 @@ export interface TeacherPage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-pages".
+ */
+export interface ArticlePage {
+  id: number;
+  list: {
+    title: string;
+    /**
+     * 显示在标题下方，一两句话即可。不使用“最好”“第一”等绝对化用语。
+     */
+    description?: string | null;
+    /**
+     * 分页（/articles?page=2）可以收录，标题会自动带上页码。
+     */
+    seo?: {
+      /**
+       * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+       */
+      title?: string | null;
+      /**
+       * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+       */
+      description?: string | null;
+      /**
+       * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+       */
+      keywords?: string | null;
+      /**
+       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       */
+      image?: (number | null) | Media;
+      noindex?: boolean | null;
+    };
+  };
+  detail: {
+    sidebarTitle: string;
+    /**
+     * 不得承诺学习或就业效果
+     */
+    sidebarDescription?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campus-pages".
+ */
+export interface CampusPage {
+  id: number;
+  list: {
+    title: string;
+    /**
+     * 显示在标题下方，一两句话即可。不使用“最好”“第一”等绝对化用语。
+     */
+    description?: string | null;
+    seo?: {
+      /**
+       * 留空则使用内容标题。建议 30 个汉字以内，包含核心关键词。
+       */
+      title?: string | null;
+      /**
+       * 搜索结果中的摘要，建议 80–120 个汉字。留空则使用简介。
+       */
+      description?: string | null;
+      /**
+       * 多个关键词用英文逗号分隔，如：3D动画培训,Maya培训
+       */
+      keywords?: string | null;
+      /**
+       * 分享到微信等平台时的预览图，建议 1200×630。留空则使用封面。
+       */
+      image?: (number | null) | Media;
+      noindex?: boolean | null;
+    };
+  };
+  detail: {
+    ctaTitle: string;
+    /**
+     * 不得承诺学习或就业效果
+     */
+    ctaDescription?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "careers-page".
  */
 export interface CareersPage {
@@ -2999,6 +3090,13 @@ export interface CareersPage {
     enabled?: boolean | null;
     eyebrow?: string | null;
     title: string;
+    description?: string | null;
+  };
+  cta: {
+    title: string;
+    /**
+     * 不得承诺就业结果，不写就业率、薪资承诺
+     */
     description?: string | null;
   };
   seo?: {
@@ -3472,6 +3570,66 @@ export interface TeacherPagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-pages_select".
+ */
+export interface ArticlePagesSelect<T extends boolean = true> {
+  list?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        seo?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              keywords?: T;
+              image?: T;
+              noindex?: T;
+            };
+      };
+  detail?:
+    | T
+    | {
+        sidebarTitle?: T;
+        sidebarDescription?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campus-pages_select".
+ */
+export interface CampusPagesSelect<T extends boolean = true> {
+  list?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        seo?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              keywords?: T;
+              image?: T;
+              noindex?: T;
+            };
+      };
+  detail?:
+    | T
+    | {
+        ctaTitle?: T;
+        ctaDescription?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "careers-page_select".
  */
 export interface CareersPageSelect<T extends boolean = true> {
@@ -3518,6 +3676,12 @@ export interface CareersPageSelect<T extends boolean = true> {
     | {
         enabled?: T;
         eyebrow?: T;
+        title?: T;
+        description?: T;
+      };
+  cta?:
+    | T
+    | {
         title?: T;
         description?: T;
       };

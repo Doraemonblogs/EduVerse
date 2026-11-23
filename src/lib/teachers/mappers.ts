@@ -43,12 +43,12 @@ export function toTeacherListItem(teacher: TeacherListSource): TeacherListItem {
   return { ...toTeacherCard(teacher), disciplines: publishedDisciplines(teacher.disciplines) }
 }
 
-/** 讲师所在校区：仅已填充且已发布时给出名称与城市（不链接） */
+/** 讲师所在校区：仅已填充且已发布时给出名称、slug（链接到校区详情）与城市 */
 export function toTeacherCampus(
-  value: Relation<Pick<Campus, 'name' | 'city' | '_status'>>,
-): { name: string; city: string } | null {
+  value: Relation<Pick<Campus, 'name' | 'slug' | 'city' | '_status'>>,
+): { name: string; slug: string; city: string } | null {
   const campus = publishedDoc(value)
-  return campus ? { name: campus.name, city: campus.city } : null
+  return campus ? { name: campus.name, slug: campus.slug, city: campus.city } : null
 }
 
 /** 从业经历：去掉机构或职位为空的条目，时间可为空 */

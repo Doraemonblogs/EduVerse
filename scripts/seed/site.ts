@@ -250,6 +250,42 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
           '留下联系方式，课程顾问会查询这位讲师近期的授课安排，为你预约就近校区或线上试听。',
       },
     },
+    'article-pages': {
+      list: {
+        title: '资讯',
+        description:
+          '学院动态、行业观察、学习方法与报名常见问题，按分类整理。想了解某个方向的学习路线或求职准备，可以从这里开始。',
+        seo: {
+          title: `资讯｜${BRAND}`,
+          description:
+            '数字艺术行业资讯、学院新闻、软件与作品集学习干货、报名与上课常见问题，帮助你了解三维动画、游戏美术、UI 设计等方向。',
+          keywords: '数字艺术资讯,三维动画学习,游戏美术学习,UI设计学习,作品集',
+        },
+      },
+      detail: {
+        sidebarTitle: '预约免费试听',
+        sidebarDescription:
+          '读完还有疑问？留下联系方式，课程顾问会结合你的基础与空闲时间，介绍合适的方向，并安排就近校区或线上试听。',
+      },
+    },
+    'campus-pages': {
+      list: {
+        title: '校区分布',
+        description:
+          '各校区都设有教室、机房与作品评图区，开放时间内可以预约到校参观、旁听一节课。查看校区地址、交通指引与开设课程。',
+        seo: {
+          title: `校区分布｜${BRAND}`,
+          description:
+            '查看各城市校区的地址、交通指引、开放时间与开设课程，预约到校参观教室与机房，旁听正在进行的课程。',
+          keywords: '数字艺术培训校区,三维动画培训地址,游戏美术培训校区',
+        },
+      },
+      detail: {
+        ctaTitle: '预约到校参观',
+        ctaDescription:
+          '留下联系方式，课程顾问会与你确认到访时间，带你参观教室与机房，并安排旁听一节正在进行的课程。',
+      },
+    },
     'careers-page': {
       intro: {
         eyebrow: 'Career Services',
@@ -273,6 +309,11 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
       stories: { enabled: true, title: '学员故事' },
       partners: { enabled: true, title: '合作企业' },
       events: { enabled: true, title: '招聘活动' },
+      cta: {
+        title: '预约一次就业咨询',
+        description:
+          '留下联系方式，课程顾问会结合你的作品与目标岗位，介绍作品集点评、模拟面试与企业内推的安排。录用与否由企业自主决定。',
+      },
       seo: {
         title: `就业服务｜${BRAND}`,
         description: '作品集打磨、简历与面试准备、模拟面试、企业内推，帮助学员做好求职准备。',

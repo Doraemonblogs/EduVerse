@@ -284,11 +284,30 @@ export const COURSES = [
 
 export type CourseSlug = (typeof COURSES)[number]['slug']
 
+/** 资讯分类；description 是分类页 h1 下的简介与 meta description（原创，不含绝对化用语与效果承诺） */
 export const ARTICLE_CATEGORIES = [
-  { slug: 'news', name: '学院新闻' },
-  { slug: 'industry', name: '行业资讯' },
-  { slug: 'learning', name: '学习干货' },
-  { slug: 'faq', name: '常见问题' },
+  {
+    slug: 'news',
+    name: '学院新闻',
+    description: '各校区的开放日、公开课、学员活动与教学安排更新，了解学院最近在做些什么。',
+  },
+  {
+    slug: 'industry',
+    name: '行业资讯',
+    description:
+      '游戏、影视动画、视觉设计等数字艺术行业的岗位变化、制作流程与常用工具观察，帮助入行前建立对行业的整体认识。',
+  },
+  {
+    slug: 'learning',
+    name: '学习干货',
+    description:
+      '软件操作、造型与色彩基础、建模与渲染技巧、作品集整理等学习方法，适合自学者与在读学员随时查阅。',
+  },
+  {
+    slug: 'faq',
+    name: '常见问题',
+    description: '关于选择专业方向、零基础能否入门、上课方式、报名流程与费用的常见疑问解答。',
+  },
 ] as const
 
 export type ArticleCategorySlug = (typeof ARTICLE_CATEGORIES)[number]['slug']

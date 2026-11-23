@@ -35,7 +35,7 @@ function publishedDoc<T extends { _status?: string | null }>(value: number | T |
 type TeacherFacts = {
   teacher: Teacher
   disciplines: Discipline[]
-  campus: { name: string; city: string } | null
+  campus: { name: string; slug: string; city: string } | null
   courses: { slug: string; title: string }[]
   workCount: number
 }
@@ -85,7 +85,7 @@ async function readTeacher(slug: string): Promise<TeacherFacts> {
   return {
     teacher,
     disciplines,
-    campus: campus ? { name: campus.name, city: campus.city } : null,
+    campus: campus ? { name: campus.name, slug: campus.slug, city: campus.city } : null,
     courses: courses.docs.map(({ slug: courseSlug, title }) => ({ slug: courseSlug, title })),
     workCount: works.totalDocs,
   }
@@ -339,7 +339,7 @@ test.describe('讲师列表', () => {
 })
 
 test.describe('讲师详情', () => {
-  test('首屏：姓名、头衔、从业年限、校区（不链接）、专业方向（链接可访问）、擅长领域与预约试听', async ({
+  test('首屏：姓名、头衔、从业年限、校区（链接到校区详情）、专业方向（链接可访问）、擅长领域与预约试听', async ({
     page,
   }) => {
     const { teacher, disciplines, campus } = await readTeacher(SLUG)
@@ -373,7 +373,10 @@ test.describe('讲师详情', () => {
     await expect(fact('从业年限')).toHaveText(`${teacher.yearsOfExperience} 年`)
     expect(campus, '种子讲师应有已发布的校区').toBeTruthy()
     await expect(fact('所在校区')).toContainText(campus!.name)
-    await expect(fact('所在校区').getByRole('link')).toHaveCount(0)
+    await expect(fact('所在校区').getByRole('link')).toHaveAttribute(
+      'href',
+      new RegExp(`/campuses/${campus!.slug}$`),
+    )
 
     const disciplineLinks = fact('专业方向').getByRole('link')
     await expect(disciplineLinks).toHaveText(disciplines.map((d) => d.name))

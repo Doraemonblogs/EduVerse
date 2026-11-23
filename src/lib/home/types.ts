@@ -1,3 +1,4 @@
+import type { CampusCardData } from '@/lib/campuses/types'
 import type { CourseCardData, DisciplineRef } from '@/lib/course/types'
 import type { ImageSource } from '@/lib/media'
 import type { TeacherListItem } from '@/lib/teachers/types'
@@ -116,26 +117,8 @@ export type HomePartner = {
   logo: ImageSource
 }
 
-/** 校区卡片 */
-export type HomeCampus = {
-  id: number
-  name: string
-  slug: string
-  city: string
-  address: string
-  /** 校区电话（展示用原文） */
-  phone: string | null
-  /** 电话的 tel: 链接（只保留数字与 +），没有电话时为 null */
-  phoneHref: string | null
-  openingHours: string | null
-  /** 封面（card 尺寸，800 宽） */
-  cover: ImageSource | null
-  /**
-   * “在地图中打开”：高德地图标注页（https://uri.amap.com/marker?…，新窗口、rel="noopener noreferrer"）。
-   * 只有填写了坐标时才有值；只是链接，页面不加载任何地图脚本。
-   */
-  mapUrl: string | null
-}
+/** 校区卡片：与校区列表共用（src/lib/campuses/types.ts 的 CampusCardData） */
+export type HomeCampus = CampusCardData
 
 export type HomeArticleCategory = { id: number; name: string; slug: string }
 

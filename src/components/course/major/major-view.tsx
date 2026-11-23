@@ -13,6 +13,7 @@ import { zh } from '@/i18n/zh'
 import { formatMessage } from '@/lib/course/format'
 import { COURSES_PATH } from '@/lib/course/paths'
 import type { CoursePagesSettings, DisciplineDetail } from '@/lib/course/types'
+import { isRichTextFilled } from '@/lib/rich-text-filled'
 import { cn } from '@/lib/utils'
 
 import { MajorCta } from './major-cta'
@@ -170,15 +171,4 @@ export function MajorView({ discipline, settings, leadConfig, now }: MajorViewPr
       />
     </>
   )
-}
-
-/** 富文本是否有内容：空编辑器（只有一个空段落）也视为没有 */
-function isRichTextFilled(
-  data: DisciplineDetail['intro'],
-): data is NonNullable<DisciplineDetail['intro']> {
-  if (!data) return false
-  return data.root.children.some((node) => {
-    const children: unknown = node.children
-    return node.type !== 'paragraph' || (Array.isArray(children) && children.length > 0)
-  })
 }

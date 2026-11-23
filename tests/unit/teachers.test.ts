@@ -69,12 +69,18 @@ describe('师资 mappers', () => {
     })
   })
 
-  it('toTeacherCampus：只有已发布的校区给出名称与城市', () => {
-    expect(toTeacherCampus({ name: '北京海淀校区', city: '北京', _status: 'published' })).toEqual({
-      name: '北京海淀校区',
-      city: '北京',
-    })
-    expect(toTeacherCampus({ name: '草稿校区', city: '上海', _status: 'draft' })).toBeNull()
+  it('toTeacherCampus：只有已发布的校区给出名称、slug（链接到校区详情）与城市', () => {
+    expect(
+      toTeacherCampus({
+        name: '北京海淀校区',
+        slug: 'beijing-haidian',
+        city: '北京',
+        _status: 'published',
+      }),
+    ).toEqual({ name: '北京海淀校区', slug: 'beijing-haidian', city: '北京' })
+    expect(
+      toTeacherCampus({ name: '草稿校区', slug: 'draft', city: '上海', _status: 'draft' }),
+    ).toBeNull()
     expect(toTeacherCampus(4)).toBeNull()
     expect(toTeacherCampus(null)).toBeNull()
   })

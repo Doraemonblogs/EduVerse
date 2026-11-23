@@ -1,4 +1,5 @@
 import { safeHref } from '@/components/common/rich-text'
+import { toCampusCard, type CampusCardSource } from '@/lib/campuses/mappers'
 import { populated, relationId, toDisciplineRef } from '@/lib/course/mappers'
 import type { CourseCardData } from '@/lib/course/types'
 import { imageSource } from '@/lib/media'
@@ -6,14 +7,12 @@ import type {
   Article,
   ArticleCategory,
   Banner,
-  Campus,
   Discipline,
   HomePage,
   Partner,
   Story,
 } from '@/payload-types'
 
-import { amapMarkerUrl, telHref } from './map'
 import type {
   HomeArticle,
   HomeBanner,
@@ -159,25 +158,11 @@ export function toHomePartner(partner: HomePartnerSource): HomePartner | null {
   }
 }
 
-export type HomeCampusSource = Pick<
-  Campus,
-  'id' | 'name' | 'slug' | 'city' | 'address' | 'phone' | 'openingHours' | 'cover' | 'location'
->
+export type HomeCampusSource = CampusCardSource
 
+/** 校区卡片：与校区列表共用（src/lib/campuses/mappers.ts 的 toCampusCard） */
 export function toHomeCampus(campus: HomeCampusSource): HomeCampus {
-  const phone = textOrNull(campus.phone)
-  return {
-    id: campus.id,
-    name: campus.name,
-    slug: campus.slug,
-    city: campus.city,
-    address: campus.address,
-    phone,
-    phoneHref: telHref(phone),
-    openingHours: textOrNull(campus.openingHours),
-    cover: imageSource(campus.cover, 'card'),
-    mapUrl: amapMarkerUrl(campus.location, campus.name),
-  }
+  return toCampusCard(campus)
 }
 
 export type ArticleCategorySource = Pick<ArticleCategory, 'id' | 'name' | 'slug' | 'order'>

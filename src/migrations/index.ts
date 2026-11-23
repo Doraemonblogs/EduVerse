@@ -3,6 +3,7 @@ import * as migration_20261123_052402_m2_leads_frame from './20261123_052402_m2_
 import * as migration_20261123_090613_m3_course_pages from './20261123_090613_m3_course_pages';
 import * as migration_20261123_121240_m4_works_teachers from './20261123_121240_m4_works_teachers';
 import * as migration_20261123_143804_m5_home_courses from './20261123_143804_m5_home_courses';
+import * as migration_20261123_171512_m6_articles_campuses_careers from './20261123_171512_m6_articles_campuses_careers';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20261123_143804_m5_home_courses.up,
     down: migration_20261123_143804_m5_home_courses.down,
-    name: '20261123_143804_m5_home_courses'
+    name: '20261123_143804_m5_home_courses',
+  },
+  {
+    up: migration_20261123_171512_m6_articles_campuses_careers.up,
+    down: migration_20261123_171512_m6_articles_campuses_careers.down,
+    name: '20261123_171512_m6_articles_campuses_careers'
   },
 ];

@@ -114,7 +114,7 @@ export function toCohortItem(cohort: CohortSource): CohortItem | null {
   if (cohort.campus !== null && cohort.campus !== undefined) {
     const doc = publishedDoc(cohort.campus)
     if (!doc) return null
-    campus = { name: doc.name, city: doc.city, address: doc.address }
+    campus = { name: doc.name, slug: doc.slug, city: doc.city, address: doc.address }
   } else if (cohort.mode !== 'online') {
     return null
   }
@@ -130,7 +130,7 @@ export function toCohortItem(cohort: CohortSource): CohortItem | null {
 }
 
 /** 开班计划按开班日期升序（相同日期按 ID，结果稳定） */
-export function sortCohorts(cohorts: CohortItem[]): CohortItem[] {
+export function sortCohorts<T extends CohortItem>(cohorts: T[]): T[] {
   return cohorts.sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate) || a.id - b.id)
 }
 

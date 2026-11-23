@@ -46,8 +46,8 @@ export type TeacherDetail = {
   /** 分享图兜底（og 尺寸：1200×630 居中裁切的头像），交给 buildMetadata({ shareImage }) */
   shareImage: ImageSource | null
   yearsOfExperience: number | null
-  /** 所在校区：仅已发布的校区；**不链接**（校区详情 M6 才上线） */
-  campus: { name: string; city: string } | null
+  /** 所在校区：仅已发布的校区，链接到 /campuses/[slug] */
+  campus: { name: string; slug: string; city: string } | null
   /** 已发布的专业方向（按后台关联顺序），链接到 /majors/[slug] */
   disciplines: DisciplineRef[]
   specialties: string[]

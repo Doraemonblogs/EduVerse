@@ -23,6 +23,57 @@ describe('进程内突发限流', () => {
     limiter.take('c', 5000)
     expect(limiter.take('a', 5001)).toBe(true)
   })
+
+  it('release 撤销最近一次放行：名额退回，没有剩余记录时删除该键', () => {
+    const limiter = new BurstLimiter(2, 60_000)
+    expect(limiter.take('42', 0)).toBe(true)
+    expect(limiter.take('42', 1)).toBe(true)
+    limiter.release('42')
+    expect(limiter.size).toBe(1)
+    expect(limiter.take('42', 2)).toBe(true)
+    expect(limiter.take('42', 3)).toBe(false)
+
+    // 请求的目标不存在：放行后立即撤销，不在内存里留下键
+    for (let id = 1; id <= 100; id++) {
+      const key = `missing-${id}`
+      expect(limiter.take(key, 10)).toBe(true)
+      limiter.release(key)
+    }
+    expect(limiter.size).toBe(1)
+    // 撤销不存在的键不报错
+    limiter.release('never-seen')
+    expect(limiter.size).toBe(1)
+  })
+
+  it('窗口内涌入大量不同的键：键数不超过上限，按最近活动从早到晚丢弃，仍在活动的键保留限流记录', () => {
+    const limiter = new BurstLimiter(1, 60_000, 100)
+    expect(limiter.take('active', 0)).toBe(true)
+    for (let i = 0; i < 1_000; i++) {
+      limiter.take(`flood-${i}`, 1)
+      // 仍在请求的键每次都移到末尾，不会被当作最早的键丢弃
+      if (i % 50 === 0) expect(limiter.take('active', 1)).toBe(false)
+      expect(limiter.size).toBeLessThanOrEqual(100)
+    }
+    expect(limiter.take('active', 2)).toBe(false)
+    // 最早的键已被丢弃，再次出现时重新计数
+    expect(limiter.take('flood-0', 3)).toBe(true)
+  })
+
+  it('超出上限时一次清理到上限的 90%，之后的请求不会每次都全表扫描', () => {
+    const limiter = new BurstLimiter(1, 60_000, 100)
+    for (let i = 0; i < 100; i++) limiter.take(`k-${i}`, 0)
+    expect(limiter.size).toBe(100)
+    // 第 101 个键触发清理（窗口内的键都未过期）：一次降到 90 个
+    limiter.take('k-100', 0)
+    expect(limiter.size).toBe(90)
+    // 之后键数逐个增长，直到再次超过上限才清理（清理分摊到约 10 次请求一次）
+    for (let i = 101; i <= 110; i++) {
+      limiter.take(`k-${i}`, 0)
+      expect(limiter.size).toBe(90 + (i - 100))
+    }
+    limiter.take('k-111', 0)
+    expect(limiter.size).toBe(90)
+  })
 })
 
 describe('同一键串行执行', () => {

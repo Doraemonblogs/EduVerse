@@ -112,6 +112,15 @@ describe('课程详情页主体', () => {
     expect(text).not.toContain('北京·北京海淀校区')
   })
 
+  it('开设校区逐个链接到校区详情（/campuses/{slug}）', () => {
+    const { container } = renderView(courseDetail())
+    const links = within(fact(container, '开设校区') as HTMLElement).getAllByRole('link')
+    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      ['北京海淀校区', '/campuses/beijing-haidian'],
+      ['上海徐汇校区', '/campuses/shanghai-xuhui'],
+    ])
+  })
+
   it('纯线上课程的开设校区显示“线上”；没有近期开班时不显示该项', () => {
     const { container } = renderView(
       courseDetail({ campuses: [], deliveryModes: ['online'], cohorts: [] }),
@@ -134,6 +143,12 @@ describe('课程详情页主体', () => {
     const sidebar = screen.getByRole('complementary', { name: '预约免费试听' })
     const value = within(sidebar).getByText('近期开班', { selector: 'dt' }).nextElementSibling!
     expect(value.textContent).toBe('2026年12月14日 · 北京海淀校区')
+    // 开班校区链接到校区详情
+    expect(
+      within(value as HTMLElement)
+        .getByRole('link', { name: '北京海淀校区' })
+        .getAttribute('href'),
+    ).toBe('/campuses/beijing-haidian')
     expect(value.className).toContain('break-keep')
     expect(within(sidebar).getByText('三维动画设计长期就业班').className).toContain('break-keep')
   })

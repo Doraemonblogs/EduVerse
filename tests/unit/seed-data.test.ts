@@ -14,9 +14,14 @@ import { stories } from '../../scripts/seed/data/stories'
 import { teachers } from '../../scripts/seed/data/teachers'
 import { tutorials } from '../../scripts/seed/data/tutorials'
 import { bilibiliPlayerUrl, galleryCaptions, works } from '../../scripts/seed/data/works'
-import { CAMPUSES, COURSES, DISCIPLINES } from '../../scripts/seed/registry'
+import { beijingDateTime } from '../../scripts/seed/dates'
+import { ARTICLE_CATEGORIES, CAMPUSES, COURSES, DISCIPLINES } from '../../scripts/seed/registry'
 import { buildGlobals } from '../../scripts/seed/site'
 
+import { ARTICLE_PAGES_DEFAULTS } from '@/globals/article-pages-defaults'
+import { CAMPUS_PAGES_DEFAULTS } from '@/globals/campus-pages-defaults'
+import { CAREERS_PAGE_DEFAULTS } from '@/globals/careers-page-defaults'
+import { formatEventDateTime } from '@/lib/careers/mappers'
 import { COURSE_PAGES_DEFAULTS } from '@/globals/course-pages-defaults'
 import { HOME_PAGE_DEFAULTS } from '@/globals/home-page-defaults'
 import { TEACHER_PAGES_DEFAULTS } from '@/globals/teacher-pages-defaults'
@@ -145,6 +150,66 @@ describe('种子数据完整性', () => {
     }
   })
 
+  it('资讯页面设置写入了列表与详情侧栏的文案，校区页面设置写入了列表与行动号召的文案', () => {
+    const globals = buildGlobals({ wechatQr: 1, hotDisciplines: [] })
+    const articlePages = globals['article-pages']
+    expect(articlePages?.list?.title).toBeTruthy()
+    expect(articlePages?.list?.description).toBeTruthy()
+    expect(articlePages?.list?.seo?.title).toBeTruthy()
+    expect(articlePages?.list?.seo?.description).toBeTruthy()
+    expect(articlePages?.detail?.sidebarTitle).toBeTruthy()
+    expect(articlePages?.detail?.sidebarDescription).toBeTruthy()
+
+    const campusPages = globals['campus-pages']
+    expect(campusPages?.list?.title).toBeTruthy()
+    expect(campusPages?.list?.description).toBeTruthy()
+    expect(campusPages?.list?.seo?.title).toBeTruthy()
+    expect(campusPages?.list?.seo?.description).toBeTruthy()
+    expect(campusPages?.detail?.ctaTitle).toBeTruthy()
+    expect(campusPages?.detail?.ctaDescription).toBeTruthy()
+  })
+
+  it('就业服务页写入了介绍、流程、行动号召与 SEO 文案', () => {
+    const careers = buildGlobals({ wechatQr: 1, hotDisciplines: [] })['careers-page']
+    expect(careers?.intro?.title).toBeTruthy()
+    expect(careers?.intro?.description).toBeTruthy()
+    expect(careers?.process?.steps?.length).toBeGreaterThanOrEqual(3)
+    expect(careers?.cta?.title).toBeTruthy()
+    expect(careers?.cta?.description).toBeTruthy()
+    expect(careers?.seo?.title).toBeTruthy()
+    expect(careers?.seo?.description).toBeTruthy()
+  })
+
+  it('就业服务页（含默认值）不出现就业率、薪资等结果性表述', () => {
+    const careers = JSON.stringify({
+      seed: buildGlobals({ wechatQr: 1, hotDisciplines: [] })['careers-page'],
+      defaults: CAREERS_PAGE_DEFAULTS,
+      careerEvents,
+    })
+    for (const word of ['就业率', '入职率', '薪资', '月薪', '年薪', '保证', '承诺', '推荐就业']) {
+      expect(careers.includes(word), word).toBe(false)
+    }
+  })
+
+  it('有今天以后的招聘活动（就业服务页近期活动），也有已举办的活动（页面不显示）', () => {
+    expect(careerEvents.some((event) => event.daysFromNow >= 0)).toBe(true)
+    expect(careerEvents.some((event) => event.daysFromNow < 0)).toBe(true)
+  })
+
+  it('招聘活动的开始时间是北京时间 9:00–20:00 之间的整点或半点（页面会显示钟点）', () => {
+    for (const event of careerEvents) {
+      expect(event.time, event.title).toMatch(/^(?:(?:09|1\d):(?:00|30)|20:00)$/)
+    }
+  })
+
+  it('资讯分类都写入了描述（分类页 h1 下的简介与 meta description），且互不相同', () => {
+    const descriptions = ARTICLE_CATEGORIES.map((category) => category.description.trim())
+    for (const [i, description] of descriptions.entries()) {
+      expect(description.length, ARTICLE_CATEGORIES[i]!.slug).toBeGreaterThanOrEqual(20)
+    }
+    expect(unique(descriptions)).toBe(true)
+  })
+
   it('首页：每个区块都写入了标题，精选课程区块不指定课程（走自动规则）', () => {
     const home = buildGlobals({ wechatQr: 1, hotDisciplines: [] })['home-page']
     const sections = [
@@ -210,6 +275,35 @@ describe('种子数据完整性', () => {
   })
 })
 
+describe('种子日期：北京时间的钟点（beijingDateTime）', () => {
+  // 2026-11-23 23:35（北京时间）执行种子
+  const lateNight = new Date('2026-11-23T15:35:00Z')
+
+  it('按北京时间的“今天 + N 天”落在指定钟点，不带入执行种子时的钟点', () => {
+    const date = beijingDateTime(7, '19:00', lateNight)
+    expect(date).toBe('2026-11-30T11:00:00.000Z')
+    expect(formatEventDateTime(date)).toBe('2026年11月30日 19:00')
+    expect(formatEventDateTime(beijingDateTime(-30, '14:00', lateNight))).toBe(
+      '2026年10月24日 14:00',
+    )
+  })
+
+  it('UTC 16:00 之后执行时北京已是第二天，“今天”按北京时间计算；跨月、跨年正确进位', () => {
+    // UTC 11 月 23 日 17:00 = 北京时间 11 月 24 日 01:00
+    const afterMidnight = new Date('2026-11-23T17:00:00Z')
+    expect(beijingDateTime(0, '14:00', afterMidnight)).toBe('2026-11-24T06:00:00.000Z')
+    expect(formatEventDateTime(beijingDateTime(45, '14:00', lateNight))).toBe('2027年1月7日 14:00')
+    // 北京时间 08:00 前的钟点换算到 UTC 是前一天
+    expect(beijingDateTime(1, '07:30', lateNight)).toBe('2026-11-23T23:30:00.000Z')
+  })
+
+  it('钟点格式不对时报错，避免写入错误的活动时间', () => {
+    for (const time of ['9:00', '24:00', '14:60', '1400', '']) {
+      expect(() => beijingDateTime(1, time, lateNight), time).toThrow()
+    }
+  })
+})
+
 describe('合规（广告法）', () => {
   const corpus = JSON.stringify({
     disciplines,
@@ -220,6 +314,7 @@ describe('合规（广告法）', () => {
     partners,
     careerEvents,
     articles,
+    articleCategories: ARTICLE_CATEGORIES,
     faqs,
     tutorials,
     quizQuestions,
@@ -232,6 +327,9 @@ describe('合规（广告法）', () => {
     homePageDefaults: HOME_PAGE_DEFAULTS,
     workPagesDefaults: WORK_PAGES_DEFAULTS,
     teacherPagesDefaults: TEACHER_PAGES_DEFAULTS,
+    articlePagesDefaults: ARTICLE_PAGES_DEFAULTS,
+    campusPagesDefaults: CAMPUS_PAGES_DEFAULTS,
+    careersPageDefaults: CAREERS_PAGE_DEFAULTS,
   })
 
   it.each([

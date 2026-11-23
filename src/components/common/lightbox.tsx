@@ -9,11 +9,10 @@ import { zh } from '@/i18n/zh'
 import { formatMessage } from '@/lib/course/format'
 import type { ImageSource } from '@/lib/media'
 import { cn } from '@/lib/utils'
-import { workImageAlt } from '@/lib/works/format'
 
 import { useHydrated } from './use-hydrated'
 
-const t = zh.works.detail
+const t = zh.lightbox
 
 /** 灯箱里的一张图：大图（hero 尺寸）、缩略图与说明文字 */
 export type LightboxImage = {
@@ -22,14 +21,6 @@ export type LightboxImage = {
   thumb: ImageSource
   caption: string | null
 }
-
-/**
- * 缩略图的显示宽度（与 work-media.tsx 的 w-20 md:w-28 lg:w-20 xl:w-28 一致：
- * 移动端 80px、平板 112px；桌面端主媒体栏在 lg 较窄，缩回 80px，xl 起 112px）。
- * 页面缩略图与灯箱占位图用同一个 sizes，浏览器从 srcset 中选中同一个地址，占位图直接命中缓存。
- */
-export const LIGHTBOX_THUMB_SIZES =
-  '(min-width: 1280px) 112px, (min-width: 1024px) 80px, (min-width: 768px) 112px, 80px'
 
 type LightboxContextValue = {
   /** 打开第 index 张（从 0 开始）；opener 为触发的按钮，关闭后焦点还给它 */
@@ -46,26 +37,36 @@ export function wrapIndex(index: number, total: number): number {
   return total > 0 ? ((index % total) + total) % total : 0
 }
 
-type WorkLightboxProps = {
-  /** 图片序列（封面在前，见 workLightboxItems） */
+/** 图片的替代文字：媒体库填写的优先，未填写时用灯箱标题（作品名、校区名） */
+function imageAlt(image: ImageSource, title: string): string {
+  return image.alt.trim() || title
+}
+
+export type LightboxProps = {
+  /** 图片序列（如作品：封面在前，见 workLightboxItems；校区：环境照片） */
   items: LightboxImage[]
-  /** 作品名：对话框标题，图片未填替代文字时用作 alt */
+  /** 对话框标题（作品名、校区名）；图片未填替代文字时用作 alt */
   title: string
-  /** 页面上的触发按钮（WorkLightboxTrigger）及其周围内容，可以是服务端组件 */
+  /**
+   * 页面缩略图的 sizes：灯箱里先用缩略图（thumb）占位，必须与页面上缩略图的 sizes 相同，
+   * 浏览器才会从 srcset 中选中同一个地址、直接命中缓存
+   */
+  thumbSizes: string
+  /** 页面上的触发按钮（LightboxTrigger）及其周围内容，可以是服务端组件 */
   children: React.ReactNode
 }
 
 /**
- * 作品大图灯箱（客户端组件，基于 Radix Dialog）：
- * - 全屏深色，顶部作品名、序号“2 / 5”与关闭按钮，底部图片说明；
+ * 大图灯箱（客户端组件，基于 Radix Dialog；作品图集、校区环境照片共用）：
+ * - 全屏深色，顶部标题、序号“2 / 5”与关闭按钮，底部图片说明；
  * - 左右切换按钮（读屏名称“上一张 / 下一张”）、键盘 ← / →、触屏左右滑动，首尾循环；Esc 关闭；
  * - 焦点锁定在灯箱内，关闭后焦点回到打开它的缩略图 / 主图按钮（页面上有多个触发按钮，
  *   Radix 只会归还给 <Dialog.Trigger>，这里自己记住打开它的按钮）；
  * - 序号变化通过 aria-live 播报；减少动态效果时淡入动画由全局样式关闭；
  * - 只有打开后才渲染大图（hero 尺寸），页面首屏不额外加载。
- * 页面里的主图、缩略图用 <WorkLightboxTrigger index> 包裹即可打开对应的图片。
+ * 页面里的主图、缩略图用 <LightboxTrigger index> 包裹即可打开对应的图片。
  */
-export function WorkLightbox({ items, title, children }: WorkLightboxProps) {
+export function Lightbox({ items, title, thumbSizes, children }: LightboxProps) {
   const [index, setIndex] = React.useState<number | null>(null)
   const openerRef = React.useRef<HTMLElement | null>(null)
   const swipeRef = React.useRef<{ x: number; y: number } | null>(null)
@@ -132,7 +133,7 @@ export function WorkLightbox({ items, title, children }: WorkLightboxProps) {
           {/* 遮罩负责锁定页面滚动；灯箱本身铺满视口 */}
           <DialogPrimitive.Overlay className="surface-dark fixed inset-0 z-50 bg-background" />
           <DialogPrimitive.Content
-            data-slot="work-lightbox"
+            data-slot="lightbox"
             className="surface-dark fixed inset-0 z-50 flex flex-col bg-background text-foreground outline-none data-[state=open]:animate-fade-in"
             onKeyDown={handleKeyDown}
             onCloseAutoFocus={handleCloseAutoFocus}
@@ -144,23 +145,19 @@ export function WorkLightbox({ items, title, children }: WorkLightboxProps) {
               {position ? (
                 <p aria-live="polite" aria-atomic="true" className="shrink-0 text-sm">
                   <span aria-hidden className="numeric text-muted-foreground">
-                    {formatMessage(t.lightbox.counter, position)}
+                    {formatMessage(t.counter, position)}
                   </span>
-                  <span className="sr-only">
-                    {formatMessage(t.lightbox.counterLabel, position)}
-                  </span>
+                  <span className="sr-only">{formatMessage(t.counterLabel, position)}</span>
                 </p>
               ) : null}
               <DialogPrimitive.Close
-                aria-label={t.lightbox.close}
+                aria-label={t.close}
                 className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-sm text-foreground transition-colors hover:bg-accent"
               >
                 <XIcon aria-hidden className="size-6" />
               </DialogPrimitive.Close>
             </div>
-            <DialogPrimitive.Description className="sr-only">
-              {t.lightbox.hint}
-            </DialogPrimitive.Description>
+            <DialogPrimitive.Description className="sr-only">{t.hint}</DialogPrimitive.Description>
 
             {current ? (
               <figure className="flex min-h-0 flex-1 flex-col">
@@ -180,14 +177,14 @@ export function WorkLightbox({ items, title, children }: WorkLightboxProps) {
                       alt=""
                       aria-hidden
                       fill
-                      sizes={LIGHTBOX_THUMB_SIZES}
+                      sizes={thumbSizes}
                       loading="eager"
                       className="object-contain"
                     />
                     <Image
                       key={current.image.src}
                       src={current.image.src}
-                      alt={workImageAlt(current.image, title)}
+                      alt={imageAlt(current.image, title)}
                       fill
                       sizes="(min-width: 768px) calc(100vw - 10rem), 100vw"
                       loading="eager"
@@ -197,14 +194,14 @@ export function WorkLightbox({ items, title, children }: WorkLightboxProps) {
                   {total > 1 ? (
                     <>
                       <LightboxNavButton
-                        label={t.lightbox.previous}
+                        label={t.previous}
                         onClick={() => step(-1)}
                         className="left-[max(0.5rem,env(safe-area-inset-left,0px))] md:left-4"
                       >
                         <ChevronLeftIcon aria-hidden className="size-6" />
                       </LightboxNavButton>
                       <LightboxNavButton
-                        label={t.lightbox.next}
+                        label={t.next}
                         onClick={() => step(1)}
                         className="right-[max(0.5rem,env(safe-area-inset-right,0px))] md:right-4"
                       >
@@ -252,8 +249,8 @@ function LightboxNavButton({
   )
 }
 
-type WorkLightboxTriggerProps = {
-  /** 打开第几张（从 0 开始，对应 WorkLightbox 的 items） */
+type LightboxTriggerProps = {
+  /** 打开第几张（从 0 开始，对应 Lightbox 的 items） */
   index: number
   /** 读屏名称，如“查看大图：{替代文字}” */
   label: string
@@ -262,15 +259,10 @@ type WorkLightboxTriggerProps = {
 }
 
 /**
- * 打开灯箱的按钮（必须放在 <WorkLightbox> 里）。children 一般是服务端渲染的图片；
+ * 打开灯箱的按钮（必须放在 <Lightbox> 里）。children 一般是服务端渲染的图片；
  * 按钮有读屏名称，里面的图片作为按钮内容不再单独朗读。水合前点击没有反应，先不可用。
  */
-export function WorkLightboxTrigger({
-  index,
-  label,
-  className,
-  children,
-}: WorkLightboxTriggerProps) {
+export function LightboxTrigger({ index, label, className, children }: LightboxTriggerProps) {
   const context = React.useContext(LightboxContext)
   const hydrated = useHydrated()
   return (

@@ -112,9 +112,10 @@ describe('toCohortItem', () => {
     })
   })
 
-  it('已发布校区的开班带上校区名、城市与地址', () => {
+  it('已发布校区的开班带上校区名、slug（链接到校区详情）、城市与地址', () => {
     expect(toCohortItem(cohort())?.campus).toEqual({
       name: '北京海淀校区',
+      slug: 'beijing-haidian',
       city: '北京',
       address: '示例地址',
     })

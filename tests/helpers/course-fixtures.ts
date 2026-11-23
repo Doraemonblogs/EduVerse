@@ -59,7 +59,7 @@ export const cohortItem = (overrides: Partial<CohortItem> = {}): CohortItem => (
   endDate: '2027-06-30T02:00:00.000Z',
   mode: 'offline',
   status: 'enrolling',
-  campus: { name: BEIJING.name, city: BEIJING.city, address: BEIJING.address },
+  campus: { name: BEIJING.name, slug: BEIJING.slug, city: BEIJING.city, address: BEIJING.address },
   note: null,
   ...overrides,
 })

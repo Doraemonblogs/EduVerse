@@ -1,6 +1,7 @@
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
 import { hiddenFromConsultant, isStaffEditor, publishedOrEditor } from '@/access/roles'
+import { articleViewEndpoint } from '@/endpoints/article-view'
 import { seoTab } from '@/fields/seo'
 import { slug } from '@/fields/slug'
 import { revalidateCollection } from '@/hooks/revalidate'
@@ -29,8 +30,8 @@ const buildSearchText: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
 }
 
 /**
- * 浏览量只由前台计数（M6 原生 SQL 自增）。后台编辑表单载入的是版本快照，
- * 保存时会把旧计数写回，因此更新时总是以主表当前值为准。
+ * 浏览量只由前台计数（POST /api/articles/:id/view，原生 SQL 自增，见 src/endpoints/article-view.ts）。
+ * 后台编辑表单载入的是版本快照，保存时会把旧计数写回，因此更新时总是以主表当前值为准。
  */
 const preserveViews: CollectionBeforeChangeHook = async ({ data, operation, originalDoc, req }) => {
   if (operation !== 'update' || !originalDoc?.id) return data
@@ -57,6 +58,8 @@ export const Articles: CollectionConfig = {
   },
   defaultSort: '-publishedAt',
   versions: { drafts: true, maxPerDoc: 20 },
+  // 阅读量上报：POST /api/articles/:id/view（只对已发布文章计数，不触发钩子与版本）
+  endpoints: [articleViewEndpoint],
   access: {
     read: publishedOrEditor,
     readVersions: isStaffEditor,

@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { CampusLink } from '@/components/campuses/campus-link'
 import { Breadcrumbs } from '@/components/common/breadcrumbs'
 import { Container } from '@/components/common/container'
 import { Section } from '@/components/common/section'
@@ -30,7 +31,7 @@ type Fact = { label: string; value: React.ReactNode; className?: string; numeric
 
 /**
  * 讲师详情首屏（深色区块）：面包屑、头像（唯一的高优先级图片）、姓名（h1）、头衔，
- * 概况 <dl>（从业年限、所在校区（不链接）、专业方向（链接到专业方向页）、擅长领域标签）
+ * 概况 <dl>（从业年限、所在校区（链接到校区详情）、专业方向（链接到专业方向页）、擅长领域标签）
  * 与“预约试听”（position=teacher_hero，带第一个专业方向）。
  * 移动端头像缩小放在姓名左侧，概况与按钮通栏；桌面端头像占左栏。
  */
@@ -130,7 +131,7 @@ export function TeacherHero({ teacher, teachersLabel }: TeacherHeroProps) {
 
 /**
  * 首屏概况：短项（从业年限、所在校区、专业方向）在前，擅长领域（标签，较长）独占一行。
- * 没有数据的项不显示。专业方向是行内链接：伪元素把点击区域上下各扩 10px（补足 44px 高），
+ * 没有数据的项不显示。所在校区、专业方向是行内链接：伪元素把点击区域上下各扩 10px（补足 44px 高），
  * 链接本身与焦点描边仍贴合文字，与其它项对齐。
  */
 function teacherFacts(teacher: TeacherDetail): Fact[] {
@@ -143,7 +144,17 @@ function teacherFacts(teacher: TeacherDetail): Fact[] {
     })
   }
   if (teacher.campus) {
-    facts.push({ label: t.facts.campus, value: campusLabel(teacher.campus) })
+    facts.push({
+      label: t.facts.campus,
+      value: (
+        <CampusLink
+          campus={teacher.campus}
+          className="relative inline-block before:absolute before:inset-x-0 before:-inset-y-2.5"
+        >
+          {campusLabel(teacher.campus)}
+        </CampusLink>
+      ),
+    })
   }
   if (teacher.disciplines.length > 0) {
     facts.push({

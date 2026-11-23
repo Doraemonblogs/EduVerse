@@ -126,12 +126,12 @@ async function currentSlide(dots: Locator): Promise<number> {
   return states.indexOf(true)
 }
 
-/** 站内链接（去重，不含锚点与外链）；M6 才实现的 /campuses、/articles 不在其中 */
+/** 站内链接（去重，不含锚点与外链） */
 async function internalHrefs(scope: Locator): Promise<string[]> {
   const hrefs = await scope
     .locator('a[href^="/"]')
     .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''))
-  return [...new Set(hrefs)].filter((href) => !/^\/(campuses|articles)(\/|$)/.test(href))
+  return [...new Set(hrefs)]
 }
 
 /**
@@ -432,7 +432,7 @@ test.describe('首页', () => {
     })
   })
 
-  test('热门专业、精选课程、学员作品、师资团队的链接与“查看全部”都可访问（200）', async ({
+  test('热门专业、精选课程、学员作品、师资团队、校区分布与最新资讯的链接和“查看全部”都可访问（200）', async ({
     page,
     isMobile,
   }) => {
@@ -444,6 +444,8 @@ test.describe('首页', () => {
       'home-courses-title',
       'home-works-title',
       'home-teachers-title',
+      'home-campuses-title',
+      'home-articles-title',
     ]
     const hrefs = new Set<string>()
     for (const { id, title } of facts.titles.filter((section) => ids.includes(section.id))) {
@@ -454,13 +456,23 @@ test.describe('首页', () => {
         expect(found.filter((href) => href.startsWith('/majors/')).length).toBeGreaterThan(0)
       }
     }
-    for (const prefix of ['/majors/', '/courses/', '/works/', '/teachers/']) {
+    for (const prefix of [
+      '/majors/',
+      '/courses/',
+      '/works/',
+      '/teachers/',
+      '/campuses/',
+      '/articles/',
+    ]) {
       expect(
         [...hrefs].some((href) => href.startsWith(prefix)),
         prefix,
       ).toBe(true)
     }
-    for (const href of ['/courses', '/works', '/teachers']) expect(hrefs.has(href), href).toBe(true)
+    // “查看全部”（校区分布区块没有“查看全部”，校区卡片直接进入各校区详情）
+    for (const href of ['/courses', '/works', '/teachers', '/articles']) {
+      expect(hrefs.has(href), href).toBe(true)
+    }
     for (const href of hrefs) {
       const res = await page.request.get(href)
       expect(res.status(), href).toBe(200)

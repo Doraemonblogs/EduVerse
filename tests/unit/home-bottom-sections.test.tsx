@@ -43,7 +43,8 @@ vi.mock('next/link', () => ({
 
 const { getLeadFormConfig } = await import('@/lib/data/lead-form')
 const { WorksSection } = await import('@/components/home/bottom/works-section')
-const { StoriesSection, storyRoleLine } = await import('@/components/home/bottom/stories-section')
+const { StoriesSection } = await import('@/components/home/bottom/stories-section')
+const { storyRoleLine } = await import('@/components/careers/story-card')
 const { PartnersSection } = await import('@/components/home/bottom/partners-section')
 const { TeachersSection } = await import('@/components/home/bottom/teachers-section')
 const { CampusesSection } = await import('@/components/home/bottom/campuses-section')
