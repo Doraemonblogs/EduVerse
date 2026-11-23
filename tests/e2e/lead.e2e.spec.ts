@@ -1,6 +1,12 @@
 import type { Page } from '@playwright/test'
 
-import { deleteLeadsByPhone, findLeadByPhone, testIp, testPhone } from '../helpers/leads'
+import {
+  deleteLeadsByPhone,
+  findLeadByPhone,
+  leadNamespace,
+  testIp,
+  testPhone,
+} from '../helpers/leads'
 import { expect, test } from './fixtures'
 
 /** 打开留资弹窗：桌面端用头部按钮，移动端用底部操作条 */
@@ -20,42 +26,46 @@ async function openLeadDialog(page: Page, isMobile: boolean) {
 
 test.describe('留资（关键路径）', () => {
   test('提交预约试听后，后台能看到这条线索，来源字段正确', async ({ page, isMobile }, testInfo) => {
-    const ip = testIp(testInfo.workerIndex * 10 + (isMobile ? 1 : 2))
-    const phone = testPhone(isMobile ? 1 : 2)
+    const ns = leadNamespace('lead', testInfo)
+    const ip = testIp(ns, 1)
+    const phone = testPhone(ns, 1)
     await page.setExtraHTTPHeaders({ 'x-forwarded-for': ip })
     await page.goto('/?utm_source=e2e&utm_campaign=m2')
 
-    const dialog = await openLeadDialog(page, isMobile)
-    await dialog.getByLabel('姓名').fill('端到端测试')
-    await dialog.getByLabel('手机号').fill(phone)
-    await dialog.getByLabel('意向专业').selectOption({ label: '三维动画' })
-    await dialog.getByLabel('所在城市').selectOption('北京')
-    await dialog.getByRole('checkbox').check()
-    // 满足“最短填写时间”防刷规则
-    await page.waitForTimeout(2200)
-    await dialog.getByRole('button', { name: '立即预约' }).click()
+    try {
+      const dialog = await openLeadDialog(page, isMobile)
+      await dialog.getByLabel('姓名').fill('端到端测试')
+      await dialog.getByLabel('手机号').fill(phone)
+      await dialog.getByLabel('意向专业').selectOption({ label: '三维动画' })
+      await dialog.getByLabel('所在城市').selectOption('北京')
+      await dialog.getByRole('checkbox').check()
+      // 满足“最短填写时间”防刷规则
+      await page.waitForTimeout(2200)
+      await dialog.getByRole('button', { name: '立即预约' }).click()
 
-    await expect(dialog.getByRole('heading', { name: '提交成功' })).toBeVisible()
-    await expect(dialog.getByRole('img', { name: '课程顾问微信二维码' })).toBeVisible()
+      await expect(dialog.getByRole('heading', { name: '提交成功' })).toBeVisible()
+      await expect(dialog.getByRole('img', { name: '课程顾问微信二维码' })).toBeVisible()
 
-    const lead = await findLeadByPhone(phone)
-    expect(lead).not.toBeNull()
-    expect(lead).toMatchObject({
-      name: '端到端测试',
-      intent: 'trial',
-      status: 'new',
-      city: '北京',
-      source: {
-        position: isMobile ? 'mobile_action_bar' : 'header_cta',
-        utmSource: 'e2e',
-        utmCampaign: 'm2',
-      },
-      client: { ip },
-      consent: { agreed: true },
-    })
-    expect(lead?.source?.pageUrl).toContain('utm_source=e2e')
-    expect(lead?.discipline).toBeTruthy()
-    await deleteLeadsByPhone(phone)
+      const lead = await findLeadByPhone(phone)
+      expect(lead).not.toBeNull()
+      expect(lead).toMatchObject({
+        name: '端到端测试',
+        intent: 'trial',
+        status: 'new',
+        city: '北京',
+        source: {
+          position: isMobile ? 'mobile_action_bar' : 'header_cta',
+          utmSource: 'e2e',
+          utmCampaign: 'm2',
+        },
+        client: { ip },
+        consent: { agreed: true },
+      })
+      expect(lead?.source?.pageUrl).toContain('utm_source=e2e')
+      expect(lead?.discipline).toBeTruthy()
+    } finally {
+      await deleteLeadsByPhone(phone)
+    }
   })
 
   test('必填项缺失时给出中文提示，焦点移到第一个错误字段，不提交', async ({ page, isMobile }) => {
@@ -96,8 +106,9 @@ test.describe('留资（关键路径）', () => {
     page,
     isMobile,
   }, testInfo) => {
-    const ip = testIp(testInfo.workerIndex * 10 + (isMobile ? 5 : 6))
-    const phone = testPhone(isMobile ? 5 : 6)
+    const ns = leadNamespace('lead', testInfo)
+    const ip = testIp(ns, 2)
+    const phone = testPhone(ns, 2)
     await page.setExtraHTTPHeaders({ 'x-forwarded-for': ip })
     await page.goto('/')
     try {

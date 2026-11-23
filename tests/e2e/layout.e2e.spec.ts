@@ -28,28 +28,25 @@ test.describe('全站框架', () => {
     await expect(menu.getByRole('link', { name: '三维动画设计长期就业班' })).toBeHidden()
   })
 
-  test.describe('大菜单按钮的键盘焦点', () => {
-    // 课程列表页在后续里程碑上线，目前访问会得到 404；浏览器会把 404 响应记为一条控制台错误，这里放行
-    test.use({ allowedConsoleErrors: [/status of 404/] })
-
-    test('键盘聚焦“专业课程”按钮时有可见的焦点描边（课程页上文字本就是强调色，同样有描边）', async ({
-      page,
-      isMobile,
-    }) => {
-      test.skip(isMobile, '桌面端专属')
-      for (const path of ['/', '/courses']) {
-        await page.goto(path)
-        const trigger = page.getByRole('banner').getByRole('button', { name: '专业课程' })
-        await tabTo(page, trigger)
-        await expect(trigger).toBeFocused()
-        const outline = await trigger.evaluate((el) => {
-          const style = getComputedStyle(el)
-          return { style: style.outlineStyle, width: Number.parseFloat(style.outlineWidth) }
-        })
-        expect(outline.style, `${path} 上的焦点描边`).not.toBe('none')
-        expect(outline.width, `${path} 上的焦点描边宽度`).toBeGreaterThan(0)
-      }
-    })
+  test('键盘聚焦“专业课程”按钮时有可见的焦点描边（课程页上文字本就是强调色，同样有描边）', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, '桌面端专属')
+    for (const path of ['/', '/courses']) {
+      // 两个页面都已上线：必须正常返回，不能落到 404 页（404 页同样有头部，会让本用例误通过）
+      const response = await page.goto(path)
+      expect(response?.status(), path).toBe(200)
+      const trigger = page.getByRole('banner').getByRole('button', { name: '专业课程' })
+      await tabTo(page, trigger)
+      await expect(trigger).toBeFocused()
+      const outline = await trigger.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return { style: style.outlineStyle, width: Number.parseFloat(style.outlineWidth) }
+      })
+      expect(outline.style, `${path} 上的焦点描边`).not.toBe('none')
+      expect(outline.width, `${path} 上的焦点描边宽度`).toBeGreaterThan(0)
+    }
   })
 
   test('桌面悬浮栏：电话详情可以移入查看，按 Esc 关闭', async ({ page, isMobile }) => {

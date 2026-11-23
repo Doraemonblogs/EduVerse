@@ -370,6 +370,20 @@
   padding-right: max(var(--spacing-gutter), env(safe-area-inset-right, 0px));
 }
 
+/* 给桌面端右侧悬浮操作栏让位（与 container-site 同用，写成 lg:avoid-floating-actions，
+   悬浮栏从 lg 起显示）。悬浮栏（contact-actions.tsx FloatingActions）距右 0.75rem、
+   宽 3.5rem + 1px 边框 × 2，连同 10px 间隙共占 5rem；它固定在视口中部，
+   会一直盖住贴着版心右缘、又随视口固定的内容（吸顶侧栏表单、滚到底时页脚右侧的热线与二维码）。
+   右侧留白 = max(常规留白, 5rem − 版心外的页边距)：视口 ≥ 1440px 时页边距已够，留白回到常规值。
+   百分比按父元素（通栏区块）宽度计算，不含滚动条，比 100vw 准确。 */
+@utility avoid-floating-actions {
+  padding-right: max(
+    var(--spacing-gutter),
+    env(safe-area-inset-right, 0px),
+    calc(5rem - max(0px, (100% - var(--container-site)) / 2 - var(--spacing-gutter)))
+  );
+}
+
 /* 英文眉标：小号大写 + 字距，用于区块标题上方 */
 @utility eyebrow {
   font-family: var(--font-space-grotesk), var(--font-sans);

@@ -28,6 +28,7 @@ import { Tutorials } from './collections/Tutorials'
 import { Users } from './collections/Users'
 import { Works } from './collections/Works'
 import { CareersPage } from './globals/CareersPage'
+import { CoursePages } from './globals/CoursePages'
 import { Footer } from './globals/Footer'
 import { HomePage } from './globals/HomePage'
 import { LeadSettings } from './globals/LeadSettings'
@@ -80,7 +81,16 @@ export default buildConfig({
     Media,
     AuditLogs,
   ],
-  globals: [SiteSettings, Navigation, Footer, HomePage, CareersPage, QuizSettings, LeadSettings],
+  globals: [
+    SiteSettings,
+    Navigation,
+    Footer,
+    HomePage,
+    CoursePages,
+    CareersPage,
+    QuizSettings,
+    LeadSettings,
+  ],
   // 任务队列（线索推送）：接口权限、定时执行、退避重试与中断回收见 src/jobs/config.ts
   jobs: jobsConfig,
   editor: lexicalEditor(),

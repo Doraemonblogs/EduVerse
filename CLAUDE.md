@@ -22,7 +22,7 @@
 
 ```bash
 pnpm dev                 # 开发服务器 http://localhost:3000（后台 /admin，设计规范 /styleguide）
-pnpm build && pnpm start # 生产构建与启动
+pnpm build && pnpm start # 生产构建与启动（构建前自动清除 .next 中的 Next 数据缓存）
 pnpm typecheck           # next typegen + tsc --noEmit
 pnpm lint                # ESLint，0 warning 才算通过
 pnpm format              # Prettier 格式化（format:check 只检查）
@@ -44,6 +44,8 @@ pnpm preview:serve       # 本地模拟 GitHub Pages 查看 preview-dist/
 新增页面若不能从首页顺着链接到达，需登记到 `scripts/preview/export-static.ts` 的 `ENTRY_PATHS`。
 新增顶层前台路由（`/courses`、`/works` …）时，同步登记到 `src/lib/reserved-slugs.ts`（通用页面 `/[pageSlug]` 不得占用）；导航已链接、尚未实现的路由登记在导出脚本的 `PLANNED_ROUTES`，实现后删除。
 新增有前台详情页的集合时，在 `src/components/common/rich-text.tsx` 登记其路径前缀（富文本链接与页面缓存标签依赖它）。
+数据层返回给前台的富文本（专业介绍、页面区块，及以后的讲师简介、文章正文等）先经 `guardCourseLinks()`（`src/lib/data/courses.ts`）处理，指向已下线课程的链接只保留文字。
+会提交线索的 e2e 测试文件登记到 `tests/helpers/lead-identity.ts` 的 `LEAD_SPECS`，用其中的函数生成模拟 IP 与手机号（单元测试兜底）。
 
 本地数据库：`docker compose -f docker-compose.dev.yml up -d`（会同时创建 `eduverse_test`）。
 无 Docker 时自行安装 PostgreSQL 16，创建 `eduverse` 与 `eduverse_test` 两个库。

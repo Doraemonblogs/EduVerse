@@ -98,6 +98,63 @@ describe('buildMetadata 分享图（og:image）', () => {
     expect(firstOgImageUrl(metadata.openGraph?.images)).toBe('https://static.example.cn/a.webp')
   })
 
+  it('数据层已处理好的分享图（og 裁切）直接使用，子路径只出现一次', async () => {
+    const buildMetadata = await loadBuildMetadata({
+      basePath: '/EduVerse',
+      siteUrl: 'https://user.github.io/EduVerse',
+    })
+    // 课程视图模型的 shareImage = imageSource(cover, 'og')：地址已补 basePath
+    const shareImage = {
+      src: '/EduVerse/api/media/file/course-1200x630.webp',
+      alt: '课程封面',
+      width: 1200,
+      height: 630,
+    }
+    const metadata = await buildMetadata({ shareImage, path: '/courses/demo' })
+    expect(metadata.openGraph?.images).toEqual([
+      {
+        url: 'https://user.github.io/EduVerse/api/media/file/course-1200x630.webp',
+        width: 1200,
+        height: 630,
+        alt: '课程封面',
+      },
+    ])
+  })
+
+  it('SEO 字段组的分享图优先于封面兜底；都没有时用站点默认分享图', async () => {
+    const fallback = {
+      src: '/api/media/file/cover-1200x630.webp',
+      alt: '',
+      width: 1200,
+      height: 630,
+    }
+    settings.current = {
+      defaultSeo: {
+        image: { ...shareImage, sizes: { og: { url: '/default.webp', width: 1200, height: 630 } } },
+      },
+    }
+    const buildMetadata = await loadBuildMetadata({
+      basePath: '',
+      siteUrl: 'https://www.example.cn',
+    })
+    const withSeo = await buildMetadata({
+      seo: { image: shareImage },
+      shareImage: fallback,
+      path: '/courses/demo',
+    })
+    expect(firstOgImageUrl(withSeo.openGraph?.images)).toBe(
+      'https://www.example.cn/api/media/file/share-1200x630.webp',
+    )
+    const withFallback = await buildMetadata({ shareImage: fallback, path: '/courses/demo' })
+    expect(firstOgImageUrl(withFallback.openGraph?.images)).toBe(
+      'https://www.example.cn/api/media/file/cover-1200x630.webp',
+    )
+    const withDefault = await buildMetadata({ shareImage: null, path: '/courses/demo' })
+    expect(firstOgImageUrl(withDefault.openGraph?.images)).toBe(
+      'https://www.example.cn/default.webp',
+    )
+  })
+
   it('没有任何分享图时不输出 og:image', async () => {
     const buildMetadata = await loadBuildMetadata({
       basePath: '',

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { LINKABLE_COLLECTIONS } from '@/components/common/rich-text'
+import { docHref, LINKABLE_COLLECTIONS } from '@/components/common/rich-text'
 import { cacheTags } from '@/hooks/revalidate'
 import { getPayloadClient } from '@/lib/payload'
 
@@ -83,5 +83,93 @@ describe('isPageSlug / getPageBySlug', () => {
   it('静态生成的 slug 清单剔除被固定路由占用的页面', async () => {
     find.mockResolvedValue({ docs: [{ slug: 'about' }, { slug: 'careers' }, { slug: 'terms' }] })
     expect(await getPublishedPageSlugs()).toEqual(['about', 'terms'])
+  })
+})
+
+describe('页面区块富文本的课程链接', () => {
+  /** 富文本：站内链接指向已填充的课程 */
+  const linkTo = (course: { id: number; slug: string }) => ({
+    root: {
+      type: 'root',
+      version: 1,
+      children: [
+        {
+          type: 'paragraph',
+          version: 1,
+          children: [
+            {
+              type: 'link',
+              version: 3,
+              fields: {
+                linkType: 'internal',
+                doc: { relationTo: 'courses', value: { ...course, _status: 'published' } },
+              },
+              children: [{ type: 'text', text: course.slug, version: 1 }],
+            },
+          ],
+        },
+      ],
+    },
+  })
+
+  /** 区块里全部课程链接的前台地址（按出现顺序） */
+  const courseHrefs = (block: unknown): (string | null)[] => {
+    const hrefs: (string | null)[] = []
+    const walk = (node: unknown) => {
+      if (Array.isArray(node)) return node.forEach(walk)
+      if (!node || typeof node !== 'object') return
+      const record = node as Record<string, unknown>
+      if (record.relationTo === 'courses') hrefs.push(docHref('courses', record.value))
+      Object.values(record).forEach(walk)
+    }
+    walk(block)
+    return hrefs
+  }
+
+  it('所属专业方向未发布的课程只渲染文字，其余区块不受影响', async () => {
+    const page = {
+      id: 1,
+      title: '关于我们',
+      slug: 'about',
+      _status: 'published',
+      layout: [
+        { blockType: 'richText', content: linkTo({ id: 7, slug: 'live-course' }) },
+        { blockType: 'imageText', content: linkTo({ id: 8, slug: 'orphan-course' }) },
+        { blockType: 'stats', items: [] },
+      ],
+    }
+    find.mockImplementation(({ collection }: { collection: string }) =>
+      Promise.resolve({ docs: collection === 'pages' ? [page] : [{ id: 7 }] }),
+    )
+
+    const result = await getPageBySlug('about')
+    expect(find).toHaveBeenCalledTimes(2)
+    expect(find).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        collection: 'courses',
+        where: {
+          and: [
+            { id: { in: [7, 8] } },
+            { _status: { equals: 'published' } },
+            { 'discipline._status': { equals: 'published' } },
+          ],
+        },
+      }),
+    )
+    const [richText, imageText, stats] = result?.layout ?? []
+    expect(courseHrefs(richText)).toEqual(['/courses/live-course'])
+    expect(courseHrefs(imageText)).toEqual([null])
+    expect(stats).toEqual(page.layout[2])
+    expect(result?.title).toBe('关于我们')
+  })
+
+  it('区块里没有课程链接时只查询页面本身', async () => {
+    find.mockResolvedValue({
+      docs: [
+        { id: 2, title: '用户协议', slug: 'terms', layout: [{ blockType: 'stats', items: [] }] },
+      ],
+    })
+    expect((await getPageBySlug('terms'))?.slug).toBe('terms')
+    expect(find).toHaveBeenCalledTimes(1)
   })
 })

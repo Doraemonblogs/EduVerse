@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 
 import { getSiteUrl, siteFallback } from '@/config/site'
 import { getSiteSettings } from '@/lib/data/site'
-import { imageSource } from '@/lib/media'
+import { type ImageSource, imageSource } from '@/lib/media'
 
 type SeoInput =
   | {
@@ -24,8 +24,13 @@ type BuildMetadataArgs = {
   title?: string
   /** SEO 描述为空时使用的描述（如摘要） */
   description?: string | null
-  /** 封面等兜底分享图 */
+  /** 封面等兜底分享图（媒体文档，取 og 尺寸） */
   image?: unknown
+  /**
+   * 数据层已按 og 尺寸处理好的兜底分享图（如课程视图模型的 shareImage），优先于 image。
+   * 地址已带 basePath，不会重复添加
+   */
+  shareImage?: ImageSource | null
   /** 站内路径（不含 basePath），用于 canonical 与 og:url */
   path: string
   /** 首页等不需要套用标题模板的页面 */
@@ -41,6 +46,7 @@ export async function buildMetadata({
   title,
   description,
   image,
+  shareImage,
   path,
   absoluteTitle,
 }: BuildMetadataArgs): Promise<Metadata> {
@@ -54,7 +60,10 @@ export async function buildMetadata({
   const desc = seo?.description || description || defaults?.description || siteFallback.description
   const keywords = seo?.keywords || defaults?.keywords || undefined
   const og =
-    imageSource(seo?.image, 'og') ?? imageSource(image, 'og') ?? imageSource(defaults?.image, 'og')
+    imageSource(seo?.image, 'og') ??
+    shareImage ??
+    imageSource(image, 'og') ??
+    imageSource(defaults?.image, 'og')
   const siteUrl = getSiteUrl()
   const url = `${siteUrl}${path === '/' ? '' : path}`
   // 分享图给完整地址：imageSource 已补 basePath，若交给 metadataBase 解析，

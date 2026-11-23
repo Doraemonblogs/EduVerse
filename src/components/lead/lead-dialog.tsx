@@ -12,6 +12,7 @@ import {
 import { zh } from '@/i18n/zh'
 
 import { LeadForm } from './lead-form'
+import { getPageLeadContext, mergePageLeadContext } from './page-lead-context'
 import type { LeadContextProps, LeadFormConfig } from './types'
 
 export type LeadDialogOpenOptions = {
@@ -42,6 +43,8 @@ export function useLeadDialog(): LeadDialogContextValue {
 /**
  * 全站唯一的留资弹窗：任意 CTA 调用 open({ position, intent, ... }) 即可打开。
  * 每次打开都会重新挂载表单，确保来源位置、填写计时等是本次的。
+ * 当前页面声明了 <PageLeadContext courseId disciplineId />（课程详情、专业方向页）时，
+ * 未显式传入的 courseId / disciplineId 用页面上下文补上（打开时读取，始终是当前页面的）。
  */
 export function LeadDialogProvider({
   config,
@@ -56,7 +59,7 @@ export function LeadDialogProvider({
 
   const open = useCallback((props: LeadContextProps, options?: LeadDialogOpenOptions) => {
     returnFocusRef.current = options?.returnFocus ?? null
-    setCurrent({ ...props, key: Date.now() })
+    setCurrent({ ...mergePageLeadContext(props, getPageLeadContext()), key: Date.now() })
     setIsOpen(true)
   }, [])
 

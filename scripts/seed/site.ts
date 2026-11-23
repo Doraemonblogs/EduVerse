@@ -163,6 +163,29 @@ export function buildGlobals(refs: { wechatQr: number; hotDisciplines: number[] 
         keywords: '数字艺术培训,三维动画培训,游戏美术培训,UI设计培训',
       },
     },
+    'course-pages': {
+      list: {
+        title: '专业课程',
+        description:
+          '八个数字艺术方向，长期就业班与短期提升班可选，线下校区与线上直播都能上课。按方向、班型、授课方式与城市筛选，对比学习路线与近期开班后再预约试听。',
+        seo: {
+          title: `专业课程｜${BRAND}`,
+          description:
+            '三维动画、游戏美术、影视后期、UI/UX、原画、平面、动态设计、室内可视化等方向的长期就业班与短期提升班，查看学习路线、开设校区与近期开班。',
+          keywords: '数字艺术课程,三维动画课程,游戏美术课程,UI设计课程,影视后期课程',
+        },
+      },
+      detail: {
+        sidebarTitle: '预约免费试听',
+        sidebarDescription:
+          '留下联系方式，课程顾问会结合你的基础与空闲时间，安排就近校区或线上试听，并介绍这门课的学习安排。',
+      },
+      major: {
+        ctaTitle: '不确定这个方向适不适合你？',
+        ctaDescription:
+          '先来听一节课，或请课程顾问根据你的基础和目标，梳理一条可执行的学习路径，再决定是否报名。',
+      },
+    },
     'careers-page': {
       intro: {
         eyebrow: 'Career Services',

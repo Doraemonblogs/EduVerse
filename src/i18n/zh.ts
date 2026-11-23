@@ -138,6 +138,178 @@ export const zh = {
     label: '面包屑',
     home: '首页',
   },
+  /**
+   * 课程模块（课程列表 / 课程详情 / 专业方向页）的系统文案。
+   * 带 {name} 占位的用 formatMessage()（src/lib/course/format.ts）替换。
+   * 页面专属文案只追加在 list / detail / major 子对象里。
+   */
+  course: {
+    /** 与后台选项标签一致（Courses.ts CLASS_TYPE_OPTIONS，单元测试校验） */
+    classType: { long_term: '长期就业班', short_term: '短期提升班' },
+    /** 与后台选项标签一致（Courses.ts DELIVERY_MODE_OPTIONS，单元测试校验） */
+    deliveryMode: { offline: '线下面授', online: '线上直播', dual: '双师课堂' },
+    /** 与后台选项标签一致（Cohorts.ts COHORT_STATUS_OPTIONS，单元测试校验） */
+    cohortStatus: { enrolling: '报名中', upcoming: '即将开班', full: '已满班' },
+    durationUnit: { week: '周', month: '个月' },
+    /** 多个取值之间的分隔（如“线下面授 / 双师课堂”） */
+    listSeparator: ' / ',
+    /** 城市与校区名之间的分隔（校区名不以城市开头时，如“北京·中关村校区”） */
+    campusSeparator: '·',
+    /** 没有校区的开班 / 纯线上课程 */
+    online: '线上',
+    /** 线下 / 双师课程暂无已发布的校区（开课城市、开设校区的取值） */
+    campusPending: '待定',
+    meta: {
+      duration: '课程时长',
+      classType: '班型',
+      mode: '授课方式',
+      schedule: '上课时间',
+      city: '开课城市',
+      campuses: '开设校区',
+      nextCohort: '近期开班',
+    },
+    card: {
+      roadmap: '学习路线',
+      /** 阶段超过 5 个时，列表末尾的说明；{count} 为阶段总数 */
+      moreStages: '等 {count} 个阶段',
+      detail: '课程详情',
+      trial: '预约试听',
+      /** 读屏：区分多张卡片上的同名按钮 */
+      detailLabel: '{title}：课程详情',
+      trialLabel: '预约试听：{title}',
+    },
+    filters: {
+      /** 筛选栏 <nav> 的无障碍名称 */
+      label: '课程筛选',
+      discipline: '专业方向',
+      type: '班型',
+      mode: '授课方式',
+      city: '城市',
+      all: '全部',
+      clear: '清除筛选',
+      resultCount: '共 {count} 门课程',
+      previewNotice: '静态预览站不支持按条件筛选，正式站点可直接筛选课程。',
+    },
+    salary: {
+      title: '薪资参考',
+      source: '数据来源',
+      statDate: '统计时间',
+    },
+    syllabus: {
+      /** {index} 从 1 开始 */
+      stage: '第 {index} 阶段',
+      goals: '阶段目标',
+      topics: '知识点',
+    },
+    cohort: {
+      /** 开班日期之后的结课日期，如“至 2027年6月30日” */
+      until: '至 {date}',
+      trial: '预约试听',
+      /** 读屏：区分每一行的“预约试听”按钮 */
+      trialLabel: '预约试听：{date}开班（{place}）',
+      empty: '暂无近期开班计划。可以先预约试听，课程顾问会告知最新的开班安排。',
+    },
+    teacher: {
+      years: '从业 {years} 年',
+      specialties: '擅长',
+    },
+    work: {
+      /** 署名与届别之间的分隔 */
+      authorSeparator: ' · ',
+    },
+    /** 课程列表页 /courses 专属文案（List Agent 追加） */
+    list: {
+      /** 筛选项的读屏补充（可见文字只显示数字），{count} 为选中该项后的课程数 */
+      optionCount: '（{count} 门课程）',
+      /** 分组标题旁的课程数 */
+      groupCount: '{count} 门课程',
+      /** 分组标题右侧链接到专业方向页 */
+      majorLink: '了解该专业',
+      /** 读屏：区分各分组的同名链接 */
+      majorLinkLabel: '了解该专业：{name}',
+      emptyTitle: '没有符合条件的课程',
+      emptyDescription:
+        '当前筛选条件下暂未开设课程。可以清除筛选查看全部课程，或者告诉课程顾问你的情况，帮你推荐合适的方向。',
+      emptyConsult: '咨询课程顾问',
+    },
+    /** 课程详情页 /courses/[slug] 专属文案（Detail Agent 追加） */
+    detail: {
+      /** 首屏的两个按钮 */
+      trial: '预约试听',
+      tuition: '咨询学费',
+      /** “咨询学费”打开的留资弹窗标题与说明 */
+      tuitionDialogTitle: '咨询学费',
+      tuitionDialogDescription: '留下联系方式，课程顾问会尽快联系你，介绍学费与报名安排。',
+      /** 页内导航 <nav> 的无障碍名称 */
+      navLabel: '课程内容',
+      /** 页内导航各项（只列出有内容的区块） */
+      nav: {
+        overview: '亮点与适合人群',
+        syllabus: '课程大纲',
+        projects: '实训项目',
+        works: '学员作品',
+        teachers: '授课讲师',
+        cohorts: '开班计划',
+        careers: '就业方向',
+        faqs: '常见问题',
+      },
+      /** 各区块标题 */
+      sections: {
+        highlights: '课程亮点',
+        audience: '适合人群',
+        syllabus: '课程大纲',
+        software: '所用软件',
+        projects: '实训项目',
+        works: '学员作品',
+        teachers: '授课讲师',
+        cohorts: '开班计划',
+        careers: '就业方向',
+        faqs: '常见问题',
+        related: '同专业其它课程',
+      },
+      /** 课程大纲标题下的概要，{count} 为阶段数 */
+      syllabusSummary: '共 {count} 个阶段',
+      /** 实训项目编号，{index} 从 01 开始 */
+      projectIndex: '项目 {index}',
+      cohortsNote: '开班时间与校区安排可能调整，以课程顾问确认的为准。',
+      /** 同专业其它课程区块右侧链接到专业方向页，{name} 为专业方向名称 */
+      majorLink: '了解{name}专业',
+      /** 侧栏表单上方的课程摘要 */
+      sidebarCourse: '意向课程',
+    },
+    /** 专业方向页 /majors/[slug] 专属文案（Major Agent 追加） */
+    major: {
+      /** 首屏 h1 上方的眉标 */
+      eyebrow: '专业方向',
+      /** 首屏的两个按钮 */
+      trial: '预约试听',
+      materials: '领取学习资料',
+      /** “领取学习资料”打开的留资弹窗；{name} 为专业方向名称 */
+      materialsDialogTitle: '领取学习资料',
+      materialsDialogDescription: '留下联系方式，课程顾问会把{name}方向的学习资料发送给你。',
+      materialsSubmit: '领取资料',
+      /** 首屏概况 <dl> 的“开设课程”一项（其余标签复用 course.meta） */
+      courseCountLabel: '开设课程',
+      courseCount: '{count} 门',
+      /** 各区块标题 */
+      sections: {
+        intro: '专业介绍',
+        careers: '发展方向',
+        salary: '薪资参考',
+        courses: '开设课程',
+        works: '学员作品',
+        teachers: '专业讲师',
+      },
+      /** 只有薪资、没有发展方向时，薪资卡片的标题（区块标题已是“薪资参考”） */
+      salaryRange: '薪资区间',
+      /** 开设课程区块标题下的概要，{count} 为课程数 */
+      coursesSummary: '共 {count} 门课程',
+      coursesEmpty: '该方向的课程正在更新中。可以先预约试听，课程顾问会介绍近期的开课安排。',
+      /** 开设课程区块右侧链接到课程列表 */
+      allCourses: '全部专业课程',
+      worksNote: '展示的作品均已获得学员授权。',
+    },
+  },
 } as const
 
 export type Dictionary = typeof zh

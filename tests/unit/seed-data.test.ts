@@ -17,6 +17,7 @@ import { works } from '../../scripts/seed/data/works'
 import { CAMPUSES, COURSES, DISCIPLINES } from '../../scripts/seed/registry'
 import { buildGlobals } from '../../scripts/seed/site'
 
+import { COURSE_PAGES_DEFAULTS } from '@/globals/course-pages-defaults'
 import { SLUG_PATTERN } from '@/lib/slugify'
 
 const unique = (values: string[]) => new Set(values).size === values.length
@@ -119,6 +120,15 @@ describe('种子数据完整性', () => {
     for (const c of campusDetails) expect(c.address, c.slug).toContain('示例')
   })
 
+  it('课程页面设置写入了列表、详情侧栏与专业页行动号召的文案', () => {
+    const coursePages = buildGlobals({ wechatQr: 1, hotDisciplines: [] })['course-pages']
+    expect(coursePages?.list?.title).toBeTruthy()
+    expect(coursePages?.list?.description).toBeTruthy()
+    expect(coursePages?.list?.seo?.title).toBeTruthy()
+    expect(coursePages?.detail?.sidebarTitle).toBeTruthy()
+    expect(coursePages?.major?.ctaTitle).toBeTruthy()
+  })
+
   it('教程视频号格式合法', () => {
     for (const t of tutorials) expect(t.videoId).toMatch(/^BV[0-9A-Za-z]{10}$/)
   })
@@ -141,6 +151,8 @@ describe('合规（广告法）', () => {
     campusDetails,
     pages,
     globals: buildGlobals({ wechatQr: 1, hotDisciplines: [] }),
+    // 后台字段默认值（全局从未保存时前台也会显示）
+    coursePagesDefaults: COURSE_PAGES_DEFAULTS,
   })
 
   it.each([

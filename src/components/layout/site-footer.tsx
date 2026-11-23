@@ -6,6 +6,7 @@ import { LeadCTA } from '@/components/lead/lead-cta'
 import { zh } from '@/i18n/zh'
 import type { getFooter, getSiteSettings } from '@/lib/data/site'
 import { imageSource } from '@/lib/media'
+import { cn } from '@/lib/utils'
 
 import { Logo } from './logo'
 
@@ -13,6 +14,12 @@ type FooterData = Awaited<ReturnType<typeof getFooter>>
 type SettingsData = Awaited<ReturnType<typeof getSiteSettings>>
 
 const t = zh.layout
+
+/**
+ * 滚到页面底部时，页脚右侧（热线、二维码）会停在桌面端悬浮操作栏旁边：
+ * 页脚各行都给悬浮栏让出右侧位置（视口 ≥ 1440px 时不变），各行右缘保持对齐。
+ */
+const AVOID_FLOATING = 'lg:avoid-floating-actions'
 
 /** 站内链接走 next/link（自动带 basePath），外链新窗口打开 */
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -46,21 +53,30 @@ export function SiteFooter({ footer, settings }: { footer: FooterData; settings:
     <footer className="surface-dark pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
       {cta?.enabled && cta.title ? (
         <div className="border-b border-border" data-footer-cta="">
-          <div className="container-site flex flex-col gap-6 py-section-sm md:flex-row md:items-center md:justify-between">
-            <div className="flex max-w-2xl flex-col gap-2">
+          {/*
+            lg 以下标题与按钮上下排列；lg 起左右排列，按钮组不收缩（热线号码不会被挤成竖排），
+            由标题一侧换行。
+          */}
+          <div
+            className={cn(
+              'container-site flex flex-col gap-6 py-section-sm lg:flex-row lg:items-center lg:justify-between lg:gap-10',
+              AVOID_FLOATING,
+            )}
+          >
+            <div className="flex max-w-2xl min-w-0 flex-col gap-2">
               <h2 className="text-h2">{cta.title}</h2>
               {cta.description ? <p className="text-muted-foreground">{cta.description}</p> : null}
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
               <LeadCTA position="footer_cta" intent="trial" size="lg">
                 {cta.buttonLabel || zh.lead.submit}
               </LeadCTA>
               {settings.hotline ? (
                 <a
                   href={`tel:${settings.hotline.replace(/[^\d+]/g, '')}`}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-2 text-sm whitespace-nowrap text-muted-foreground hover:text-foreground"
                 >
-                  <PhoneIcon className="size-4" aria-hidden />
+                  <PhoneIcon className="size-4 shrink-0" aria-hidden />
                   {t.hotline} <span className="numeric text-foreground">{settings.hotline}</span>
                 </a>
               ) : null}
@@ -69,7 +85,12 @@ export function SiteFooter({ footer, settings }: { footer: FooterData; settings:
         </div>
       ) : null}
 
-      <div className="container-site grid gap-10 py-12 lg:grid-cols-[1.3fr_2fr_auto] lg:gap-12">
+      <div
+        className={cn(
+          'container-site grid gap-10 py-12 lg:grid-cols-[1.3fr_2fr_auto] lg:gap-12',
+          AVOID_FLOATING,
+        )}
+      >
         <div className="flex flex-col gap-4">
           <Logo
             brandName={settings.brandName}
@@ -146,7 +167,12 @@ export function SiteFooter({ footer, settings }: { footer: FooterData; settings:
       </div>
 
       <div className="border-t border-border">
-        <div className="container-site flex flex-col gap-3 py-6 text-xs text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
+        <div
+          className={cn(
+            'container-site flex flex-col gap-3 py-6 text-xs text-muted-foreground lg:flex-row lg:items-center lg:justify-between',
+            AVOID_FLOATING,
+          )}
+        >
           <p>{copyright}</p>
           <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
             {(footer.bottomLinks ?? []).map((link) => (

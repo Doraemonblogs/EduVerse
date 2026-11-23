@@ -132,6 +132,7 @@ docs/ docker/ docker-compose.dev.yml
 - **navigation**：items[] { label, type: link / courseMegaMenu, link }、ctaLabel。
 - **footer**：columns[] { title, links[] }、qrcodes[] { label, image }、copyright。
 - **home-page**：各区块 { enabled, eyebrow, title, description, 手选 / 自动内容 }。
+- **course-pages**（课程页面设置，M3）：list { title, description, seo }、detail { sidebarTitle, sidebarDescription }、major { ctaTitle, ctaDescription }；默认文案在 `src/globals/course-pages-defaults.ts`，后台未保存过时前台用同一份默认值。
 - **careers-page**、**quiz-settings**。
 - **lead-settings**：webhooks[] { name, platform: wecom / feishu / dingtalk, url（仅允许三家官方域名）, secret, enabled, maskPhone }、rateLimits、cityOptions[]、successMessage。
 
@@ -184,6 +185,23 @@ docs/ docker/ docker-compose.dev.yml
 - **第三方脚本**：百度统计与在线客服只在后台配置后加载，`lazyOnload`；静态预览站不加载。
 - **预览站**：导航已链接但尚未实现的路由登记在导出脚本的 `PLANNED_ROUTES`（标注里程碑），暂不算断链；实现后删除对应条目。
 
+### 4.10 M3 落地说明（课程与专业方向）
+
+- **数据层**：`src/lib/data/courses.ts` 同时导出 `query*(payload, …)`（集成测试直接调用）与带缓存的 `get*`（页面使用）；页面只拿 `src/lib/course/types.ts` 中可序列化的视图模型，不把 Payload 文档整个传给组件。纯函数（筛选、格式化、开班过滤、薪资取值、JSON-LD、文档映射）在 `src/lib/course/*`，无 `server-only`，有单元测试。
+- **草稿与授权**：主查询只取已发布文档；depth 填充进来的专业方向、校区再按 `_status === 'published'` 过滤（从未发布过的草稿会被填充出来）；讲师与作品单独查询，作品额外要求 `consentConfirmed`。所属专业方向未发布的课程不出现在任何列表，详情 404。开班计划：已结束的不取；线下 / 双师开班的校区未发布或缺失时整条剔除。
+- **时间**：缓存里保存全部未结束的开班，页面渲染时按北京时间当天 0 点过滤（`upcomingCohorts`）；详情页与专业页 `revalidate = 3600`，过期开班最迟一小时后消失。
+- **缓存标签**：courses / disciplines / campuses / cohorts / teachers / software / faqs / works / media、`global:site-settings`（薪资免责声明、品牌名）、`global:course-pages`，专业介绍是富文本，另加富文本可链接集合的标签。
+- **筛选** `/courses?discipline=&type=&mode=&city=`：每个维度单选，非法值忽略；筛选项都是 `next/link`（`rel="nofollow"`、不预取、不滚动），服务端渲染、无需 JS；有任一参数时 `noindex, follow`，canonical 恒为 `/courses`。城市取自课程开设校区。静态预览站无法按查询串筛选，筛选栏下方有说明。
+- **页面级留资上下文**：`<PageLeadContext courseId disciplineId />`（`src/components/lead/page-lead-context.tsx`）挂载时登记、卸载时清除；`LeadDialogProvider.open()` 用它补全未显式传入的 courseId / disciplineId。因此课程页上的头部按钮、桌面悬浮栏、移动端底部操作条提交的线索都带课程上下文。
+- **留资位置**：`course_card`、`course_list_empty`、`course_hero`（预约试听 / 咨询学费）、`course_sidebar`、`course_cohort`、`major_hero`（预约试听 / 领取学习资料）、`major_cta`。
+- **结构化数据**：课程详情输出 Course（含每个近期开班的 CourseInstance：线下 Onsite / 线上 Online / 双师 Blended）、FAQPage、BreadcrumbList；专业页输出 BreadcrumbList 与课程 ItemList。
+- **分享图**：视图模型带 `shareImage`（封面的 1200×630 裁切），`buildMetadata({ shareImage })` 直接使用；优先级：内容 SEO 分享图 → shareImage → 封面 → 站点默认。
+- **富文本中的课程链接**：课程本身已发布但所属专业方向已下线时课程页 404。`guardCourseLinks()` 收集富文本里链接 / 关联到的课程，一次查询确认可访问，不可访问的只渲染文字；用于专业介绍与通用页面区块，以后渲染其它富文本时同样要经过它。
+- **数据缓存与构建**：`unstable_cache` 持久化在 `.next/cache/fetch-cache`，键只由回调源码与 keyParts 决定，视图模型结构变化时键可能不变；`pnpm build` 开始前清除该目录（`scripts/clear-next-data-cache.mjs`），`pnpm seed:reset` 结束时同样清除。
+- **桌面悬浮栏让位**：课程详情两栏区与页脚在 1024–1440px 之间用 `lg:avoid-floating-actions` 给右侧悬浮栏留出位置，避免盖住吸顶侧栏表单与页脚热线。
+- **暂不链接**：作品详情、讲师详情（M4）与校区详情（M6）尚未上线，课程与专业页中只展示、不加链接。
+- `/majors` 永久重定向到 `/courses`；`/courses`、`/majors` 已从预览站导出脚本的 `PLANNED_ROUTES` 移除。
+
 ## 5. 路由清单
 
 | 路由 | 说明 | 里程碑 |
@@ -191,7 +209,7 @@ docs/ docker/ docker-compose.dev.yml
 | `/` | 首页 | M5 |
 | `/courses` | `?discipline=&type=&mode=&city=`，多条件组合页 noindex | M3 |
 | `/courses/[slug]` | 课程详情 | M3 |
-| `/majors/[slug]` | 专业方向落地页 | M3 |
+| `/majors/[slug]` | 专业方向落地页（`/majors` 永久重定向到 `/courses`） | M3 |
 | `/works`、`/works/[id]` | `?discipline=&software=&featured=&page=` | M4 |
 | `/teachers`、`/teachers/[slug]` | 师资 | M4 |
 | `/careers` | 就业服务 | M6 |
