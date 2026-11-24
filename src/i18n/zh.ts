@@ -71,6 +71,11 @@ export const zh = {
     failed: '导出失败，请稍后重试',
     networkError: '网络异常，导出未完成，请检查网络后重试',
   },
+  /** 后台自定义字段组件 */
+  adminFields: {
+    /** 只读 JSON 字段没有内容时 */
+    jsonEmpty: '（无）',
+  },
   lead: {
     labels: {
       name: '姓名',

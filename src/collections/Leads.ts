@@ -278,7 +278,17 @@ export const Leads: CollectionConfig = {
                   relationTo: 'tutorials',
                   label: '相关教程',
                 },
-                { name: 'quizResult', type: 'json', label: '职业测试结果' },
+                {
+                  name: 'quizResult',
+                  type: 'json',
+                  label: '职业测试结果',
+                  // 只读展示，不用默认的 Monaco 编辑器（会从境外 CDN 加载脚本）
+                  admin: {
+                    components: {
+                      Field: '@/components/admin/json-readonly-field#JsonReadOnlyField',
+                    },
+                  },
+                },
               ],
             }),
             {

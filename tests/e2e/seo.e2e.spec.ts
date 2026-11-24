@@ -155,7 +155,10 @@ test.describe('SEO：robots.txt 与 sitemap.xml', () => {
       expect(robotsAllows(robots, path), `sitemap 中的地址被 robots.txt 禁止抓取：${loc}`).toBe(
         true,
       )
-      expect(path.startsWith('/admin') || path.startsWith('/api/')).toBe(false)
+      // 按完整路径段判断：/administration 这类通用页面可以收录（与 reserved-slugs、robots 规则一致）
+      expect(/^\/(admin|api)(\/|$)/.test(path), `sitemap 不应包含后台或接口地址：${loc}`).toBe(
+        false,
+      )
       if (lastmod !== null) {
         expect(Number.isNaN(Date.parse(lastmod)), `lastmod 无效：${loc}`).toBe(false)
       }

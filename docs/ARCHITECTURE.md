@@ -267,6 +267,7 @@ deploy/（docker-entrypoint.sh、nginx.conf.example、backup.sh、restore.sh、.
 - **性能**：移动端 Lighthouse 经 nginx（HTTPS + HTTP/2）首页 91、课程详情 92、文章详情 95（详见 PROGRESS M8）。要点：Payload 的 `Accept-CH` / `Critical-CH`（后台按系统深浅色渲染用）只发给 `/admin`，否则 Chromium 首次访问前台会整页重发；留资表单的 zod 规则按需加载（`src/components/lead/lead-validation.ts`，聚焦或按下表单时开始加载，服务端校验不变）；`images.deviceSizes` 不含 2048 / 3840（存储的图片最宽 1920）。**压缩由 nginx 负责**：`no-transform` 会让 Next 自带的 gzip 跳过页面，测性能要经过 nginx。
 - **阻塞式元数据的爬虫**（`next.config.ts` 的 `htmlLimitedBots`）：Next 默认列表（含百度、搜狗）+ 360、神马、头条搜索；不含微信（同一 UA 也是微信内置浏览器）。
 - **GraphQL 关闭**（`graphQL.disable`）：未使用；开着时 `loginUser` 可在一次请求里带上百个别名调用，绕过登录限速。
+- **后台 JSON 字段不用 Monaco**：Payload 默认的 JSON / code 字段编辑器运行时从 cdn.jsdelivr.net 加载 Monaco；本项目的两个 JSON 字段（线索 `context.quizResult`、导出日志 `filters`）只读，改用 `src/components/admin/json-readonly-field.tsx` 格式化展示。
 
 ## 5. 路由清单
 

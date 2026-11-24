@@ -54,6 +54,7 @@ deploy/restore.sh                                                  # 恢复（�
 新增顶层前台路由（`/courses`、`/works` …）时，同步登记到 `src/lib/reserved-slugs.ts`（通用页面 `/[pageSlug]` 不得占用）；导航已链接、尚未实现的路由登记在导出脚本的 `PLANNED_ROUTES`，实现后删除。`/api/health` 是健康检查路由，不得新建同名 Payload 集合或端点。
 按访客可控的参数（slug、ID、查询词）缓存的查询：slug 不超过 80 个字符（`src/lib/slug-rules.ts`），详情先经 `loadIfKnown()`（`src/lib/data/known-key.ts`）按已发布清单判断，不存在的值不进持久缓存；查询词类不进持久缓存。
 根目录 `cache-handler.mjs` 是生产运行时文件（404 页面只放内存，并给 Next 的每路径时效表设上限），继承 Next 内部模块：升级 Next 时先跑 `tests/unit/cache-handler.test.ts`，Dockerfile 会复制它，移动或删除时同步改 `next.config.ts`。
+后台的 `json` / `code` 字段不要用 Payload 默认编辑器（Monaco 从 cdn.jsdelivr.net 加载）：只读字段用 `src/components/admin/json-readonly-field.tsx`，需要编辑时先解决本地托管。
 GraphQL 已关闭（`payload.config.ts` 的 `graphQL.disable`）：前台用 Local API、后台用 REST；重新开启前先解决 `loginUser` 绕过登录限速的问题。
 站点地图与 robots 在 `src/app/sitemap.ts`、`src/app/robots.ts`（Next 约定放在 `src/app` 根目录，不在 `(frontend)` 下）；内置默认分享图由 `pnpm exec tsx scripts/seo/generate-default-share-image.ts` 按设计令牌生成。
 新增有前台详情页的集合时，在 `src/components/common/rich-text.tsx` 登记其路径前缀（富文本链接与页面缓存标签依赖它）。

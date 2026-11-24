@@ -489,7 +489,11 @@ describe('留资表单：zod 校验规则按需加载', () => {
     })
     expect(submitLeadAction).not.toHaveBeenCalled()
 
-    await act(async () => control.release())
+    // 放行后在 act 内等加载完成：表单的校验、状态更新与 effect（聚焦错误字段）都在 act 内处理完
+    await act(async () => {
+      control.release()
+      await control.settle()
+    })
     expect(await screen.findByText(t.errors.tooFast)).toBeTruthy()
     expect(submitLeadAction).toHaveBeenCalledTimes(1)
     expect(lastSubmitted().phone).toBe('138 0013 8000')
@@ -498,10 +502,14 @@ describe('留资表单：zod 校验规则按需加载', () => {
   it('校验规则未加载完时提交空表单：加载完成后标出错误并把焦点移到第一个错误字段', async () => {
     const control = await freshForm()
     await submit()
-    await act(async () => control.release())
+    // 放行后在 act 内等加载完成：表单的校验、状态更新与 effect（聚焦错误字段）都在 act 内处理完
+    await act(async () => {
+      control.release()
+      await control.settle()
+    })
 
     expect(await screen.findByText(t.errors.nameRequired)).toBeTruthy()
-    expect(document.activeElement).toBe(field(t.labels.name))
+    await waitFor(() => expect(document.activeElement).toBe(field(t.labels.name)))
     expect(submitLeadAction).not.toHaveBeenCalled()
   })
 
@@ -511,7 +519,11 @@ describe('留资表单：zod 校验规则按需加载', () => {
     control.fail = true
     fillValidForm()
     await submit()
-    await act(async () => control.release())
+    // 放行后在 act 内等加载完成：表单的校验、状态更新与 effect（聚焦错误字段）都在 act 内处理完
+    await act(async () => {
+      control.release()
+      await control.settle()
+    })
     const status = screen.getByRole('status')
     expect(await within(status).findByText(t.errors.generic)).toBeTruthy()
     expect(submitLeadAction).not.toHaveBeenCalled()

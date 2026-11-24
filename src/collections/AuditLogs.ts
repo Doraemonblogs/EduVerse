@@ -68,7 +68,15 @@ export const AuditLogs: CollectionConfig = {
     { name: 'userName', type: 'text', label: '操作人姓名（快照）', admin: { readOnly: true } },
     { name: 'userRole', type: 'text', label: '操作人角色（快照）', admin: { readOnly: true } },
     { name: 'count', type: 'number', label: '涉及条数' },
-    { name: 'filters', type: 'json', label: '筛选条件' },
+    {
+      name: 'filters',
+      type: 'json',
+      label: '筛选条件',
+      // 只读展示，不用默认的 Monaco 编辑器（会从境外 CDN 加载脚本）
+      admin: {
+        components: { Field: '@/components/admin/json-readonly-field#JsonReadOnlyField' },
+      },
+    },
     { name: 'ip', type: 'text', label: 'IP' },
   ],
 }
