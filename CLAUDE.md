@@ -45,7 +45,7 @@ pnpm preview:serve       # 本地模拟 GitHub Pages 查看 preview-dist/
 ```bash
 docker compose --env-file deploy/.env.production up -d --build   # 构建并启动 app + postgres（启动时自动迁移、预渲染）
 deploy/backup.sh                                                   # 备份数据库与媒体（保留 7 天）
-deploy/restore.sh                                                  # 恢复（需 --yes；回滚前先 export APP_IMAGE=<旧镜像>）
+deploy/restore.sh                                                  # 恢复（需 --yes；回滚时加 --app-image=<旧镜像>）
 ```
 
 在线预览站：https://doraemonblogs.github.io/EduVerse/（推送默认分支后由 `.github/workflows/preview-pages.yml` 自动发布，详见 README）。

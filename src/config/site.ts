@@ -14,7 +14,7 @@ export const siteFallback = {
 
 /**
  * 是否为静态预览站构建（GitHub Pages）。
- * 预览站只用于查看页面效果：页面全部 noindex，表单提交与后台不可用，页顶显示提示条。
+ * 预览站只用于查看页面效果：页面全部 noindex，表单提交与后台不可用（提交表单、筛选、搜索时在原处说明）。
  */
 export const isStaticPreview = process.env.NEXT_PUBLIC_STATIC_PREVIEW === 'true'
 

@@ -79,7 +79,7 @@ pnpm seed:reset
 
 - 推送到默认分支后，GitHub Actions（`.github/workflows/preview-pages.yml`）自动构建并发布，约 3–5 分钟生效；也可在 Actions 页手动运行「预览站（GitHub Pages）」。
 - 首次使用需要仓库管理员开启一次：**Settings → Pages → Build and deployment → Source 选择「GitHub Actions」**。
-- 预览站是前台页面的静态快照：所有页面 `noindex`，表单提交与后台（`/admin`）不可用，页顶有提示条。
+- 预览站是前台页面的静态快照：所有页面 `noindex`，表单提交与后台（`/admin`）不可用（提交表单、使用筛选或搜索时在原处说明）。
 - 原理：以 `NEXT_BASE_PATH=/EduVerse` 构建并启动生产服务 → `scripts/preview/export-static.ts` 抓取页面 HTML、复制 `.next/static` → 校验无断链后发布。
 
 本地生成并查看同样的预览站（站点地址要包含子路径，否则 sitemap 与 canonical 校验会失败）：

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { PreviewBanner } from '@/components/common/preview-banner'
 import { SkipLink } from '@/components/common/skip-link'
 import { StatusPage } from '@/components/common/status-page'
 import { SiteChrome } from '@/components/layout/site-chrome'
@@ -23,7 +22,6 @@ export default function GlobalNotFound() {
     <html lang="zh-CN" className={fontDisplay.variable}>
       <body className="flex flex-col">
         <SkipLink />
-        <PreviewBanner />
         <SiteChrome>
           <StatusPage
             eyebrow={zh.notFound.eyebrow}

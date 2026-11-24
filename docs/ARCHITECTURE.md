@@ -339,7 +339,7 @@ deploy/（docker-entrypoint.sh、nginx.conf.example、backup.sh、restore.sh、.
 ## 9. 在线预览站（GitHub Pages）
 
 - 地址：https://doraemonblogs.github.io/EduVerse/ ；工作流 `.github/workflows/preview-pages.yml`，推送默认分支自动发布。
-- 构建参数：`NEXT_BASE_PATH=/<仓库名>`（Next basePath，Payload 同步使用）、`NEXT_PUBLIC_STATIC_PREVIEW=true`（页顶提示条、图片不走 `/_next/image` 实时优化）、`ENABLE_STYLEGUIDE=true`。
+- 构建参数：`NEXT_BASE_PATH=/<仓库名>`（Next basePath，Payload 同步使用）、`NEXT_PUBLIC_STATIC_PREVIEW=true`（表单、筛选、搜索处说明不可用，图片不走 `/_next/image` 实时优化）、`ENABLE_STYLEGUIDE=true`。
 - 导出：`scripts/preview/export-static.ts` 从 `ENTRY_PATHS` 与 sitemap.xml 中的地址出发顺着站内链接抓取页面（M8 起同时导出 `robots.txt`（预览站为 `Disallow: /`）与 `sitemap.xml`，并校验地址带子路径），每页写 `x.html` 与 `x/index.html`，注入 `noindex, nofollow`；下载页面引用的非构建资源（M1 起包括 `/api/media/file/*` 媒体文件）；整体复制 `.next/static`；生成 `404.html`；最后校验所有站内链接与资源都在输出目录中，否则失败。
 - 限制：静态托管无法执行服务端逻辑，表单提交（Server Action）、后台、按查询串筛选（`/courses?discipline=…` 只能导出无参数版本）不可用；客户端导航取不到 RSC 数据时自动回退为整页跳转。
 - 数据（M1 起）：工作流中用 PostgreSQL 服务容器 + 种子数据渲染页面，数据库随任务销毁，密钥每次随机生成。
