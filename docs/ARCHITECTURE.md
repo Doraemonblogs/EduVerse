@@ -45,6 +45,7 @@
   - 详情查询先查“已发布 slug / ID 清单”缓存，不在清单中的直接返回 null，不进入按 slug 的缓存（`src/lib/data/known-key.ts` 的 `loadIfKnown`）；
   - 搜索结果不进持久缓存（M7）；
   - Next 16.4 把渲染好的页面存到 `.next/server/route-cache/`，其中包括每个随机地址的 404 页面（约 25KB / 个，不会删除）。根目录 `cache-handler.mjs` 继承 Next 内置的文件缓存，只改一处：状态码 404 的页面只放内存（`cacheMaxMemorySize` 64MB，LRU）、不写盘；只在生产环境启用。它依赖 Next 内部模块 `next/dist/server/lib/incremental-cache/file-system-cache.js`，**升级 Next 时必须复查**（`tests/unit/cache-handler.test.ts` 用真实实现兜底）；
+  - Next 进程内“每个路径的缓存时效”表（`SharedCacheControls.cacheControls`，键含完整请求路径、本身不淘汰）由 `cache-handler.mjs` 换成最多 1 万条的有界 Map；条目只是缓存，缺少时 Next 改用缓存条目自身保存的时效；
   - 图片优化缓存上限 500MB（`images.maximumDiskCacheSize`）。
 - **响应头**（`next.config.ts`）：前台页面统一 `Cache-Control: private, no-cache, no-transform`（覆盖 Next 默认值：发布后立即可见、CDN 不缓存个性化内容；`no-transform` 防止百度转码），另加 `X-Accel-Buffering: no`（nginx 不缓冲流式渲染）；5xx 仍为 `no-store`。媒体文件 `/api/media/file/*` 为 `public, max-age=86400, stale-while-revalidate=604800`：文件名含尺寸但不含内容哈希，后台替换文件后可能沿用同一地址，不能用 immutable 长缓存。
 - **revalidateTag 只在内存中**：Next 的标签失效记录不落盘，重启后磁盘上的旧缓存会被当作有效。生产容器每次启动都从镜像内干净的构建产物重置 `.next`，再连上数据库预渲染（见 §10）。
@@ -263,7 +264,9 @@ deploy/（docker-entrypoint.sh、nginx.conf.example、backup.sh、restore.sh、.
 - **元数据**：`buildMetadata` 只接受 1200×630 的分享图，没有时用内置默认图（`src/lib/seo/default-share-image.png`，由 `scripts/seo/generate-default-share-image.ts` 按设计令牌生成）；分页第 2 页起描述加“（第 N 页）”；详情不存在时 `generateMetadata` 直接 `notFound()`；404 的 noindex 由 Next 自动添加（不再自己写一份）。客户端导航后 `<head>` 重复 title / canonical 的问题（M4 记录）在 Next 16.4.6 上无法复现，已加回归测试。
 - **元数据审计**（`tests/e2e/seo.e2e.spec.ts`）：以百度爬虫 UA 从首页与 sitemap 出发抓取，逐页检查唯一的 title / description / canonical（绝对地址，与 og:url 一致）、1200×630 的 og:image（下载后量尺寸）、noindex 集合、JSON-LD（可解析、必需字段齐全、绝对地址），并要求 sitemap 与可收录页面集合双向一致。
 - **无障碍**（`tests/e2e/a11y.e2e.spec.ts` + `tests/helpers/axe.ts`）：25 种页面状态 × 2 个视口用 axe（wcag2a / wcag2aa）检查 0 个 serious / critical；每页只有一个 h1 且为第一个标题、标题不跳级、跳过链接可用；键盘流程抽查头部大菜单、移动菜单、留资弹窗、灯箱、首页轮播、职业测试、教程弹窗。唯一的发现是 Radix 导航菜单插入的隐藏焦点辅助元素（`aria-hidden-focus`），焦点不会停留在它上面，只把这一个元素排除在 axe 之外（理由写在 helper 中，由 e2e 与单元测试兜底，库升级后形态变化会让测试失败）。axe 无法自动判定的对比度（深色遮罩上的首屏文字、透明整卡按钮、移动端底部操作条后面的内容）需人工复核。
-- **性能**：见 PROGRESS M8（移动端 Lighthouse 测量与优化结论）。
+- **性能**：移动端 Lighthouse 经 nginx（HTTPS + HTTP/2）首页 91、课程详情 92、文章详情 95（详见 PROGRESS M8）。要点：Payload 的 `Accept-CH` / `Critical-CH`（后台按系统深浅色渲染用）只发给 `/admin`，否则 Chromium 首次访问前台会整页重发；留资表单的 zod 规则按需加载（`src/components/lead/lead-validation.ts`，聚焦或按下表单时开始加载，服务端校验不变）；`images.deviceSizes` 不含 2048 / 3840（存储的图片最宽 1920）。**压缩由 nginx 负责**：`no-transform` 会让 Next 自带的 gzip 跳过页面，测性能要经过 nginx。
+- **阻塞式元数据的爬虫**（`next.config.ts` 的 `htmlLimitedBots`）：Next 默认列表（含百度、搜狗）+ 360、神马、头条搜索；不含微信（同一 UA 也是微信内置浏览器）。
+- **GraphQL 关闭**（`graphQL.disable`）：未使用；开着时 `loginUser` 可在一次请求里带上百个别名调用，绕过登录限速。
 
 ## 5. 路由清单
 
@@ -351,7 +354,7 @@ deploy/（docker-entrypoint.sh、nginx.conf.example、backup.sh、restore.sh、.
 - **镜像**（`Dockerfile`）：base（corepack 安装 pnpm）→ deps → prod-deps → builder → runner；Node 22（`node:22-bookworm-slim`，sharp 预编译包可用），非 root 用户运行，`HEALTHCHECK` 访问 `/api/health`，`/app/media` 为卷。构建参数 `NODE_IMAGE`、`NPM_REGISTRY`（国内可换镜像源，默认官方）、`NEXT_PUBLIC_SITE_URL`（必填，构建时写入产物，换域名需重新构建）。可选构建密钥 `extra_ca` 只在下载依赖时挂载，不进入镜像。
 - **构建不连数据库**：`next build --experimental-build-mode=compile` 只编译，镜像与数据库内容无关。容器启动时（`deploy/docker-entrypoint.sh`）依次：用 `POSTGRES_*` 拼出（URL 编码的）`DATABASE_URL` → 校验 `PAYLOAD_SECRET` 至少 32 位 → `payload migrate`（失败则退出，不启动服务）→ 从镜像内干净的构建产物重置 `.next` → `--experimental-build-mode=generate` 连上数据库预渲染（与 `pnpm build` 的静态页 / ISR 行为一致；失败时告警并退回按请求渲染，`PRERENDER_ON_START=false` 可跳过）→ `exec next start`。compile / generate 是 Next 的实验性构建模式，升级 Next 时需复查。
 - **compose**（`docker-compose.yml`）：`app` + `postgres:16`（镜像可用 `POSTGRES_IMAGE` 替换），健康检查、`pgdata` 与 `media` 数据卷、tini、日志轮转（5 × 10MB）；数据库不映射到宿主，app 只绑定 127.0.0.1；`TRUST_PROXY=true`（前面必须有 nginx）。配置来自 `deploy/.env.production`（git 与 docker 构建上下文均忽略；含 `$`、` #`、空格的值必须用单引号，否则 compose 会静默截断）。
-- **nginx**（`deploy/nginx.conf.example`）：HTTP 跳转 HTTPS、HTTP/2、HSTS、安全响应头；`X-Forwarded-For $proxy_add_x_forwarded_for` 与 `X-Real-IP`（限频依赖真实 IP）；`client_max_body_size` 适配 50MB 视频；`/_next/static` 由 nginx 再缓存 30 天（`proxy_cache`）；app 返回 `X-Accel-Buffering: no`，流式渲染不被缓冲；压缩由 nginx 统一做（转发时去掉 `Accept-Encoding`）。限速分区（按 IP）：页面 20 r/s（burst 100）、搜索 3 r/s、阅读量上报 2 r/s、登录 10 r/min、其余 `/api/` 与 `/_next/image` 各 20 r/s（burst 200）；`/admin` 不限速。
-- **备份 / 恢复**：`deploy/backup.sh`（pg_dump + media 打包，保留 7 天）、`deploy/restore.sh`（需 `--yes`；最后一步会启动 app，app 启动会执行迁移，所以回滚时先 `export APP_IMAGE=<旧镜像>`）。M2 迁移的 down 无法执行，**生产回滚一律用“备份 + 上一版镜像”**（README「回滚」）。
+- **nginx**（`deploy/nginx.conf.example`）：`/api/users/first-register` 一律屏蔽（第一个管理员经 SSH 隧道在本机创建，防止部署后被抢注）；HTTP 跳转 HTTPS、HTTP/2、HSTS、安全响应头；`X-Forwarded-For $proxy_add_x_forwarded_for` 与 `X-Real-IP`（限频依赖真实 IP）；`client_max_body_size` 适配 50MB 视频；`/_next/static` 由 nginx 再缓存 30 天（`proxy_cache`）；app 返回 `X-Accel-Buffering: no`，流式渲染不被缓冲；压缩由 nginx 统一做（转发时去掉 `Accept-Encoding`）。限速分区（按 IP）：页面 20 r/s（burst 100）、搜索 3 r/s、阅读量上报 2 r/s、登录 10 r/min、其余 `/api/` 与 `/_next/image` 各 20 r/s（burst 200）；`/admin` 不限速。
+- **备份 / 恢复**：`deploy/backup.sh`（pg_dump + media 打包，完整读取校验，保留 7 天）、`deploy/restore.sh`（需 `--yes`；先恢复到临时库、成功后才切换，原库改名为 `<库名>_before_restore` 保留；最后一步会启动 app 并执行迁移，所以回滚时用 `--app-image=<旧镜像>`）。两个脚本只支持 compose 内的 db，配置了 `DATABASE_URL` 时拒绝执行。M2 迁移的 down 无法执行，**生产回滚一律用“备份 + 上一版镜像”**（README「回滚」）。
 - **已知限制**：镜像约 1.8GB（不使用 standalone，见 §1）；没有配置邮件适配器，找回密码邮件只写入日志；Server Action 的 ID 每次构建都会变，升级前打开的页面需刷新后才能提交表单；限流、阅读量去重、同手机号串行控制都在进程内，只适用于单实例。
 - **切换对象存储**（未实施，PRD §2 保留能力）：加入 `@payloadcms/storage-s3`，在 `payload.config.ts` 中按环境变量（桶、地域、endpoint、密钥）为 `media` 集合启用（阿里云 OSS / 腾讯云 COS 均兼容 S3 协议）；迁移已有文件后，媒体地址变为对象存储地址，nginx 的 `/api/media/file/` 配置与备份脚本中的 media 部分随之调整。

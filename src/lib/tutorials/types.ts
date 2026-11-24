@@ -25,6 +25,8 @@ export type TutorialCardData = {
   description: string | null
   /** 封面（card 尺寸 800 宽，16:9 左右）；alt 可能为空，组件用标题兜底 */
   cover: ImageSource | null
+  /** 分享图（封面的 og 裁切 1200×630）：?play= 深链接分享时使用；封面没有该尺寸时为 null（改用页面兜底分享图） */
+  shareImage: ImageSource | null
   /** 所属专业方向；未填写或未发布时为 null（教程照常展示，只是不显示 / 不能按它筛选） */
   discipline: DisciplineRef | null
   level: TutorialLevel

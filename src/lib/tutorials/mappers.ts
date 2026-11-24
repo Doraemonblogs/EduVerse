@@ -36,6 +36,7 @@ export function toTutorialCard(doc: TutorialSource): TutorialCardData {
     title: doc.title,
     description: doc.description?.trim() || null,
     cover: imageSource(doc.cover, 'card'),
+    shareImage: imageSource(doc.cover, 'og'),
     discipline: discipline ? toDisciplineRef(discipline) : null,
     level: isTutorialLevel(doc.level) ? doc.level : 'beginner',
     provider: doc.provider,

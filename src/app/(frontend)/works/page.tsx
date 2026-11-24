@@ -34,7 +34,7 @@ import { WORKS_PATH } from '@/lib/works/paths'
  * 筛选与页码只存在于 URL（筛选项、页码都是普通链接，不需要客户端 JS）；读取 searchParams 使页面按请求渲染，
  * 作品数据走 unstable_cache（后台保存后按标签失效），不同筛选组合共用一份缓存，渲染时过滤与分页。
  * 收录规则见 worksListIndexing：带筛选参数 noindex, follow（canonical /works）；无筛选的第 N 页可收录
- * （canonical /works?page=N）；页码超出总页数（且有作品）→ 404。
+ * （canonical /works?page=N）；页码超出总页数 → 404（没有作品时只有第 1 页，显示空状态）。
  */
 
 type WorksPageProps = {

@@ -14,7 +14,7 @@ import { buildMetadata } from '@/lib/seo/metadata'
  * 页码只存在于 URL（?page=N）：读取 searchParams 使页面按请求渲染，文章数据走 unstable_cache
  * （后台保存后按标签失效，阅读量最迟 1 小时更新），渲染时分页。
  * 收录：每一页都可收录，canonical 为 articlesPageHref(page)（第 1 页不带 ?page=，非法页码按第 1 页），
- * 第 2 页起标题加“（第 N 页）”；页码超出总页数（且有文章）→ 404。
+ * 第 2 页起标题加“（第 N 页）”；页码超出总页数 → 404（没有文章时只有第 1 页，显示空状态）。
  */
 
 type ArticlesPageProps = {

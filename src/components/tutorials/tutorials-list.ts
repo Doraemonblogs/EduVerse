@@ -11,7 +11,7 @@ export type TutorialsMetadataInput = {
   seo: TutorialPagesSettings['list']['seo'] | null
   title: string
   description: string | null
-  shareImage: TutorialCardData['cover']
+  shareImage: TutorialCardData['shareImage']
   path: string
 }
 
@@ -39,7 +39,7 @@ export function tutorialsMetadataInput(
     seo: list.seo?.keywords ? { keywords: list.seo.keywords } : null,
     title: playTarget.title,
     description: playTarget.description ?? list.description,
-    shareImage: playTarget.cover,
+    shareImage: playTarget.shareImage,
     path: TUTORIALS_PATH,
   }
 }

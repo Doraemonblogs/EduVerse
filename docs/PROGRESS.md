@@ -684,7 +684,8 @@ pnpm seed:reset && pnpm dev
   - 百度专项：前台页面响应头 `Cache-Control: no-transform`（防转码）。
   - 元数据修复：21 个可收录页面补上分享图（内置 1200×630 默认图，按设计令牌生成）；讲师页不再用 600×600 头像当分享图；分页第 2 页起描述加页码；详情不存在时标题不再闪回站点默认标题；404 页面不再输出两份 robots 标签。M4 记录的“客户端导航后 head 重复”在当前 Next 版本无法复现，已加回归测试。
   - 元数据审计 e2e：以百度爬虫身份抓取全站，逐页检查 title / description / canonical 唯一、分享图尺寸、noindex 集合、结构化数据，sitemap 与可收录页面双向一致。
-- **性能**：{{PERF_SUMMARY}}
+- **性能**：移动端 Lighthouse（默认移动端模拟，3 次取中位数）经 nginx（HTTPS + HTTP/2，与生产一致）测得首页 91、课程详情 92、文章详情 95，均达到 ≥ 85。优化：Payload 的深浅色客户端提示（`Critical-CH`）只发给后台（此前前台首次访问会被浏览器整页重发一遍）；留资表单的 zod 校验规则按需加载（首屏 JS 247KB → 215KB，加载期间按钮显示“提交中…”）；去掉用不到的 2048 / 3840 图片候选宽度。不删功能、不隐藏内容。
+- **国内爬虫**：在 Next 默认的“阻塞式元数据”爬虫列表（已含百度、搜狗）上增加 360、神马、头条搜索，保证它们拿到的 title / description / canonical 都在 `<head>` 中。
 - **无障碍**：axe 自动检查 25 种页面状态 × 2 个视口，0 个严重问题；每页标题层级、跳过链接；键盘流程抽查头部大菜单、移动菜单、留资弹窗、灯箱、首页轮播、职业测试、教程弹窗。组件无需修改。
 - **Docker 部署**（PRD Q5：单机 docker-compose，无 Redis）
   - `Dockerfile`（多阶段、Node 22、非 root、健康检查、媒体卷；国内可通过构建参数换基础镜像与 npm 源）、`docker-compose.yml`（app + postgres:16，数据库不暴露到宿主）、`deploy/docker-entrypoint.sh`（迁移失败则不启动 → 预渲染 → 启动）。
@@ -697,7 +698,7 @@ pnpm seed:reset && pnpm dev
 
 - 站点地图与 robots：`http://localhost:3000/sitemap.xml`、`/robots.txt`。
 - 无障碍与 SEO 检查：`pnpm test:e2e tests/e2e/a11y.e2e.spec.ts tests/e2e/seo.e2e.spec.ts`（先 `pnpm build`）。
-- Docker：按 README「生产部署」；本机验证可用 `docker compose -p eduverse-try --env-file <配置> up -d --build`，结束后 `down -v`。
+- Docker：按 README「生产部署」；测试机上验证可用 `docker compose -p eduverse-try --env-file <测试配置> up -d --build`（`APP_PORT` 不要用 3000），结束后 `docker compose -p eduverse-try --env-file <测试配置> down -v`（必须带 `-p eduverse-try`，不要在生产目录里对默认项目执行 `down -v`）。
 
 ### 验收结果
 
@@ -716,7 +717,8 @@ pnpm seed:reset && pnpm dev
 | 低   | 公开 REST 接口与图片优化接口在 nginx 没有限速                                                                                | 新增 `eduverse_api`、`eduverse_images` 限速分区（实测 260 次请求中 21 次返回 429）         |
 | 低   | 生产配置中未加引号的值遇到 `$`、` #` 会被 compose 静默截断                                                                   | 示例文件说明用单引号；备份脚本读取时去掉单引号                                           |
 | 低   | 本地预览导出因站点地址缺少子路径失败，且没有任何提示                                                                         | 导出脚本给出原因与正确命令；README 命令改为带 `/EduVerse` 的站点地址                       |
-{{PERF_REVIEW}}
+| 中   | 性能基线虚高：Payload 给全站加的 `Critical-CH` 让浏览器首次访问时整页重发，Lighthouse 把 HTML 记成 470 字节（测得 92 / 94 / 94，真实约 66 / 73 / 75） | 客户端提示只发给后台；按真实口径重测                                                       |
+{{FINAL_REVIEW}}
 
 ### 新增依赖
 
@@ -732,7 +734,10 @@ pnpm seed:reset && pnpm dev
 6. **对象存储暂不接入**：PRD 要求保留切换能力，媒体先存本地卷；切换步骤写在 ARCHITECTURE §10，不预先引入用不到的依赖。
 7. **Radix 导航菜单的隐藏焦点辅助元素不改组件**：焦点从不停留在它上面；只把这一个元素排除在 axe 之外，并由 e2e 与单元测试兜底。
 8. **空列表只有第 1 页**：`?page=N`（N ≥ 2）在没有条目时也返回 404（M4 规则为“没有结果时不算超出”），避免可收录的空白分页。
-{{PERF_DECISIONS}}
+9. **性能以经 nginx 测得的分数为准**：前台页面的 `Cache-Control: no-transform`（百度不转码，PRD 要求）会让 Next 自带的 gzip 跳过页面，直接访问 `next start` 时首页 HTML 约 540KB 不压缩（首页 67、课程详情 83、文章 91）；生产一律经过 nginx（compose 只把 app 绑定在 127.0.0.1），nginx 压缩后约 65KB。没有为了裸跑分数去掉 `no-transform` 头（属于产品 / SEO 取舍）。
+10. **关闭 GraphQL**：前台用 Local API、后台用 REST，未使用 GraphQL；开着时 `loginUser` 变更可在一次请求里带上百个别名调用，绕过 nginx 的登录限速。
+11. **第一个管理员只能经 SSH 隧道创建**：示例 nginx 配置一律屏蔽 `/api/users/first-register`（库里没有账号时任何人都能注册成管理员），避免部署后、创建管理员前被抢注。
+12. **恢复不再先删库**：先恢复到临时库，成功后才切换，原库改名保留；回滚的镜像用 `--app-image` 参数指定（`sudo` 会丢掉环境变量）。
 
 ### 已知问题 / 限制
 
@@ -741,7 +746,9 @@ pnpm seed:reset && pnpm dev
 - 生产镜像约 1.8GB；compile / generate 是 Next 的实验性构建模式，升级 Next 时需按 README 复查。
 - axe 无法自动判定的对比度需人工复核：深色遮罩上的首屏文字、透明整卡按钮、移动端底部操作条后面的内容。
 - 直接访问 app（不经过 nginx）时，不存在的媒体文件返回的 500 也带 1 天缓存头（生产经过 nginx 不受影响）。
-{{PERF_KNOWN}}
+- 首页 TBT 约 330–375ms（约 1,700 个元素、页面内联数据约 238KB 的解析与水合）；进一步降低需要减少首页区块的条目数（产品取舍）。
+- 慢网络下打开表单即点提交时，校验规则还在加载：按钮先显示“提交中…”，加载完成后再提示错误。
+- 全新部署在后台发布隐私政策页面之前，留资表单同意项的“隐私政策”链接是 404（README「首次创建管理员」已列为上线前必做）。
 - M2 迁移回滚问题仍待决定（生产回滚用“备份 + 上一版镜像”）。
 
 ---
@@ -782,7 +789,7 @@ pnpm seed:reset && pnpm dev
 
 1. **M2 迁移回滚**：是否允许一次例外，把 M2 迁移 down 中的两条语句改为 `IF EXISTS`（不改则维持“备份 + 旧镜像”回滚）。
 2. **法务审核**：隐私政策、用户协议（页面内已注明草稿）；学员故事、薪资参考等广告法相关内容（化名、授权确认、来源与统计时间）。
-3. **真实内容替换**：全部课程、讲师、作品、文章、校区、教程（BV 号为占位）都是虚构的演示数据，图片为原创占位图；上线前在后台替换并清理种子账号。
+3. **真实内容**：演示数据（全部课程、讲师、作品、文章、校区、教程，BV 号为占位，图片为原创占位图）与演示账号只存在于开发库和预览站；生产环境从空库开始，种子脚本拒绝在生产环境运行。上线前需在后台录入真实内容，并创建、发布隐私政策 / 用户协议 / 关于 / 联系四个页面（README「首次创建管理员」）。
 4. **上线配置**：域名与 ICP 备案号、HTTPS 证书、百度统计 ID、站长验证码、微信二维码、群机器人地址、`site-settings` 的 Logo 与默认分享图。
 5. **可选增强**：邮件服务（SMTP）、对象存储（OSS / COS）、多实例部署（需先改进程内状态）、中文分词搜索。
 

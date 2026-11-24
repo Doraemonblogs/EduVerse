@@ -21,7 +21,7 @@ upstream eduverse_app {
 # - 站内搜索 /search：每次都查库，每秒 3 个，突发 15
 # - 阅读量上报 /api/articles/<id>/view：每秒 2 个，突发 10（应用内另有按 IP 去重）
 # - 后台登录：每分钟 10 次，突发 5（Payload 另有 5 次失败锁定 10 分钟）
-# - 其余 /api/（Payload REST / GraphQL，已发布内容匿名可读、按参数查库）：每秒 20 个，突发 200——后台编辑时并发请求多，
+# - 其余 /api/（Payload REST，已发布内容匿名可读、按参数查库）：每秒 20 个，突发 200——后台编辑时并发请求多，
 #   阈值放宽，只挡持续刷接口
 # - /_next/image（nginx 缓存未命中时由 app 压缩图片，作品列表一页几十张）：每秒 20 个，突发 200，单独计数
 limit_req_zone $binary_remote_addr zone=eduverse_pages:10m rate=20r/s;
@@ -192,6 +192,14 @@ server {
         limit_req zone=eduverse_login burst=5 nodelay;
     }
 
+    # 创建第一个管理员的接口（/admin/create-first-user 页面提交到这里）：一律不对外。
+    # 库里还没有账号时，任何人调用它都能注册成管理员；部署后、创建管理员前的这段时间会被抢注。
+    # 第一个管理员通过 SSH 隧道直接访问本机的 app 创建（不经过 nginx，见 README「首次创建管理员」）；
+    # 已有账号后接口本身也会拒绝，这条规则保留即可
+    location = /api/users/first-register {
+        deny all;
+    }
+
     # 健康检查只给本机（Docker HEALTHCHECK 直接访问容器，不经过 nginx；监控请在服务器本机探测）
     location = /api/health {
         allow 127.0.0.1;
@@ -211,7 +219,7 @@ server {
         proxy_pass http://eduverse_app;
     }
 
-    # Payload 接口（REST / GraphQL、线索导出、媒体上传）：已发布内容匿名可读，宽松限速挡住持续刷接口
+    # Payload 接口（REST、线索导出、媒体上传；GraphQL 已关闭）：已发布内容匿名可读，宽松限速挡住持续刷接口
     location /api/ {
         proxy_pass http://eduverse_app;
         limit_req zone=eduverse_api burst=200 nodelay;

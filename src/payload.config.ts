@@ -107,6 +107,9 @@ export default buildConfig({
   secret: process.env.PAYLOAD_SECRET || '',
   // 关闭 Payload 匿名遥测（数据发往境外 telemetry.payloadcms.com）
   telemetry: false,
+  // 不提供 GraphQL：前台用 Local API、后台用 REST，没有用到它；开着时 loginUser 变更能绕过 nginx 的登录限速
+  // （一次请求可带上百个别名调用），且多一个匿名可读的接口。/api/graphql 返回 404（M8 评审）
+  graphQL: { disable: true },
   upload: {
     // 单个上传文件上限 50MB（视频）
     limits: { fileSize: 50 * 1024 * 1024 },

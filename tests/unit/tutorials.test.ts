@@ -235,7 +235,10 @@ describe('toTutorialCard：教程卡片映射', () => {
     url: '/api/media/file/cover.webp',
     width: 1600,
     height: 900,
-    sizes: { card: { url: '/api/media/file/cover-800x450.webp', width: 800, height: 450 } },
+    sizes: {
+      card: { url: '/api/media/file/cover-800x450.webp', width: 800, height: 450 },
+      og: { url: '/api/media/file/cover-1200x630.webp', width: 1200, height: 630 },
+    },
   } as unknown as Media
 
   const discipline = (status: 'draft' | 'published') =>
@@ -263,13 +266,19 @@ describe('toTutorialCard：教程卡片映射', () => {
     ...overrides,
   })
 
-  it('映射卡片字段：封面用 card 尺寸，播放器地址按白名单构造，文字去掉首尾空白', () => {
+  it('映射卡片字段：封面用 card 尺寸、分享图用 og 裁切，播放器地址按白名单构造，文字去掉首尾空白', () => {
     expect(toTutorialCard(source())).toEqual({
       id: 11,
       slug: 'stylized-prop',
       title: '风格化道具材质',
       description: '在 Painter 中制作手绘风格材质。',
       cover: { src: '/api/media/file/cover-800x450.webp', alt: '封面', width: 800, height: 450 },
+      shareImage: {
+        src: '/api/media/file/cover-1200x630.webp',
+        alt: '封面',
+        width: 1200,
+        height: 630,
+      },
       discipline: { id: 4, name: '游戏美术', shortName: '游戏', slug: 'game-art' },
       level: 'intermediate',
       provider: 'bilibili',
@@ -301,8 +310,10 @@ describe('toTutorialCard：教程卡片映射', () => {
     expect(card.duration).toBeNull()
   })
 
-  it('封面未填充时为 null', () => {
-    expect(toTutorialCard(source({ cover: 1 })).cover).toBeNull()
+  it('封面未填充时封面与分享图都为 null', () => {
+    const card = toTutorialCard(source({ cover: 1 }))
+    expect(card.cover).toBeNull()
+    expect(card.shareImage).toBeNull()
   })
 })
 
@@ -317,6 +328,7 @@ describe('教程列表筛选', () => {
     title: `教程 ${id}`,
     description: null,
     cover: null,
+    shareImage: null,
     discipline,
     level,
     provider: 'bilibili',

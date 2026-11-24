@@ -80,6 +80,12 @@ const gate: TutorialPagesSettings['gate'] = {
 }
 
 const COVER = { src: '/api/media/file/tutorial-800x450.webp', alt: '', width: 800, height: 450 }
+const SHARE_IMAGE = {
+  src: '/api/media/file/tutorial-1200x630.webp',
+  alt: '',
+  width: 1200,
+  height: 630,
+}
 
 const tutorial = (overrides: Partial<TutorialCardData> = {}): TutorialCardData => ({
   id: 101,
@@ -87,6 +93,7 @@ const tutorial = (overrides: Partial<TutorialCardData> = {}): TutorialCardData =
   title: 'Blender 入门：做一座低多边形小木屋',
   description: '从界面与视图操作讲起。',
   cover: COVER,
+  shareImage: SHARE_IMAGE,
   discipline: ANIMATION,
   level: 'beginner',
   provider: 'bilibili',
@@ -239,12 +246,12 @@ describe('tutorialsMetadataInput：列表页元数据', () => {
     })
   })
 
-  it('深链接：标题、描述、分享图换成教程的，只保留列表页关键词', () => {
+  it('深链接：标题、描述、分享图换成教程的（封面的 1200×630 裁切，不是卡片尺寸），只保留列表页关键词', () => {
     expect(tutorialsMetadataInput(list, tutorial())).toEqual({
       seo: { keywords: '教程,Blender' },
       title: 'Blender 入门：做一座低多边形小木屋',
       description: '从界面与视图操作讲起。',
-      shareImage: COVER,
+      shareImage: SHARE_IMAGE,
       path: '/tutorials',
     })
     const bare = tutorialsMetadataInput({ ...list, seo: null }, tutorial({ description: null }))

@@ -100,7 +100,7 @@ pnpm preview:serve                                                       # http:
 - **页面设置**：首页区块、各列表页的标题 / 简介 / SEO、详情页行动号召文案在“站点配置”分组的全局配置中（首页、课程 / 作品 / 师资 / 资讯 / 校区 / 教程页面设置、就业服务页、职业测试设置）。
 - **线索**：列表按状态、顾问、意向、时间筛选；状态按“新线索 → 已联系 → 已到访 → 已报名 / 无效”流转（顾问只能向前），跟进记录自动记录作者与时间；同一手机号 30 天内再次提交标记为重复并交给原顾问。右上角菜单“导出 CSV”按当前筛选导出（每次导出记入操作日志）。
 - **群机器人**：在“留资设置”中添加企业微信 / 飞书 / 钉钉机器人地址（只接受官方域名，可加签、默认手机号脱敏），新线索自动推送，失败自动重试。
-- **合规**：文案避免绝对化用语与效果承诺；薪资参考必须填写来源与统计时间（前台固定附免责声明）；学员一律使用化名；隐私政策与用户协议为草稿，上线前须法务审核。
+- **合规**：文案避免绝对化用语与效果承诺；薪资参考必须填写来源与统计时间（前台固定附免责声明）；学员一律使用化名；隐私政策与用户协议需在上线前于后台「页面」中创建并发布（演示数据里的草稿可作起点），并经法务审核。
 
 ## 测试
 
@@ -186,12 +186,13 @@ curl -fsS http://127.0.0.1:3000/api/health   # {"status":"ok"}
 
 ```bash
 sudo cp deploy/nginx.conf.example /etc/nginx/conf.d/eduverse.conf
-# 改 server_name（www.example.com / example.com）与证书路径；证书可用云厂商免费证书或 certbot / acme.sh
+# 把文件中所有 www.example.com / example.com（含 server_name 与 return 301 的跳转目标）换成自己的域名，改证书路径；
+# 证书可用云厂商免费证书或 certbot / acme.sh（首次申请时证书文件还不存在，nginx -t 会失败：先用 standalone 方式申请，或暂时只启用 80 端口的 server）
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
 - **真实 IP**：`TRUST_PROXY=true`（默认）时，app 取 `X-Forwarded-For` 的**最后一个**地址识别访客（留资、阅读量按 IP 限频）。示例配置已设置 `X-Forwarded-For $proxy_add_x_forwarded_for` 与 `X-Real-IP $remote_addr`。前面还有 CDN / 负载均衡时，先按示例中的注释启用 `set_real_ip_from` + `real_ip_header`，否则所有访客会被识别成 CDN 节点。**不经过 nginx、直接对外暴露 app 端口时必须改为 `TRUST_PROXY=false`**，否则访客可伪造请求头绕过限频。
-- **限速**（超出返回 429，阈值按“挡脚本、不挡共用出口 IP 的人”设置，可按访问量调整）：前台页面每 IP 每秒 20 个（突发 100，含客户端导航与预取）、`/search` 每秒 3 个、`/api/articles/<id>/view` 每秒 2 个、后台登录每分钟 10 次；其余 `/api/`（Payload REST / GraphQL：已发布内容匿名可读）与 `/_next/image` 各自每秒 20 个、突发 200（后台编辑并发请求多，阈值放宽）。`/admin` 页面不限速。
+- **限速**（超出返回 429，阈值按“挡脚本、不挡共用出口 IP 的人”设置，可按访问量调整）：前台页面每 IP 每秒 20 个（突发 100，含客户端导航与预取）、`/search` 每秒 3 个、`/api/articles/<id>/view` 每秒 2 个、后台登录每分钟 10 次；其余 `/api/`（Payload REST：已发布内容匿名可读；GraphQL 已关闭）与 `/_next/image` 各自每秒 20 个、突发 200（后台编辑并发请求多，阈值放宽）。`/admin` 页面不限速。
 - **上传**：`client_max_body_size 51m`（后台单个文件上限 50MB，另留表单开销）。
 - **缓存**：`/_next/static`（带哈希，一年 immutable）与 `/_next/image`（按格式区分 AVIF / WebP）由 nginx 再缓存一份；媒体文件 `/api/media/file/*` 浏览器缓存 1 天（文件名不含内容哈希，替换同名文件最迟 1 天生效），错误响应不缓存。前台页面 `Cache-Control: private, no-cache, no-transform`（百度不转码；不进共享缓存，浏览器每次确认），页面缓存在 app 内部完成（ISR）。
 - `/api/health` 只允许本机访问；监控请在服务器本机探测 `http://127.0.0.1:3000/api/health`。
@@ -199,9 +200,27 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ### 首次创建管理员
 
-站点启动后**立即**打开 `https://<域名>/admin`，按提示创建第一个账号（库里第一个账号自动成为管理员），再在「后台用户」中为编辑、课程顾问建号。
-在创建第一个账号之前，任何人打开 `/admin` 都能注册成管理员；部署和创建之间如果有间隔，可先在 nginx 的 `location /admin/` 里加 `allow <你的 IP>; deny all;`，创建完再去掉。
-生产环境不会写入演示数据（种子脚本拒绝在生产环境运行），各页面先显示空状态，在后台录入内容并发布后出现。
+库里还没有账号时，任何人调用创建接口都能注册成管理员，所以示例 nginx 配置**一律屏蔽** `/api/users/first-register`，第一个账号不能通过域名创建。
+站点启动后，在自己的电脑上建立 SSH 隧道直接访问服务器本机的 app（app 端口只绑定 127.0.0.1）：
+
+```bash
+ssh -N -L 3000:127.0.0.1:3000 <用户>@<服务器>
+```
+
+再在本机浏览器打开 http://localhost:3000/admin ，按提示创建第一个账号（库里第一个账号自动成为管理员）。之后从 `https://<域名>/admin` 正常登录，
+在「后台用户」中为编辑、课程顾问建号。nginx 的这条屏蔽规则保留即可（已有账号后接口本身也会拒绝）。
+
+**对外开放前必须创建并发布的页面**（后台「页面」，slug 固定）：
+
+| slug      | 用途                                                                         |
+| --------- | ---------------------------------------------------------------------------- |
+| `privacy` | 隐私政策。**每个留资表单的同意项都链接到 `/privacy`**，未发布时该链接 404    |
+| `terms`   | 用户协议                                                                     |
+| `about`   | 关于我们（导航、页脚的链接在后台「导航」「页脚」中配置，通常会链接到这三页） |
+| `contact` | 联系我们                                                                     |
+
+文案可参考演示数据的草稿（`scripts/seed/data/pages.ts`），隐私政策与用户协议须经法务审核；发布隐私政策后在「站点设置」中填写对应的隐私政策版本号（随每条线索记录）。
+生产环境不会写入演示数据（种子脚本拒绝在生产环境运行），也没有演示账号：列表页先显示空状态，上面四个页面在发布前返回 404，在后台录入内容并发布后出现。
 
 > 未配置邮件服务：忘记密码的重置邮件只会写到容器日志（`docker compose logs app`），由管理员在「后台用户」里直接修改密码即可。
 
@@ -240,6 +259,7 @@ sudo nginx -t && sudo systemctl reload nginx
 deploy/backup.sh     # 数据库（pg_dump 自定义格式）+ 媒体文件（tar.gz），校验后写入 BACKUP_DIR，删除 7 天前的备份
 ```
 
+- 只支持 compose 内的 `db` 服务：配置了 `DATABASE_URL`（外部数据库）时备份 / 恢复脚本拒绝执行，外部数据库请用其自身的备份方案（如云数据库快照）。
 - 备份目录 `BACKUP_DIR` 默认 `/var/backups/eduverse`（权限 700），保留天数 `BACKUP_KEEP_DAYS` 默认 7，都在 `deploy/.env.production` 中设置；不要放在项目目录里（`git clean` 会删掉）。
 - 每天定时（root 的 crontab）：`17 3 * * * /srv/eduverse/deploy/backup.sh >> /var/log/eduverse-backup.log 2>&1`
 - 备份含线索手机号等个人信息：只在本机保留 7 天不等于安全，建议加密后同步到另一台机器或对象存储（异地备份），并定期做一次恢复演练。
@@ -247,13 +267,16 @@ deploy/backup.sh     # 数据库（pg_dump 自定义格式）+ 媒体文件（ta
 ### 恢复
 
 ```bash
-deploy/restore.sh /var/backups/eduverse/eduverse-<时间>-db.dump \
-                  /var/backups/eduverse/eduverse-<时间>-media.tar.gz --yes
+sudo deploy/restore.sh /var/backups/eduverse/eduverse-<时间>-db.dump \
+                       /var/backups/eduverse/eduverse-<时间>-media.tar.gz --yes
 ```
 
-脚本依次：检查备份可读 → 停止 app → 删除并重建数据库、`pg_restore` → 清空并解压 media 卷 → 启动 app（入口脚本补执行缺少的迁移）。不带 `--yes` 只打印将要做的事；省略媒体文件时只恢复数据库。恢复前最好先 `deploy/backup.sh` 留一份当前数据。
+脚本依次：完整读一遍备份（损坏或不完整时停止，现有数据不动）→ 恢复到临时库 `<库名>_restore`（站点照常运行；失败时删除临时库，现有数据不动）→
+停止 app → 现有数据库改名保留为 `<库名>_before_restore`、临时库改为正式库名 → 清空并解压 media 卷 → 启动 app（入口脚本补执行缺少的迁移）。
+不带 `--yes` 只打印将要做的事；省略媒体文件时只恢复数据库。备份目录权限为 700（root 的定时任务创建），非 root 用户需要 `sudo`。
+恢复期间磁盘上同时有两份数据库；确认站点正常后按脚本最后打印的命令删除 `<库名>_before_restore`（下一次恢复也会先删掉它）。
 
-手动恢复（脚本不可用时）：
+手动恢复（脚本不可用时；会直接覆盖现有数据库，先 `deploy/backup.sh` 留底）：
 
 ```bash
 docker compose stop app
@@ -278,20 +301,28 @@ docker compose ps && docker compose logs --tail=100 app   # 6. 确认 healthy、
 替换容器期间（通常几十秒）nginx 返回 502。新镜像会让升级前打开、尚未提交的留资表单失效（Server Action 随构建变化），访客刷新页面即可。
 `deploy/.env.production.example` 新增变量时，对照着补到 `deploy/.env.production`。PostgreSQL 不要跨大版本直接换镜像（16 → 17 需要 `pg_dump` 导出再导入新库）。
 
+**升级 Next.js / Payload 版本时**（开发者在合入前做）：本项目依赖两处 Next 内部实现——`cache-handler.mjs`（继承内部的文件缓存、给每路径时效表设上限）与镜像使用的实验性构建模式 `--experimental-build-mode=compile / generate`。
+先跑 `pnpm test:unit tests/unit/cache-handler.test.ts`，再在测试机上用空库起一套（`docker compose -p eduverse-try --env-file <测试配置> up -d --build`，`APP_PORT` 不要用 3000），
+确认日志出现“预渲染完成”、各页面返回 200 / 404，并请求几百个随机地址（如 `/courses/x<随机数>`）后 `docker compose -p eduverse-try exec app sh -c 'find .next/server/route-cache -type f | wc -l'` 不增长；
+最后 `docker compose -p eduverse-try --env-file <测试配置> down -v` 清理（**带上 `-p eduverse-try`**，不要在生产目录里对默认项目执行 `down -v`，会删除生产数据卷）。
+
 ### 回滚
 
 数据库迁移不做 `migrate:down`（M2 迁移无法回滚）。新版本有问题时，恢复升级前的数据并**用旧镜像**启动：
 
 ```bash
-export APP_IMAGE=eduverse-app:prev   # 当前终端里的 compose 命令都用旧镜像（优先于 deploy/.env.production 里的值）
-deploy/restore.sh /var/backups/eduverse/eduverse-<升级前>-db.dump \
-                  /var/backups/eduverse/eduverse-<升级前>-media.tar.gz --yes
+sudo deploy/restore.sh --app-image=eduverse-app:prev \
+                       /var/backups/eduverse/eduverse-<升级前>-db.dump \
+                       /var/backups/eduverse/eduverse-<升级前>-media.tar.gz --yes
 ```
 
-`APP_IMAGE` 必须在执行 `restore.sh` **之前**设置：脚本最后会启动 app，入口脚本随即执行迁移——如果这时启动的还是新镜像，
-新版本的迁移会再次写进刚恢复的数据库，旧镜像就无法使用这份数据了。
+**必须用 `--app-image` 指定旧镜像**：脚本最后会启动 app，入口脚本随即执行迁移——如果这时启动的还是新镜像，
+新版本的迁移会再次写进刚恢复的数据库，旧镜像就无法使用这份数据了。（也可以用环境变量 `APP_IMAGE`，但 `sudo` 默认会丢掉环境变量，所以回滚用参数。）
 
-确认无误后把 `deploy/.env.production` 里的 `APP_IMAGE` 改为 `eduverse-app:prev`（或 `docker tag eduverse-app:prev eduverse-app:latest`），并把代码切回对应版本，避免下次 `docker compose build` 又构建出新版本。注意：恢复会丢失升级之后产生的线索与内容修改，回滚前可先导出线索（后台「线索 → 导出」）。
+确认无误后执行 `docker tag eduverse-app:prev eduverse-app:latest`，并把代码切回对应版本，避免下次 `docker compose build` 又构建出新版本。
+`deploy/.env.production` 里的 `APP_IMAGE` 保持 `eduverse-app:latest`，**不要改成 `eduverse-app:prev`**：升级第 2 步会覆盖 prev 标签，
+`docker compose build` 也会把新镜像写进 `APP_IMAGE` 指定的标签，最后一个可用的旧镜像就没有标签了。
+注意：恢复会丢失升级之后产生的线索与内容修改，回滚前可先导出线索（后台「线索 → 导出」）。
 
 ### 媒体存储
 
